@@ -1,21 +1,27 @@
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Handles saving and loading the social network to/from a text file.
  *
  * File format:
  *   [USERS]
- *   userId|name|workplace|hometown|password
+ *   userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...
  *   ...
  *   [FRIENDSHIPS]
  *   userId1|userId2
  *   ...
  *   [POSTS]
  *   postId|authorId|content|timestamp|likerId1,likerId2,...
+ *   ...
+ *   [COMMENTS]
+ *   postId|authorId|content|timestamp
  *   ...
  *   [COUNTER]
  *   postCounter
@@ -42,7 +48,10 @@ public class FileManager {
                         + escape(user.getName()) + "|"
                         + escape(user.getWorkplace()) + "|"
                         + escape(user.getHometown()) + "|"
-                        + escape(user.getPassword()));
+                        + escape(user.getPassword()) + "|"
+                        + escape(user.getSignature()) + "|"
+                        + escape(user.getAvatarPath()) + "|"
+                        + escape(serializeRemarks(user)));
                 writer.newLine();
             }
 
@@ -74,6 +83,21 @@ public class FileManager {
                             + escape(post.getTimestampString()) + "|"
                             + escape(post.getLikerIdsString()));
                     writer.newLine();
+                }
+            }
+
+            // Write comments section
+            writer.write("[COMMENTS]");
+            writer.newLine();
+            for (User user : network.getAllUsers()) {
+                for (Post post : user.getPosts()) {
+                    for (Comment comment : post.getComments()) {
+                        writer.write(escape(post.getPostId()) + "|"
+                                + escape(comment.getAuthor().getUserId()) + "|"
+                                + escape(comment.getContent()) + "|"
+                                + escape(comment.getTimestampString()));
+                        writer.newLine();
+                    }
                 }
             }
 
@@ -121,6 +145,9 @@ public class FileManager {
                     case "[POSTS]":
                         parsePost(line, network);
                         break;
+                    case "[COMMENTS]":
+                        parseComment(line, network);
+                        break;
                     case "[COUNTER]":
                         try {
                             network.setPostCounter(Integer.parseInt(line));
@@ -148,6 +175,9 @@ public class FileManager {
             String hometown = unescape(parts[3]);
             String password = parts.length >= 5 ? unescape(parts[4]) : "";
             User user = new User(userId, name, workplace, hometown, password);
+            if (parts.length >= 6) user.setSignature(unescape(parts[5]));
+            if (parts.length >= 7) user.setAvatarPath(unescape(parts[6]));
+            if (parts.length >= 8) parseRemarks(unescape(parts[7]), user);
             network.addUser(user);
         }
     }
@@ -219,5 +249,65 @@ public class FileManager {
     private static String unescape(String s) {
         if (s == null) return "";
         return s.replace("\\p", "|").replace("\\\\", "\\");
+    }
+
+    private static String serializeRemarks(User user) {
+        StringBuilder sb = new StringBuilder();
+        for (Map.Entry<String, String> entry : user.getFriendRemarks().entrySet()) {
+            if (entry.getValue() == null || entry.getValue().trim().isEmpty()) continue;
+            if (sb.length() > 0) sb.append(";");
+            sb.append(entry.getKey()).append(":").append(encode(entry.getValue()));
+        }
+        return sb.toString();
+    }
+
+    private static void parseRemarks(String data, User user) {
+        if (data == null || data.trim().isEmpty()) return;
+        String[] entries = data.split(";");
+        for (String entry : entries) {
+            int sep = entry.indexOf(':');
+            if (sep <= 0 || sep >= entry.length() - 1) continue;
+            String friendId = entry.substring(0, sep);
+            String remark = decode(entry.substring(sep + 1));
+            user.setFriendRemark(friendId, remark);
+        }
+    }
+
+    /**
+     * Parses a comment line and attaches it to the matching post.
+     */
+    private static void parseComment(String line, SocialNetwork network) {
+        String[] parts = line.split("\\|", -1);
+        if (parts.length >= 4) {
+            String postId = unescape(parts[0]);
+            String authorId = unescape(parts[1]);
+            String content = unescape(parts[2]);
+            String timestampStr = unescape(parts[3]);
+
+            Post post = network.getPostById(postId);
+            User author = network.getUser(authorId);
+            if (post == null || author == null) return;
+
+            LocalDateTime timestamp;
+            try {
+                timestamp = LocalDateTime.parse(timestampStr, FORMATTER);
+            } catch (Exception e) {
+                timestamp = LocalDateTime.now();
+            }
+            post.addComment(new Comment(author, content, timestamp));
+        }
+    }
+
+    private static String encode(String value) {
+        return Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String decode(String value) {
+        try {
+            return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return "";
+        }
     }
 }

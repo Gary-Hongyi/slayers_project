@@ -24,6 +24,9 @@ public class Post {
     /** List of users who liked this post */
     private List<User> likes;
 
+    /** List of comments on this post */
+    private List<Comment> comments;
+
     /** Date format for display and serialization */
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -41,6 +44,7 @@ public class Post {
         this.content = content;
         this.timestamp = LocalDateTime.now();
         this.likes = new ArrayList<>();
+        this.comments = new ArrayList<>();
     }
 
     /**
@@ -57,6 +61,7 @@ public class Post {
         this.content = content;
         this.timestamp = timestamp;
         this.likes = new ArrayList<>();
+        this.comments = new ArrayList<>();
     }
 
     // ---- Getters ----
@@ -87,6 +92,14 @@ public class Post {
 
     public int getLikeCount() {
         return likes.size();
+    }
+
+    public List<Comment> getComments() {
+        return comments;
+    }
+
+    public int getCommentCount() {
+        return comments.size();
     }
 
     // ---- Like Management ----
@@ -135,10 +148,25 @@ public class Post {
         return sb.toString();
     }
 
+    // ---- Comment Management ----
+
+    public Comment addComment(User author, String content) {
+        if (author == null || content == null || content.trim().isEmpty()) return null;
+        Comment comment = new Comment(author, content.trim());
+        comments.add(comment);
+        return comment;
+    }
+
+    public void addComment(Comment comment) {
+        if (comment != null) {
+            comments.add(comment);
+        }
+    }
+
     @Override
     public String toString() {
         return author.getName() + ": \"" + content + "\" [" + getTimestampString() + "] "
-                + "Likes: " + likes.size();
+                + "Likes: " + likes.size() + " Comments: " + comments.size();
     }
 
     public static DateTimeFormatter getFormatter() {

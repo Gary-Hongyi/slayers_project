@@ -37,11 +37,14 @@ public class MainContentPanel extends JPanel {
     // Profile
     private JLabel pAvatar, pName, pId;
     private JTextField pNameF, pWorkF, pHomeF;
+    private JTextArea pSigArea;
+    private JPanel profilePostFeed;
     // Friends
     private DefaultListModel<User> fModel;
     private JList<User> fList;
     private JTextField fSearch;
     private String fFilter = "All";
+    private final List<FilterChip> fFilterChips = new ArrayList<>();
     // Moments
     private JTextArea mInput;
     private JPanel mFeed;
@@ -49,11 +52,15 @@ public class MainContentPanel extends JPanel {
     private JTextField sField;
     private DefaultListModel<User> sModel;
     private JList<User> sList;
+    private String sFilter = "Mutual Friends";
+    private final List<FilterChip> sFilterChips = new ArrayList<>();
+    private final Map<User, String> sRecommendationReasons = new HashMap<>();
+    private DefaultListModel<User> searchResultModel;
+    private JList<User> searchResultList;
     // Right detail labels
     private JLabel rAvatar, rName, rId;
-    private JPanel rWork, rHome, rSig, rMutual;
+    private JPanel rRemark, rWork, rHome, rSig, rMutual;
     private JLabel rFriends, rPosts;
-    private JTextArea rSigArea;
     private JPanel rActionPanel, rExtraPanel;
     private String rightCard = "PROFILE";
 
@@ -76,6 +83,8 @@ public class MainContentPanel extends JPanel {
         rightPanel = new JPanel(rightCards);
         rightPanel.setOpaque(false);
         rightPanel.add(buildProfileRight(), "PROFILE");
+        rightPanel.add(buildEmptyRight(), "EMPTY");
+        rightPanel.add(buildSearchRight(), "SEARCH");
         rightPanel.add(buildDetailRight(), "DETAIL");
 
         JPanel midWithSep = new JPanel(new BorderLayout());
@@ -129,9 +138,9 @@ public class MainContentPanel extends JPanel {
         repaint();
         switch (idx) {
             case 0: refreshProfile(); midCards.show(midPanel, "PROFILE"); rightCards.show(rightPanel, "PROFILE"); break;
-            case 1: refreshFriends(); midCards.show(midPanel, "FRIENDS"); showProfileRight(); break;
+            case 1: refreshFriends(); midCards.show(midPanel, "FRIENDS"); showEmptyRight(); break;
             case 2: refreshMoments(); midCards.show(midPanel, "MOMENTS"); showProfileRight(); break;
-            case 3: refreshSearch(); midCards.show(midPanel, "SEARCH"); showProfileRight(); break;
+            case 3: refreshSearch(); midCards.show(midPanel, "SEARCH"); showSearchRight(); break;
         }
     }
 
@@ -142,7 +151,7 @@ public class MainContentPanel extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
-        content.setBorder(new EmptyBorder(32, 24, 16, 24));
+        content.setBorder(new EmptyBorder(24, 24, 16, 24));
 
         pAvatar = new AvatarLabel(80, null);
         pAvatar.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -164,14 +173,16 @@ public class MainContentPanel extends JPanel {
         pId.setFont(YH); pId.setForeground(TEXT_SUB);
         pId.setAlignmentX(Component.CENTER_ALIGNMENT);
         content.add(pId);
-        content.add(Box.createVerticalStrut(32));
+        content.add(Box.createVerticalStrut(20));
 
+        content.add(profileTextArea("Signature"));
+        content.add(Box.createVerticalStrut(12));
         content.add(editRow("Name"));
         content.add(Box.createVerticalStrut(12));
         content.add(editRow("Workplace"));
         content.add(Box.createVerticalStrut(12));
         content.add(editRow("Hometown"));
-        content.add(Box.createVerticalStrut(24));
+        content.add(Box.createVerticalStrut(20));
 
         StyledButton saveBtn = new StyledButton("Save Changes", true);
         saveBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -184,6 +195,26 @@ public class MainContentPanel extends JPanel {
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         p.add(sp, BorderLayout.CENTER);
         return p;
+    }
+
+    private JPanel profileTextArea(String label) {
+        JPanel wrap = new JPanel(new BorderLayout(0, 6));
+        wrap.setOpaque(false);
+        wrap.setMaximumSize(new Dimension(260, 116));
+        JLabel l = new JLabel(label);
+        l.setFont(YHB); l.setForeground(TEXT_SUB);
+        wrap.add(l, BorderLayout.NORTH);
+
+        pSigArea = new JTextArea(3, 20);
+        pSigArea.setFont(YH); pSigArea.setForeground(TEXT_MAIN);
+        pSigArea.setLineWrap(true); pSigArea.setWrapStyleWord(true);
+        pSigArea.setOpaque(false);
+        pSigArea.setBorder(new EmptyBorder(8, 8, 8, 8));
+        JScrollPane sp = new JScrollPane(pSigArea);
+        sp.setBorder(BorderFactory.createLineBorder(DIVIDER));
+        sp.setOpaque(false); sp.getViewport().setOpaque(false);
+        wrap.add(sp, BorderLayout.CENTER);
+        return wrap;
     }
 
     private JPanel editRow(String label) {
@@ -216,10 +247,9 @@ public class MainContentPanel extends JPanel {
 
     // ======== PROFILE RIGHT ========
     private JPanel buildProfileRight() {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
-        p.setBorder(new EmptyBorder(32, 32, 16, 32));
+        p.setBorder(new EmptyBorder(32, 32, 24, 32));
 
         rFriends = new JLabel("0");
         rFriends.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 24));
@@ -227,50 +257,42 @@ public class MainContentPanel extends JPanel {
         rPosts = new JLabel("0");
         rPosts.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 24));
         rPosts.setForeground(BRAND);
-        JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 32, 0));
+
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        JLabel title = new JLabel("My Posts");
+        title.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 20));
+        title.setForeground(TEXT_MAIN);
+        top.add(title, BorderLayout.WEST);
+
+        JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 28, 0));
         statsRow.setOpaque(false);
-        statsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         statsRow.add(buildStatBox(rFriends, "Friends"));
         statsRow.add(buildStatBox(rPosts, "Posts"));
-        p.add(statsRow);
-        p.add(Box.createVerticalStrut(32));
+        top.add(statsRow, BorderLayout.EAST);
+        p.add(top, BorderLayout.NORTH);
 
-        JLabel sigTitle = new JLabel("Signature");
-        sigTitle.setFont(YHB); sigTitle.setForeground(TEXT_SUB);
-        p.add(sigTitle);
-        p.add(Box.createVerticalStrut(8));
-        rSigArea = new JTextArea(3, 20);
-        rSigArea.setFont(YH); rSigArea.setForeground(TEXT_MAIN);
-        rSigArea.setLineWrap(true); rSigArea.setWrapStyleWord(true);
-        rSigArea.setOpaque(false);
-        rSigArea.setBorder(new EmptyBorder(8, 8, 8, 8));
-        JScrollPane sp = new JScrollPane(rSigArea);
-        sp.setBorder(BorderFactory.createLineBorder(DIVIDER));
-        sp.setOpaque(false); sp.getViewport().setOpaque(false);
-        sp.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(sp);
-        p.add(Box.createVerticalStrut(16));
+        profilePostFeed = new JPanel();
+        profilePostFeed.setLayout(new BoxLayout(profilePostFeed, BoxLayout.Y_AXIS));
+        profilePostFeed.setOpaque(false);
+        JScrollPane postScroll = new JScrollPane(profilePostFeed);
+        postScroll.setBorder(null);
+        postScroll.setOpaque(false);
+        postScroll.getViewport().setOpaque(false);
+        postScroll.getVerticalScrollBar().setUnitIncrement(16);
+        postScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        p.add(postScroll, BorderLayout.CENTER);
 
-        StyledButton sigSave = new StyledButton("Save Signature", false);
-        sigSave.setAlignmentX(Component.LEFT_ALIGNMENT);
-        sigSave.addActionListener(e -> {
-            User cur = network.getCurrentUser();
-            if (cur != null) {
-                cur.setSignature(rSigArea.getText().trim());
-                LoginPanel.rewriteUsersFile(network);
-                JOptionPane.showMessageDialog(this, "Signature saved!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-        p.add(sigSave);
-
-        p.add(Box.createVerticalGlue());
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        bottom.setOpaque(false);
+        bottom.setBorder(new EmptyBorder(16, 0, 0, 0));
         StyledButton logoutBtn = new StyledButton("Logout", false);
-        logoutBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
         logoutBtn.addActionListener(e -> {
             network.setCurrentUser(null);
             mainGUI.showCard(MainGUI.LOGIN_CARD);
         });
-        p.add(logoutBtn);
+        bottom.add(logoutBtn);
+        p.add(bottom, BorderLayout.SOUTH);
 
         return p;
     }
@@ -288,7 +310,10 @@ public class MainContentPanel extends JPanel {
         fSearch.setBackground(INPUT_BG);
         fSearch.setCaretColor(BRAND);
         fSearch.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { refreshFriendList(); }
+            public void keyReleased(KeyEvent e) {
+                refreshFriendList();
+                showEmptyRight();
+            }
         });
         JPanel searchWrap = new JPanel(new BorderLayout());
         searchWrap.setOpaque(false);
@@ -298,9 +323,17 @@ public class MainContentPanel extends JPanel {
         // Filter buttons
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         filterRow.setOpaque(false);
+        fFilterChips.clear();
         for (String f : new String[]{"All", "Same Hometown", "Same Workplace"}) {
             FilterChip chip = new FilterChip(f, f.equals(fFilter));
-            chip.addActionListener(e -> { fFilter = f; refreshFriends(); });
+            fFilterChips.add(chip);
+            chip.addActionListener(e -> {
+                fFilter = f;
+                updateFriendFilterChips();
+                refreshFriends();
+                if (fList != null) fList.clearSelection();
+                showEmptyRight();
+            });
             filterRow.add(chip);
         }
         searchWrap.add(filterRow, BorderLayout.SOUTH);
@@ -378,28 +411,38 @@ public class MainContentPanel extends JPanel {
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        sField = new JTextField();
-        sField.setFont(YH); sField.setForeground(TEXT_MAIN);
-        sField.setBorder(new EmptyBorder(10, 12, 10, 12));
-        sField.setBackground(INPUT_BG);
-        sField.setCaretColor(BRAND);
-        JPanel searchRow = new JPanel(new BorderLayout(8, 0));
-        searchRow.setOpaque(false);
-        searchRow.add(sField, BorderLayout.CENTER);
-        StyledButton goBtn = new StyledButton("Go", false);
-        goBtn.setPreferredSize(new Dimension(60, 40));
-        goBtn.addActionListener(e -> performSearch());
-        searchRow.add(goBtn, BorderLayout.EAST);
-        p.add(searchRow, BorderLayout.NORTH);
-
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
         JLabel recLabel = new JLabel("Recommended for you");
-        recLabel.setFont(YHB); recLabel.setForeground(TEXT_SUB);
-        recLabel.setBorder(new EmptyBorder(16, 0, 8, 0));
+        recLabel.setFont(YHB); recLabel.setForeground(TEXT_MAIN);
+        recLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        top.add(recLabel);
+        top.add(Box.createVerticalStrut(10));
+
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        filterRow.setOpaque(false);
+        filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sFilterChips.clear();
+        for (String filter : new String[]{"Mutual Friends", "Same Workplace", "Same Hometown"}) {
+            FilterChip chip = new FilterChip(filter, filter.equals(sFilter));
+            sFilterChips.add(chip);
+            chip.addActionListener(e -> {
+                sFilter = filter;
+                updateSearchFilterChips();
+                refreshSearch();
+                if (sList != null) sList.clearSelection();
+            });
+            filterRow.add(chip);
+        }
+        top.add(filterRow);
+        top.add(Box.createVerticalStrut(12));
+        p.add(top, BorderLayout.NORTH);
 
         sModel = new DefaultListModel<>();
         sList = new JList<>(sModel);
-        sList.setCellRenderer(new FriendCellRenderer());
-        sList.setFixedCellHeight(60);
+        sList.setCellRenderer(new RecommendationCellRenderer());
+        sList.setFixedCellHeight(68);
         sList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         sList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && sList.getSelectedValue() != null)
@@ -408,60 +451,150 @@ public class MainContentPanel extends JPanel {
         JScrollPane sp = new JScrollPane(sList);
         sp.setBorder(null); sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
+        p.add(sp, BorderLayout.CENTER);
+        return p;
+    }
 
-        JPanel centerWrap = new JPanel(new BorderLayout());
-        centerWrap.setOpaque(false);
-        centerWrap.add(recLabel, BorderLayout.NORTH);
-        centerWrap.add(sp, BorderLayout.CENTER);
-        p.add(centerWrap, BorderLayout.CENTER);
+    private JPanel buildSearchRight() {
+        JPanel p = new JPanel(new BorderLayout());
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(32, 32, 24, 32));
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+
+        JLabel title = new JLabel("Search Users");
+        title.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 20));
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        top.add(title);
+        top.add(Box.createVerticalStrut(12));
+
+        sField = new JTextField();
+        sField.setFont(YH); sField.setForeground(TEXT_MAIN);
+        sField.setBorder(new EmptyBorder(10, 12, 10, 12));
+        sField.setBackground(INPUT_BG);
+        sField.setCaretColor(BRAND);
+        sField.addKeyListener(new KeyAdapter() {
+            public void keyReleased(KeyEvent e) { performSearch(); }
+        });
+
+        JPanel searchRow = new JPanel(new BorderLayout(8, 0));
+        searchRow.setOpaque(false);
+        searchRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        searchRow.add(sField, BorderLayout.CENTER);
+        StyledButton goBtn = new StyledButton("Go", false);
+        goBtn.setPreferredSize(new Dimension(70, 40));
+        goBtn.addActionListener(e -> performSearch());
+        searchRow.add(goBtn, BorderLayout.EAST);
+        top.add(searchRow);
+        top.add(Box.createVerticalStrut(18));
+        p.add(top, BorderLayout.NORTH);
+
+        searchResultModel = new DefaultListModel<>();
+        searchResultList = new JList<>(searchResultModel);
+        searchResultList.setCellRenderer(new FriendCellRenderer());
+        searchResultList.setFixedCellHeight(64);
+        searchResultList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        searchResultList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting() && searchResultList.getSelectedValue() != null)
+                showSearchUserDetail(searchResultList.getSelectedValue());
+        });
+        JScrollPane sp = new JScrollPane(searchResultList);
+        sp.setBorder(null);
+        sp.setOpaque(false);
+        sp.getViewport().setOpaque(false);
+        p.add(sp, BorderLayout.CENTER);
+        return p;
+    }
+
+    private JPanel buildEmptyRight() {
+        JPanel p = new JPanel(new GridBagLayout());
+        p.setOpaque(false);
+        EmptyChatIcon icon = new EmptyChatIcon();
+        icon.setPreferredSize(new Dimension(96, 72));
+        p.add(icon);
         return p;
     }
 
     // ======== RIGHT DETAIL PANEL ========
     private JPanel buildDetailRight() {
-        JPanel p = new JPanel();
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        JPanel p = new JPanel(new GridBagLayout());
         p.setOpaque(false);
-        p.setBorder(new EmptyBorder(32, 32, 16, 32));
 
-        rAvatar = new AvatarLabel(80, null);
-        rAvatar.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(rAvatar);
-        p.add(Box.createVerticalStrut(16));
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(false);
+        content.setBorder(new EmptyBorder(48, 32, 32, 32));
+        content.setMaximumSize(new Dimension(430, Integer.MAX_VALUE));
+
+        JPanel head = new JPanel(new BorderLayout(18, 0));
+        head.setOpaque(false);
+        head.setMaximumSize(new Dimension(430, 88));
+
+        rAvatar = new AvatarLabel(72, null);
+        head.add(rAvatar, BorderLayout.WEST);
+
+        JPanel headText = new JPanel();
+        headText.setLayout(new BoxLayout(headText, BoxLayout.Y_AXIS));
+        headText.setOpaque(false);
 
         rName = new JLabel("");
-        rName.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 20));
+        rName.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 18));
         rName.setForeground(TEXT_MAIN);
-        rName.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(rName);
-        p.add(Box.createVerticalStrut(4));
+        headText.add(rName);
+        headText.add(Box.createVerticalStrut(6));
 
         rId = new JLabel("");
         rId.setFont(YH); rId.setForeground(TEXT_SUB);
-        rId.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(rId);
-        p.add(Box.createVerticalStrut(24));
+        headText.add(rId);
+        head.add(headText, BorderLayout.CENTER);
+        content.add(head);
+        content.add(Box.createVerticalStrut(26));
+        content.add(detailDivider());
+        content.add(Box.createVerticalStrut(18));
 
+        content.add(sectionLabel("Profile"));
+        content.add(Box.createVerticalStrut(8));
+
+        rRemark = detailRow("Remark", "");
+        content.add(rRemark); content.add(Box.createVerticalStrut(8));
         rWork = detailRow("Workplace", "");
-        p.add(rWork); p.add(Box.createVerticalStrut(8));
+        content.add(rWork); content.add(Box.createVerticalStrut(8));
         rHome = detailRow("Hometown", "");
-        p.add(rHome); p.add(Box.createVerticalStrut(8));
+        content.add(rHome); content.add(Box.createVerticalStrut(8));
         rSig = detailRow("Signature", "");
-        p.add(rSig); p.add(Box.createVerticalStrut(8));
+        content.add(rSig); content.add(Box.createVerticalStrut(18));
+        content.add(detailDivider());
+        content.add(Box.createVerticalStrut(18));
+
+        content.add(sectionLabel("More"));
+        content.add(Box.createVerticalStrut(8));
         rMutual = detailRow("Mutual Friends", "0");
-        p.add(rMutual);
-        p.add(Box.createVerticalStrut(24));
+        content.add(rMutual);
+        content.add(Box.createVerticalStrut(24));
 
         rActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         rActionPanel.setOpaque(false);
         rActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(rActionPanel);
+        content.add(rActionPanel);
 
-        p.add(Box.createVerticalStrut(24));
+        content.add(Box.createVerticalStrut(24));
         rExtraPanel = new JPanel(new BorderLayout());
         rExtraPanel.setOpaque(false);
         rExtraPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        p.add(rExtraPanel);
+        rExtraPanel.setMaximumSize(new Dimension(430, 360));
+        content.add(rExtraPanel);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.anchor = GridBagConstraints.NORTH;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        p.add(content, gbc);
 
         JScrollPane sp = new JScrollPane(p);
         sp.setBorder(null); sp.setOpaque(false);
@@ -473,12 +606,28 @@ public class MainContentPanel extends JPanel {
         return wrap;
     }
 
+    private JLabel sectionLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(YHB);
+        label.setForeground(TEXT_SUB);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return label;
+    }
+
+    private JSeparator detailDivider() {
+        JSeparator sep = new JSeparator();
+        sep.setForeground(DIVIDER);
+        sep.setMaximumSize(new Dimension(430, 1));
+        return sep;
+    }
+
     private JPanel detailRow(String label, String val) {
         JPanel row = new JPanel(new BorderLayout(8, 0));
         row.setOpaque(false);
-        row.setMaximumSize(new Dimension(400, 28));
-        JLabel l = new JLabel(label + ": ");
-        l.setFont(YHB); l.setForeground(TEXT_SUB);
+        row.setMaximumSize(new Dimension(430, 32));
+        JLabel l = new JLabel(label);
+        l.setFont(YH); l.setForeground(TEXT_SUB);
+        l.setPreferredSize(new Dimension(120, 32));
         JLabel v = new JLabel(val);
         v.setFont(YH); v.setForeground(TEXT_MAIN);
         v.setName(label);
@@ -507,12 +656,40 @@ public class MainContentPanel extends JPanel {
         pName.setText(u.getName());
         pId.setText("@" + u.getUserId());
         pNameF.setText(u.getName());
+        pSigArea.setText(u.getSignature());
         pWorkF.setText(u.getWorkplace());
         pHomeF.setText(u.getHometown());
-        // Update right stats
         rFriends.setText(String.valueOf(u.getFriends().size()));
         rPosts.setText(String.valueOf(u.getPosts().size()));
-        rSigArea.setText(u.getSignature());
+        refreshProfilePosts();
+    }
+
+    private void refreshProfilePosts() {
+        if (profilePostFeed == null) return;
+        profilePostFeed.removeAll();
+        User cur = network.getCurrentUser();
+        if (cur == null) return;
+
+        List<Post> ownPosts = new ArrayList<>(cur.getPosts());
+        ownPosts.sort((p1, p2) -> p2.getTimestamp().compareTo(p1.getTimestamp()));
+        if (ownPosts.isEmpty()) {
+            JPanel empty = new JPanel(new GridBagLayout());
+            empty.setOpaque(false);
+            empty.setPreferredSize(new Dimension(0, 320));
+            JLabel label = new JLabel("No posts yet. Share a moment from the Posts tab.");
+            label.setFont(YH);
+            label.setForeground(TEXT_HINT);
+            empty.add(label);
+            profilePostFeed.add(empty);
+        } else {
+            profilePostFeed.add(Box.createVerticalStrut(20));
+            for (Post post : ownPosts) {
+                profilePostFeed.add(createWidePostCard(post, cur));
+                profilePostFeed.add(Box.createVerticalStrut(10));
+            }
+        }
+        profilePostFeed.revalidate();
+        profilePostFeed.repaint();
     }
 
     void refreshFriends() {
@@ -527,8 +704,10 @@ public class MainContentPanel extends JPanel {
         String query = fSearch != null ? fSearch.getText().trim().toLowerCase() : "";
 
         for (User f : friends) {
+            String displayName = cur.getDisplayNameFor(f).toLowerCase();
             if (!query.isEmpty() && !f.getName().toLowerCase().contains(query)
-                    && !f.getUserId().toLowerCase().contains(query)) continue;
+                    && !f.getUserId().toLowerCase().contains(query)
+                    && !displayName.contains(query)) continue;
             if ("Same Hometown".equals(fFilter) && !f.getHometown().equalsIgnoreCase(cur.getHometown())) continue;
             if ("Same Workplace".equals(fFilter) && !f.getWorkplace().equalsIgnoreCase(cur.getWorkplace())) continue;
             fModel.addElement(f);
@@ -537,8 +716,9 @@ public class MainContentPanel extends JPanel {
 
     void refreshMoments() {
         mFeed.removeAll();
-        List<Post> posts = network.getAllPosts();
         User cur = network.getCurrentUser();
+        if (cur == null) return;
+        List<Post> posts = getVisiblePostsFor(cur);
         if (posts.isEmpty()) {
             JLabel empty = new JLabel("No moments yet. Share something!");
             empty.setFont(YH); empty.setForeground(TEXT_HINT);
@@ -554,12 +734,71 @@ public class MainContentPanel extends JPanel {
         mFeed.revalidate(); mFeed.repaint();
     }
 
+    private List<Post> getVisiblePostsFor(User user) {
+        List<Post> posts = new ArrayList<>(user.getPosts());
+        for (User friend : user.getFriends()) {
+            posts.addAll(friend.getPosts());
+        }
+        posts.sort((p1, p2) -> p2.getTimestamp().compareTo(p1.getTimestamp()));
+        return posts;
+    }
+
     void refreshSearch() {
         sModel.clear();
+        sRecommendationReasons.clear();
         User cur = network.getCurrentUser();
         if (cur == null) return;
-        Map<User, String> recs = network.getFriendRecommendations(cur);
-        for (User u : recs.keySet()) sModel.addElement(u);
+        List<User> recommendations = buildSearchRecommendations(cur);
+        if (recommendations.isEmpty()) {
+            return;
+        }
+        for (User u : recommendations) sModel.addElement(u);
+    }
+
+    private List<User> buildSearchRecommendations(User cur) {
+        List<User> candidates = new ArrayList<>();
+        Set<User> existingFriends = new HashSet<>(cur.getFriends());
+
+        for (User user : network.getAllUsers()) {
+            if (user.equals(cur) || existingFriends.contains(user)) continue;
+            int mutualCount = cur.getMutualFriends(user).size();
+            boolean sameWorkplace = sameMeaningfulText(cur.getWorkplace(), user.getWorkplace());
+            boolean sameHometown = sameMeaningfulText(cur.getHometown(), user.getHometown());
+
+            if ("Mutual Friends".equals(sFilter)) {
+                if (mutualCount <= 0) continue;
+                candidates.add(user);
+                sRecommendationReasons.put(user, mutualCount + " mutual friend(s)");
+            } else if ("Same Workplace".equals(sFilter)) {
+                if (!sameWorkplace) continue;
+                candidates.add(user);
+                String reason = "Same workplace: " + user.getWorkplace();
+                if (mutualCount > 0) reason += " · " + mutualCount + " mutual";
+                sRecommendationReasons.put(user, reason);
+            } else if ("Same Hometown".equals(sFilter)) {
+                if (!sameHometown) continue;
+                candidates.add(user);
+                String reason = "Same hometown: " + user.getHometown();
+                if (mutualCount > 0) reason += " · " + mutualCount + " mutual";
+                sRecommendationReasons.put(user, reason);
+            }
+        }
+
+        candidates.sort((a, b) -> {
+            int mutualCompare = Integer.compare(cur.getMutualFriends(b).size(), cur.getMutualFriends(a).size());
+            if (mutualCompare != 0) return mutualCompare;
+            return a.getName().compareToIgnoreCase(b.getName());
+        });
+        return candidates;
+    }
+
+    private boolean sameMeaningfulText(String a, String b) {
+        if (a == null || b == null) return false;
+        String left = a.trim();
+        String right = b.trim();
+        if (left.isEmpty() || right.isEmpty()) return false;
+        if ("Unknown".equalsIgnoreCase(left) || "Unknown".equalsIgnoreCase(right)) return false;
+        return left.equalsIgnoreCase(right);
     }
 
     // ======== ACTIONS ========
@@ -569,6 +808,7 @@ public class MainContentPanel extends JPanel {
         String name = pNameF.getText().trim();
         if (name.isEmpty()) { JOptionPane.showMessageDialog(this, "Name cannot be empty.", "SnapTok", JOptionPane.WARNING_MESSAGE); return; }
         cur.setName(name);
+        cur.setSignature(pSigArea.getText().trim());
         cur.setWorkplace(pWorkF.getText().trim().isEmpty() ? "Unknown" : pWorkF.getText().trim());
         cur.setHometown(pHomeF.getText().trim().isEmpty() ? "Unknown" : pHomeF.getText().trim());
         refreshProfile();
@@ -597,6 +837,7 @@ public class MainContentPanel extends JPanel {
         network.createPost(cur, text);
         mInput.setText("");
         refreshMoments();
+        refreshProfile();
     }
 
     private void toggleLike(Post post) {
@@ -604,18 +845,19 @@ public class MainContentPanel extends JPanel {
         if (cur == null) return;
         if (post.isLikedBy(cur)) post.removeLike(cur); else post.addLike(cur);
         refreshMoments();
+        refreshProfilePosts();
     }
 
     private void performSearch() {
-        sModel.clear();
+        if (searchResultModel == null) return;
+        searchResultModel.clear();
         String q = sField.getText().trim().toLowerCase();
-        if (q.isEmpty()) { refreshSearch(); return; }
+        if (q.isEmpty()) return;
         User cur = network.getCurrentUser();
         for (User u : network.getAllUsers()) {
             if (u.equals(cur)) continue;
-            if (u.getName().toLowerCase().contains(q) || u.getUserId().toLowerCase().contains(q)
-                    || u.getWorkplace().toLowerCase().contains(q) || u.getHometown().toLowerCase().contains(q)) {
-                sModel.addElement(u);
+            if (u.getName().toLowerCase().contains(q) || u.getUserId().toLowerCase().contains(q)) {
+                searchResultModel.addElement(u);
             }
         }
     }
@@ -629,7 +871,8 @@ public class MainContentPanel extends JPanel {
 
     void showSearchUserDetail(User user) {
         detailUser = user;
-        updateDetailPanel(user, false);
+        User cur = network.getCurrentUser();
+        updateDetailPanel(user, cur != null && cur.isFriendWith(user));
         rightCards.show(rightPanel, "DETAIL");
     }
 
@@ -646,7 +889,28 @@ public class MainContentPanel extends JPanel {
         if (cur != null) {
             rFriends.setText(String.valueOf(cur.getFriends().size()));
             rPosts.setText(String.valueOf(cur.getPosts().size()));
-            rSigArea.setText(cur.getSignature());
+            refreshProfilePosts();
+        }
+    }
+
+    void showEmptyRight() {
+        rightCards.show(rightPanel, "EMPTY");
+    }
+
+    void showSearchRight() {
+        rightCards.show(rightPanel, "SEARCH");
+        performSearch();
+    }
+
+    private void updateFriendFilterChips() {
+        for (FilterChip chip : fFilterChips) {
+            chip.setActive(chip.getText().equals(fFilter));
+        }
+    }
+
+    private void updateSearchFilterChips() {
+        for (FilterChip chip : sFilterChips) {
+            chip.setActive(chip.getText().equals(sFilter));
         }
     }
 
@@ -654,8 +918,16 @@ public class MainContentPanel extends JPanel {
         User cur = network.getCurrentUser();
         ((AvatarLabel) rAvatar).user = user;
         rAvatar.repaint();
-        rName.setText(user.getName());
-        rId.setText("@" + user.getUserId());
+        setDetailLabel(rRemark, "Remark");
+        setDetailLabel(rWork, "Workplace");
+        setDetailLabel(rHome, "Hometown");
+        setDetailLabel(rSig, "Signature");
+        setDetailLabel(rMutual, "Mutual Friends");
+        String remark = cur != null ? cur.getFriendRemark(user.getUserId()) : "";
+        String displayName = cur != null ? cur.getDisplayNameFor(user) : user.getName();
+        rName.setText(displayName);
+        rId.setText(remark.isEmpty() ? "@" + user.getUserId() : "Name: " + user.getName() + "   @" + user.getUserId());
+        setDetailValue(rRemark, remark.isEmpty() ? "Not set" : remark);
         setDetailValue(rWork, user.getWorkplace());
         setDetailValue(rHome, user.getHometown());
         setDetailValue(rSig, user.getSignature().isEmpty() ? "No signature" : user.getSignature());
@@ -664,6 +936,9 @@ public class MainContentPanel extends JPanel {
 
         rActionPanel.removeAll();
         if (isFriend) {
+            StyledButton remarkBtn = new StyledButton("Edit Remark", false);
+            remarkBtn.addActionListener(e -> showRemarkDialog(user));
+            rActionPanel.add(remarkBtn);
             StyledButton viewFriends = new StyledButton("View Their Friends", false);
             viewFriends.addActionListener(e -> showFriendsOfFriend(user));
             rActionPanel.add(viewFriends);
@@ -672,7 +947,7 @@ public class MainContentPanel extends JPanel {
                 if (cur != null && JOptionPane.showConfirmDialog(this, "Remove " + user.getName() + "?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                     cur.removeFriend(user);
                     refreshFriends();
-                    showProfileRight();
+                    showEmptyRight();
                 }
             });
             rActionPanel.add(removeBtn);
@@ -692,15 +967,85 @@ public class MainContentPanel extends JPanel {
         rightCards.show(rightPanel, "DETAIL");
     }
 
+    private void showRemarkDialog(User friend) {
+        User cur = network.getCurrentUser();
+        if (cur == null || friend == null) return;
+
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Edit Remark", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(DIVIDER),
+                new EmptyBorder(20, 22, 18, 22)));
+
+        JLabel title = new JLabel("Edit Remark");
+        title.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 18));
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(title);
+        panel.add(Box.createVerticalStrut(6));
+
+        JLabel hint = new JLabel("Leave it empty to show this friend's real name.");
+        hint.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 12));
+        hint.setForeground(TEXT_HINT);
+        hint.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(hint);
+        panel.add(Box.createVerticalStrut(16));
+
+        JTextField field = new JTextField(cur.getFriendRemark(friend.getUserId()));
+        field.setFont(YH);
+        field.setForeground(TEXT_MAIN);
+        field.setCaretColor(BRAND);
+        field.setBorder(new EmptyBorder(10, 12, 10, 12));
+        field.setBackground(INPUT_BG);
+        field.setMaximumSize(new Dimension(320, 40));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(field);
+        panel.add(Box.createVerticalStrut(18));
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        buttons.setOpaque(false);
+        buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        StyledButton cancel = new StyledButton("Cancel", false);
+        cancel.addActionListener(e -> dialog.dispose());
+        StyledButton save = new StyledButton("Save", true);
+        save.addActionListener(e -> {
+            String remark = field.getText().trim();
+            cur.setFriendRemark(friend.getUserId(), remark);
+            LoginPanel.rewriteUsersFile(network);
+            if (fList != null) fList.repaint();
+            updateDetailPanel(friend, true);
+            dialog.dispose();
+        });
+        buttons.add(cancel);
+        buttons.add(save);
+        panel.add(buttons);
+
+        dialog.setContentPane(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.getRootPane().setDefaultButton(save);
+        SwingUtilities.invokeLater(field::requestFocusInWindow);
+        dialog.setVisible(true);
+    }
+
     private void updatePostDetailPanel(Post post) {
         ((AvatarLabel) rAvatar).user = post.getAuthor();
         rAvatar.repaint();
         rName.setText(post.getAuthor().getName());
         rId.setText(post.getTimestampString());
-        setDetailValue(rWork, "");
-        setDetailValue(rHome, "");
+        setDetailLabel(rRemark, "Type");
+        setDetailLabel(rWork, "Author");
+        setDetailLabel(rHome, "Time");
+        setDetailLabel(rSig, "Content");
+        setDetailLabel(rMutual, "Engagement");
+        setDetailValue(rRemark, "Post");
+        setDetailValue(rWork, post.getAuthor().getName());
+        setDetailValue(rHome, post.getTimestampString());
         setDetailValue(rSig, post.getContent());
-        setDetailValue(rMutual, post.getLikeCount() + " like(s)");
+        setDetailValue(rMutual, post.getLikeCount() + " like(s), " + post.getCommentCount() + " comment(s)");
 
         rActionPanel.removeAll();
         User cur = network.getCurrentUser();
@@ -711,11 +1056,7 @@ public class MainContentPanel extends JPanel {
             rActionPanel.add(likeBtn);
         }
         rExtraPanel.removeAll();
-        if (post.getLikeCount() > 0) {
-            JLabel likers = new JLabel("<html>Liked by: " + post.getLikerIdsString().replace(",", ", ") + "</html>");
-            likers.setFont(YH); likers.setForeground(TEXT_SUB);
-            rExtraPanel.add(likers, BorderLayout.NORTH);
-        }
+        rExtraPanel.add(buildPostCommentsPanel(post), BorderLayout.CENTER);
         rExtraPanel.revalidate(); rExtraPanel.repaint();
     }
 
@@ -748,26 +1089,170 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    private void setDetailLabel(JPanel row, String label) {
+        if (row.getComponentCount() >= 1) {
+            ((JLabel) row.getComponent(0)).setText(label);
+        }
+    }
+
+    private JPanel buildPostCommentsPanel(Post post) {
+        JPanel wrap = new JPanel(new BorderLayout(0, 10));
+        wrap.setOpaque(false);
+
+        JPanel top = new JPanel();
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
+        top.setOpaque(false);
+
+        if (post.getLikeCount() > 0) {
+            JLabel likers = new JLabel("<html><body style='width:390px'>Liked by: "
+                    + escapeHtml(post.getLikerIdsString().replace(",", ", ")) + "</body></html>");
+            likers.setFont(YH); likers.setForeground(TEXT_SUB);
+            likers.setAlignmentX(Component.LEFT_ALIGNMENT);
+            top.add(likers);
+            top.add(Box.createVerticalStrut(10));
+        }
+
+        JLabel title = new JLabel("Comments");
+        title.setFont(YHB);
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        top.add(title);
+        wrap.add(top, BorderLayout.NORTH);
+
+        JPanel comments = new JPanel();
+        comments.setLayout(new BoxLayout(comments, BoxLayout.Y_AXIS));
+        comments.setOpaque(false);
+        if (post.getComments().isEmpty()) {
+            JLabel empty = new JLabel("No comments yet.");
+            empty.setFont(YH);
+            empty.setForeground(TEXT_HINT);
+            empty.setBorder(new EmptyBorder(12, 0, 12, 0));
+            comments.add(empty);
+        } else {
+            for (Comment comment : post.getComments()) {
+                comments.add(createCommentItem(comment));
+                comments.add(Box.createVerticalStrut(8));
+            }
+        }
+        JScrollPane commentsScroll = new JScrollPane(comments);
+        commentsScroll.setBorder(null);
+        commentsScroll.setOpaque(false);
+        commentsScroll.getViewport().setOpaque(false);
+        commentsScroll.setPreferredSize(new Dimension(420, 180));
+        commentsScroll.getVerticalScrollBar().setUnitIncrement(12);
+        wrap.add(commentsScroll, BorderLayout.CENTER);
+
+        JTextArea input = new JTextArea(2, 20);
+        input.setFont(YH);
+        input.setForeground(TEXT_MAIN);
+        input.setLineWrap(true);
+        input.setWrapStyleWord(true);
+        input.setBorder(new EmptyBorder(8, 8, 8, 8));
+        input.setBackground(INPUT_BG);
+        input.setCaretColor(BRAND);
+
+        JScrollPane inputScroll = new JScrollPane(input);
+        inputScroll.setBorder(null);
+        inputScroll.setOpaque(false);
+        inputScroll.getViewport().setOpaque(false);
+        inputScroll.setPreferredSize(new Dimension(0, 52));
+
+        StyledButton send = new StyledButton("Comment", true);
+        send.setPreferredSize(new Dimension(120, 44));
+        send.addActionListener(e -> addComment(post, input));
+
+        JPanel inputRow = new JPanel(new BorderLayout(8, 0));
+        inputRow.setOpaque(false);
+        inputRow.add(inputScroll, BorderLayout.CENTER);
+        inputRow.add(send, BorderLayout.EAST);
+        wrap.add(inputRow, BorderLayout.SOUTH);
+
+        return wrap;
+    }
+
+    private JPanel createCommentItem(Comment comment) {
+        JPanel item = new JPanel(new BorderLayout(8, 0));
+        item.setOpaque(false);
+        item.setBorder(new EmptyBorder(6, 0, 6, 0));
+
+        item.add(new AvatarLabel(32, comment.getAuthor()), BorderLayout.WEST);
+
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setOpaque(false);
+
+        JPanel meta = new JPanel(new BorderLayout());
+        meta.setOpaque(false);
+        JLabel author = new JLabel(comment.getAuthor().getName());
+        author.setFont(YHB);
+        author.setForeground(TEXT_MAIN);
+        meta.add(author, BorderLayout.WEST);
+        JLabel time = new JLabel(comment.getTimestampString());
+        time.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 11));
+        time.setForeground(TEXT_HINT);
+        meta.add(time, BorderLayout.EAST);
+        body.add(meta);
+
+        JLabel text = new JLabel("<html><body style='width:340px'>"
+                + escapeHtml(comment.getContent()) + "</body></html>");
+        text.setFont(YH);
+        text.setForeground(TEXT_MAIN);
+        body.add(text);
+
+        item.add(body, BorderLayout.CENTER);
+        return item;
+    }
+
+    private void addComment(Post post, JTextArea input) {
+        User cur = network.getCurrentUser();
+        if (cur == null || post == null) return;
+        String text = input.getText().trim();
+        if (text.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Write a comment first.", "SnapTok", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        post.addComment(cur, text);
+        input.setText("");
+        refreshMoments();
+        refreshProfilePosts();
+        showPostDetail(post);
+    }
+
     // ======== POST CARD ========
     private JPanel createPostCard(Post post, User cur) {
+        return createPostCard(post, cur, 220, 280, 150);
+    }
+
+    private JPanel createWidePostCard(Post post, User cur) {
+        return createPostCard(post, cur, 520, Integer.MAX_VALUE, 160);
+    }
+
+    private JPanel createPostCard(Post post, User cur, int contentWidth, int maxWidth, int maxHeight) {
         JPanel card = new JPanel(new BorderLayout(8, 4));
         card.setOpaque(true);
         card.setBackground(Color.WHITE);
         card.setBorder(new EmptyBorder(12, 12, 12, 12));
-        card.setMaximumSize(new Dimension(280, 120));
+        card.setMaximumSize(new Dimension(maxWidth, maxHeight));
 
-        JPanel top = new JPanel(new BorderLayout());
+        JPanel top = new JPanel(new BorderLayout(8, 0));
         top.setOpaque(false);
+        top.add(new AvatarLabel(34, post.getAuthor()), BorderLayout.WEST);
+
+        JPanel meta = new JPanel();
+        meta.setLayout(new BoxLayout(meta, BoxLayout.Y_AXIS));
+        meta.setOpaque(false);
         JLabel author = new JLabel(post.getAuthor().getName());
-        author.setFont(YHB); author.setForeground(BRAND);
-        top.add(author, BorderLayout.WEST);
+        author.setFont(YHB); author.setForeground(TEXT_MAIN);
+        meta.add(author);
         JLabel time = new JLabel(post.getTimestampString());
         time.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 11));
         time.setForeground(TEXT_HINT);
-        top.add(time, BorderLayout.EAST);
+        meta.add(time);
+        top.add(meta, BorderLayout.CENTER);
         card.add(top, BorderLayout.NORTH);
 
-        JLabel content = new JLabel("<html><body style='width:240px'>" + post.getContent() + "</body></html>");
+        JLabel content = new JLabel("<html><body style='width:" + contentWidth + "px'>"
+                + escapeHtml(post.getContent()) + "</body></html>");
         content.setFont(YH); content.setForeground(TEXT_MAIN);
         card.add(content, BorderLayout.CENTER);
 
@@ -782,6 +1267,14 @@ public class MainContentPanel extends JPanel {
             public void mouseClicked(MouseEvent e) { toggleLike(post); }
         });
         bottom.add(likeLabel);
+        JLabel commentLabel = new JLabel("Comments " + post.getCommentCount());
+        commentLabel.setFont(YH);
+        commentLabel.setForeground(TEXT_HINT);
+        commentLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        commentLabel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) { showPostDetail(post); }
+        });
+        bottom.add(commentLabel);
         JLabel viewLabel = new JLabel("View \u203A");
         viewLabel.setFont(YH); viewLabel.setForeground(BRAND);
         viewLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -807,6 +1300,14 @@ public class MainContentPanel extends JPanel {
             Image img = ImageIO.read(new File(path));
             return img.getScaledInstance(size, size, Image.SCALE_SMOOTH);
         } catch (Exception e) { return null; }
+    }
+
+    static String escapeHtml(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
     }
 
     // ======== INNER CLASSES ========
@@ -925,6 +1426,32 @@ public class MainContentPanel extends JPanel {
         g.drawLine(cx + 6, cy + 4, cx + 10, cy);
     }
 
+    static class EmptyChatIcon extends JPanel {
+        EmptyChatIcon() {
+            setOpaque(false);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(224, 224, 224));
+            g2.fillOval(8, 6, 48, 38);
+            g2.fillPolygon(new int[]{22, 16, 30}, new int[]{40, 58, 42}, 3);
+            g2.setColor(Color.WHITE);
+            g2.fillOval(21, 20, 8, 8);
+            g2.fillOval(36, 20, 8, 8);
+
+            g2.setColor(new Color(216, 216, 216));
+            g2.fillOval(42, 28, 46, 36);
+            g2.fillPolygon(new int[]{68, 82, 76}, new int[]{61, 72, 56}, 3);
+            g2.setColor(Color.WHITE);
+            g2.fillOval(56, 42, 7, 7);
+            g2.fillOval(70, 42, 7, 7);
+            g2.dispose();
+        }
+    }
+
     /** Styled button */
     static class StyledButton extends JButton {
         private boolean primary, hover;
@@ -975,6 +1502,13 @@ public class MainContentPanel extends JPanel {
                 public void mouseExited(MouseEvent e) { hover = false; repaint(); }
             });
         }
+
+        void setActive(boolean active) {
+            this.active = active;
+            setForeground(active ? Color.WHITE : TEXT_SUB);
+            repaint();
+        }
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -985,6 +1519,36 @@ public class MainContentPanel extends JPanel {
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
             g2.dispose();
             super.paintComponent(g);
+        }
+    }
+
+    /** Recommendation list renderer */
+    class RecommendationCellRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+            User u = (User) value;
+            JPanel row = new JPanel(new BorderLayout(8, 0));
+            row.setOpaque(true);
+            row.setBackground(isSelected ? new Color(239, 246, 255) : Color.WHITE);
+            row.setBorder(new EmptyBorder(8, 12, 8, 12));
+
+            row.add(new AvatarLabel(42, u), BorderLayout.WEST);
+
+            JPanel info = new JPanel();
+            info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
+            info.setOpaque(false);
+            JLabel name = new JLabel(u.getName());
+            name.setFont(YHB);
+            name.setForeground(TEXT_MAIN);
+            info.add(name);
+
+            String reason = sRecommendationReasons.getOrDefault(u, "Recommended");
+            JLabel detail = new JLabel(reason);
+            detail.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 12));
+            detail.setForeground(TEXT_HINT);
+            info.add(detail);
+            row.add(info, BorderLayout.CENTER);
+            return row;
         }
     }
 
@@ -1004,7 +1568,10 @@ public class MainContentPanel extends JPanel {
             JPanel info = new JPanel();
             info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
             info.setOpaque(false);
-            JLabel name = new JLabel(u.getName());
+            User cur = network.getCurrentUser();
+            String remark = cur != null ? cur.getFriendRemark(u.getUserId()) : "";
+            String displayName = cur != null ? cur.getDisplayNameFor(u) : u.getName();
+            JLabel name = new JLabel(displayName);
             name.setFont(YHB); name.setForeground(TEXT_MAIN);
             info.add(name);
             String latest = "";
@@ -1013,7 +1580,9 @@ public class MainContentPanel extends JPanel {
                 latest = last.getContent();
                 if (latest.length() > 20) latest = latest.substring(0, 20) + "...";
             }
-            JLabel preview = new JLabel(latest.isEmpty() ? u.getWorkplace() : latest);
+            String previewText = !remark.isEmpty() ? "Name: " + u.getName()
+                    : (latest.isEmpty() ? u.getWorkplace() : latest);
+            JLabel preview = new JLabel(previewText);
             preview.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 12));
             preview.setForeground(TEXT_HINT);
             info.add(preview);

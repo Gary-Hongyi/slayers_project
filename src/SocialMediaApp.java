@@ -21,6 +21,7 @@ public class SocialMediaApp {
         } catch (Exception e) {
             // Fall back to default look and feel
         }
+        configureEnglishDialogText();
 
         // Launch GUI on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
@@ -28,5 +29,18 @@ public class SocialMediaApp {
             MainGUI gui = new MainGUI(network);
             gui.setVisible(true);
         });
+    }
+
+    private static void configureEnglishDialogText() {
+        UIManager.put("OptionPane.okButtonText", "OK");
+        UIManager.put("OptionPane.cancelButtonText", "Cancel");
+        UIManager.put("OptionPane.yesButtonText", "Yes");
+        UIManager.put("OptionPane.noButtonText", "No");
+        UIManager.put("FileChooser.openButtonText", "Open");
+        UIManager.put("FileChooser.saveButtonText", "Save");
+        UIManager.put("FileChooser.cancelButtonText", "Cancel");
+        UIManager.put("FileChooser.lookInLabelText", "Look in");
+        UIManager.put("FileChooser.fileNameLabelText", "File name");
+        UIManager.put("FileChooser.filesOfTypeLabelText", "Files of type");
     }
 }

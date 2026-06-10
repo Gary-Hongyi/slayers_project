@@ -1,5 +1,7 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -36,6 +38,9 @@ public class User {
     /** List of posts made by this user */
     private List<Post> posts;
 
+    /** Friend-specific display names set by this user */
+    private Map<String, String> friendRemarks;
+
     /**
      * Constructs a new User with the given profile details.
      *
@@ -65,6 +70,7 @@ public class User {
         this.password = password;
         this.friends = new ArrayList<>();
         this.posts = new ArrayList<>();
+        this.friendRemarks = new HashMap<>();
     }
 
     // ---- Getters and Setters ----
@@ -129,6 +135,32 @@ public class User {
         return posts;
     }
 
+    public Map<String, String> getFriendRemarks() {
+        return friendRemarks;
+    }
+
+    public String getFriendRemark(String friendId) {
+        if (friendId == null) return "";
+        String remark = friendRemarks.get(friendId);
+        return remark != null ? remark : "";
+    }
+
+    public void setFriendRemark(String friendId, String remark) {
+        if (friendId == null || friendId.trim().isEmpty()) return;
+        String clean = remark != null ? remark.trim() : "";
+        if (clean.isEmpty()) {
+            friendRemarks.remove(friendId);
+        } else {
+            friendRemarks.put(friendId, clean);
+        }
+    }
+
+    public String getDisplayNameFor(User friend) {
+        if (friend == null) return "";
+        String remark = getFriendRemark(friend.getUserId());
+        return remark.isEmpty() ? friend.getName() : remark;
+    }
+
     // ---- Friend Management ----
 
     /**
@@ -154,6 +186,8 @@ public class User {
         if (friend != null) {
             friends.remove(friend);
             friend.friends.remove(this);
+            friendRemarks.remove(friend.getUserId());
+            friend.friendRemarks.remove(this.getUserId());
         }
     }
 

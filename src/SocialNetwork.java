@@ -223,4 +223,22 @@ public class SocialNetwork {
         allPosts.sort((p1, p2) -> p2.getTimestamp().compareTo(p1.getTimestamp()));
         return allPosts;
     }
+
+    /**
+     * Finds a post by ID.
+     *
+     * @param postId the post ID
+     * @return the matching post, or null if not found
+     */
+    public Post getPostById(String postId) {
+        if (postId == null) return null;
+        for (User user : users.values()) {
+            for (Post post : user.getPosts()) {
+                if (post.getPostId().equals(postId)) {
+                    return post;
+                }
+            }
+        }
+        return null;
+    }
 }
