@@ -10,23 +10,41 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 /**
- * WeChat-style three-column main content panel.
- * Left: 60px nav icons | Middle: 300px list | Right: detail view.
+ * Apple-style three-column main content panel.
+ * Left: 64px black nav | Middle: 300px list | Right: detail view.
  */
 public class MainContentPanel extends JPanel {
 
     private MainGUI mainGUI;
     private SocialNetwork network;
-    static final Font YH = new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 14);
-    static final Font YHB = new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 14);
-    static final Color BRAND = new Color(59, 130, 246);
-    static final Color BRAND_DARK = new Color(37, 99, 235);
-    static final Color TEXT_MAIN = new Color(55, 65, 81);
-    static final Color TEXT_SUB = new Color(107, 114, 128);
-    static final Color TEXT_HINT = new Color(156, 163, 175);
-    static final Color DIVIDER = new Color(229, 231, 235);
-    static final Color HOVER_BG = new Color(243, 244, 246);
-    static final Color INPUT_BG = new Color(243, 244, 246);
+    // Apple Design System — clean, minimal, photography-forward
+    static final String FONT_FAMILY = "Segoe UI";
+    static final Font YH = new Font(FONT_FAMILY, Font.PLAIN, 14);       // caption 14/400
+    static final Font YHB = new Font(FONT_FAMILY, Font.BOLD, 14);       // caption-strong 14/600
+    static final Font YH_SM = new Font(FONT_FAMILY, Font.PLAIN, 12);    // fine-print 12/400
+    static final Font YH_XS = new Font(FONT_FAMILY, Font.PLAIN, 11);    // micro 11/400
+    static final Font YH_LG = new Font(FONT_FAMILY, Font.BOLD, 17);     // body-strong 17/600
+    static final Font YH_XL = new Font(FONT_FAMILY, Font.BOLD, 21);     // tagline 21/600
+    static final Font YH_XXL = new Font(FONT_FAMILY, Font.BOLD, 28);    // lead 28/400
+    static final Color BRAND = new Color(0, 102, 204);         // #0066cc Action Blue
+    static final Color BRAND_DARK = new Color(0, 89, 178);     // press state
+    static final Color TEXT_MAIN = new Color(29, 29, 31);      // #1d1d1f ink
+    static final Color TEXT_SUB = new Color(122, 122, 122);    // #7a7a7a muted-48
+    static final Color TEXT_HINT = new Color(122, 122, 122);   // #7a7a7a muted-48
+    static final Color DIVIDER = new Color(240, 240, 240);     // #f0f0f0 divider-soft
+    static final Color HAIRLINE = new Color(224, 224, 224);    // #e0e0e0 hairline
+    static final Color HOVER_BG = new Color(245, 245, 247);    // #f5f5f7 parchment
+    static final Color CANVAS = Color.WHITE;                    // canvas #ffffff
+    static final Color SURFACE_BLACK = new Color(0, 0, 0);     // global nav
+
+    /** Resolves relative avatar paths against the working directory. */
+    static String resolveAvatarPath(String path) {
+        if (path == null || path.isEmpty()) return null;
+        File f = new File(path);
+        if (f.isAbsolute()) return f.exists() ? path : null;
+        File resolved = new File(System.getProperty("user.dir"), path);
+        return resolved.exists() ? resolved.getAbsolutePath() : null;
+    }
 
     private int navIdx = 0;
     private CardLayout midCards, rightCards;
@@ -104,32 +122,22 @@ public class MainContentPanel extends JPanel {
         rightCards.show(rightPanel, "PROFILE");
     }
 
-    // ======== LEFT NAV ========
+    // ======== LEFT NAV — Apple global nav style ========
     private JPanel buildNav() {
         JPanel nav = new JPanel(null) {
             @Override
             protected void paintComponent(Graphics g) {
-                g.setColor(Color.WHITE);
+                g.setColor(SURFACE_BLACK);
                 g.fillRect(0, 0, getWidth(), getHeight());
             }
         };
-        nav.setPreferredSize(new Dimension(60, 0));
+        nav.setPreferredSize(new Dimension(64, 0));
         String[] tips = {"Profile", "Friends", "Moments", "Search"};
         for (int i = 0; i < 4; i++) {
             NavIcon ni = new NavIcon(i, tips[i]);
-            ni.setBounds(0, 24 + i * 56, 60, 48);
+            ni.setBounds(0, 28 + i * 60, 64, 52);
             nav.add(ni);
         }
-        // Save/Load at bottom
-        NavIcon saveIcon = new NavIcon(10, "Save Network");
-        saveIcon.setBounds(0, 500, 60, 48);
-        nav.add(saveIcon);
-        NavIcon loadIcon = new NavIcon(11, "Load Network");
-        loadIcon.setBounds(0, 548, 60, 48);
-        nav.add(loadIcon);
-        NavIcon logoutIcon = new NavIcon(12, "Logout");
-        logoutIcon.setBounds(0, 596, 60, 48);
-        nav.add(logoutIcon);
         return nav;
     }
 
@@ -163,7 +171,7 @@ public class MainContentPanel extends JPanel {
         content.add(Box.createVerticalStrut(16));
 
         pName = new JLabel("", SwingConstants.CENTER);
-        pName.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 20));
+        pName.setFont(YH_XXL);
         pName.setForeground(TEXT_MAIN);
         pName.setAlignmentX(Component.CENTER_ALIGNMENT);
         content.add(pName);
@@ -211,7 +219,7 @@ public class MainContentPanel extends JPanel {
         pSigArea.setOpaque(false);
         pSigArea.setBorder(new EmptyBorder(8, 8, 8, 8));
         JScrollPane sp = new JScrollPane(pSigArea);
-        sp.setBorder(BorderFactory.createLineBorder(DIVIDER));
+        sp.setBorder(BorderFactory.createLineBorder(HAIRLINE));
         sp.setOpaque(false); sp.getViewport().setOpaque(false);
         wrap.add(sp, BorderLayout.CENTER);
         return wrap;
@@ -252,16 +260,16 @@ public class MainContentPanel extends JPanel {
         p.setBorder(new EmptyBorder(32, 32, 24, 32));
 
         rFriends = new JLabel("0");
-        rFriends.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 24));
+        rFriends.setFont(YH_XXL);
         rFriends.setForeground(BRAND);
         rPosts = new JLabel("0");
-        rPosts.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 24));
+        rPosts.setFont(YH_XXL);
         rPosts.setForeground(BRAND);
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
         JLabel title = new JLabel("My Posts");
-        title.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 20));
+        title.setFont(YH_XL);
         title.setForeground(TEXT_MAIN);
         top.add(title, BorderLayout.WEST);
 
@@ -303,11 +311,13 @@ public class MainContentPanel extends JPanel {
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        // Search
-        fSearch = new JTextField();
+        // Search — white bg + hairline border for visibility
+        fSearch = new PlaceholderField("Search by name...");
         fSearch.setFont(YH); fSearch.setForeground(TEXT_MAIN);
-        fSearch.setBorder(new EmptyBorder(10, 12, 10, 12));
-        fSearch.setBackground(INPUT_BG);
+        fSearch.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(9, 12, 9, 12)));
+        fSearch.setBackground(Color.WHITE);
         fSearch.setCaretColor(BRAND);
         fSearch.addKeyListener(new KeyAdapter() {
             public void keyReleased(KeyEvent e) {
@@ -361,30 +371,20 @@ public class MainContentPanel extends JPanel {
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 16, 16, 16));
 
-        // Composer
-        JPanel composer = new JPanel(new BorderLayout(8, 8));
-        composer.setOpaque(false);
-        JLabel compTitle = new JLabel("Share a moment");
-        compTitle.setFont(YHB); compTitle.setForeground(TEXT_MAIN);
-        composer.add(compTitle, BorderLayout.NORTH);
-
-        mInput = new JTextArea(3, 20);
-        mInput.setFont(YH); mInput.setForeground(TEXT_MAIN);
-        mInput.setLineWrap(true); mInput.setWrapStyleWord(true);
-        mInput.setBorder(new EmptyBorder(8, 8, 8, 8));
-        mInput.setBackground(INPUT_BG);
-        mInput.setCaretColor(BRAND);
-        JScrollPane inputSp = new JScrollPane(mInput);
-        inputSp.setBorder(null); inputSp.setOpaque(false);
-        inputSp.getViewport().setOpaque(false);
-        composer.add(inputSp, BorderLayout.CENTER);
-
-        StyledButton postBtn = new StyledButton("Post", true);
-        postBtn.addActionListener(e -> createPost());
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 4));
-        btnRow.setOpaque(false);
-        btnRow.add(postBtn);
-        composer.add(btnRow, BorderLayout.SOUTH);
+        // Top bar with title and "New Post" button
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setOpaque(false);
+        JLabel title = new JLabel("Moments");
+        title.setFont(YHB); title.setForeground(TEXT_MAIN);
+        topBar.add(title, BorderLayout.WEST);
+        StyledButton newPostBtn = new StyledButton("New Post", true);
+        newPostBtn.setPreferredSize(new Dimension(120, 36));
+        newPostBtn.addActionListener(e -> showPostModal());
+        JPanel btnWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        btnWrap.setOpaque(false);
+        btnWrap.add(newPostBtn);
+        topBar.add(btnWrap, BorderLayout.EAST);
+        p.add(topBar, BorderLayout.NORTH);
 
         // Feed
         mFeed = new JPanel();
@@ -394,15 +394,68 @@ public class MainContentPanel extends JPanel {
         feedSp.setBorder(null); feedSp.setOpaque(false);
         feedSp.getViewport().setOpaque(false);
         feedSp.getVerticalScrollBar().setUnitIncrement(16);
-
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT, composer, feedSp);
-        split.setDividerLocation(140);
-        split.setResizeWeight(0);
-        split.setOpaque(false);
-        split.setBorder(null);
-        split.setDividerSize(4);
-        p.add(split, BorderLayout.CENTER);
+        feedSp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        p.add(feedSp, BorderLayout.CENTER);
         return p;
+    }
+
+    /** Opens a modal dialog for creating a new post */
+    private void showPostModal() {
+        User cur = network.getCurrentUser();
+        if (cur == null) return;
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "New Post", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(24, 24, 20, 24)));
+
+        JLabel title = new JLabel("Share a moment");
+        title.setFont(YH_LG);
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(title);
+        panel.add(Box.createVerticalStrut(14));
+
+        JTextArea input = new JTextArea(4, 30);
+        input.setFont(YH); input.setForeground(TEXT_MAIN);
+        input.setLineWrap(true); input.setWrapStyleWord(true);
+        input.setBorder(new EmptyBorder(10, 10, 10, 10));
+        input.setBackground(Color.WHITE);
+        input.setCaretColor(BRAND);
+        JScrollPane sp = new JScrollPane(input);
+        sp.setBorder(BorderFactory.createLineBorder(HAIRLINE));
+        sp.setOpaque(false); sp.getViewport().setOpaque(false);
+        sp.setAlignmentX(Component.LEFT_ALIGNMENT);
+        sp.setMaximumSize(new Dimension(420, 120));
+        panel.add(sp);
+        panel.add(Box.createVerticalStrut(16));
+
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        btns.setOpaque(false);
+        btns.setAlignmentX(Component.LEFT_ALIGNMENT);
+        StyledButton cancel = new StyledButton("Cancel", false);
+        cancel.addActionListener(e -> dialog.dispose());
+        StyledButton post = new StyledButton("Post", true);
+        post.addActionListener(e -> {
+            String text = input.getText().trim();
+            if (text.isEmpty()) { JOptionPane.showMessageDialog(dialog, "Write something first.", "SnapTok", JOptionPane.WARNING_MESSAGE); return; }
+            network.createPost(cur, text);
+            dialog.dispose();
+            refreshMoments();
+            refreshProfile();
+        });
+        btns.add(cancel); btns.add(post);
+        panel.add(btns);
+
+        dialog.setContentPane(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.getRootPane().setDefaultButton(post);
+        SwingUtilities.invokeLater(input::requestFocusInWindow);
+        dialog.setVisible(true);
     }
 
     // ======== SEARCH MIDDLE ========
@@ -465,16 +518,18 @@ public class MainContentPanel extends JPanel {
         top.setOpaque(false);
 
         JLabel title = new JLabel("Search Users");
-        title.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 20));
+        title.setFont(YH_XL);
         title.setForeground(TEXT_MAIN);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         top.add(title);
         top.add(Box.createVerticalStrut(12));
 
-        sField = new JTextField();
+        sField = new PlaceholderField("Search by name, ID, or hometown...");
         sField.setFont(YH); sField.setForeground(TEXT_MAIN);
-        sField.setBorder(new EmptyBorder(10, 12, 10, 12));
-        sField.setBackground(INPUT_BG);
+        sField.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(9, 12, 9, 12)));
+        sField.setBackground(Color.WHITE);
         sField.setCaretColor(BRAND);
         sField.addKeyListener(new KeyAdapter() {
             public void keyReleased(KeyEvent e) { performSearch(); }
@@ -520,13 +575,44 @@ public class MainContentPanel extends JPanel {
 
     // ======== RIGHT DETAIL PANEL ========
     private JPanel buildDetailRight() {
-        JPanel p = new JPanel(new GridBagLayout());
+        JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
+
+        // Back button bar
+        JPanel backBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        backBar.setOpaque(false);
+        backBar.setBorder(new EmptyBorder(12, 16, 0, 0));
+        JButton backBtn = new JButton() {
+            private boolean hov;
+            {
+                setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false);
+                setOpaque(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setPreferredSize(new Dimension(36, 36)); setToolTipText("Go back");
+                addMouseListener(new MouseAdapter() {
+                    public void mouseEntered(MouseEvent e) { hov = true; repaint(); }
+                    public void mouseExited(MouseEvent e) { hov = false; repaint(); }
+                    public void mouseClicked(MouseEvent e) { navigateBack(); }
+                });
+            }
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (hov) { g2.setColor(HOVER_BG); g2.fillRoundRect(0, 0, 36, 36, 8, 8); }
+                g2.setColor(hov ? BRAND : TEXT_SUB);
+                g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                int cx = 18, cy = 18;
+                g2.drawLine(cx + 4, cy - 6, cx - 4, cy);
+                g2.drawLine(cx - 4, cy, cx + 4, cy + 6);
+                g2.dispose();
+            }
+        };
+        backBar.add(backBtn);
+        p.add(backBar, BorderLayout.NORTH);
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
-        content.setBorder(new EmptyBorder(48, 32, 32, 32));
+        content.setBorder(new EmptyBorder(16, 32, 32, 32));
         content.setMaximumSize(new Dimension(430, Integer.MAX_VALUE));
 
         JPanel head = new JPanel(new BorderLayout(18, 0));
@@ -541,7 +627,7 @@ public class MainContentPanel extends JPanel {
         headText.setOpaque(false);
 
         rName = new JLabel("");
-        rName.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 18));
+        rName.setFont(YH_LG);
         rName.setForeground(TEXT_MAIN);
         headText.add(rName);
         headText.add(Box.createVerticalStrut(6));
@@ -594,16 +680,18 @@ public class MainContentPanel extends JPanel {
         gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.NORTH;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        p.add(content, gbc);
+        JPanel contentWrap = new JPanel(new GridBagLayout());
+        contentWrap.setOpaque(false);
+        contentWrap.add(content, gbc);
 
-        JScrollPane sp = new JScrollPane(p);
+        JScrollPane sp = new JScrollPane(contentWrap);
         sp.setBorder(null); sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        JPanel wrap = new JPanel(new BorderLayout());
-        wrap.setOpaque(false);
-        wrap.add(sp, BorderLayout.CENTER);
-        return wrap;
+        JPanel wrap2 = new JPanel(new BorderLayout());
+        wrap2.setOpaque(false);
+        wrap2.add(sp, BorderLayout.CENTER);
+        return wrap2;
     }
 
     private JLabel sectionLabel(String text) {
@@ -649,9 +737,25 @@ public class MainContentPanel extends JPanel {
     }
 
     // ======== REFRESH METHODS ========
+
+    /** Navigate back from detail view to the previous context */
+    private void navigateBack() {
+        if (navIdx == 1) {
+            // From friend detail back to friends list
+            showEmptyRight();
+        } else if (navIdx == 3) {
+            // From search user detail back to search results
+            showSearchRight();
+        } else {
+            // Default: go back to profile right
+            showProfileRight();
+        }
+    }
+
     void refreshProfile() {
         User u = network.getCurrentUser();
         if (u == null) return;
+        ((AvatarLabel) pAvatar).user = u;
         pAvatar.repaint();
         pName.setText(u.getName());
         pId.setText("@" + u.getUserId());
@@ -822,7 +926,8 @@ public class MainContentPanel extends JPanel {
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             User cur = network.getCurrentUser();
             if (cur != null) {
-                cur.setAvatarPath(fc.getSelectedFile().getAbsolutePath());
+                String relativePath = LoginPanel.copyAvatarToAssets(fc.getSelectedFile().getAbsolutePath());
+                cur.setAvatarPath(relativePath);
                 LoginPanel.rewriteUsersFile(network);
                 refreshProfile();
             }
@@ -830,14 +935,8 @@ public class MainContentPanel extends JPanel {
     }
 
     private void createPost() {
-        User cur = network.getCurrentUser();
-        if (cur == null) return;
-        String text = mInput.getText().trim();
-        if (text.isEmpty()) { JOptionPane.showMessageDialog(this, "Write something first.", "SnapTok", JOptionPane.WARNING_MESSAGE); return; }
-        network.createPost(cur, text);
-        mInput.setText("");
-        refreshMoments();
-        refreshProfile();
+        // Now handled by showPostModal()
+        showPostModal();
     }
 
     private void toggleLike(Post post) {
@@ -977,18 +1076,18 @@ public class MainContentPanel extends JPanel {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(DIVIDER),
+                BorderFactory.createLineBorder(HAIRLINE),
                 new EmptyBorder(20, 22, 18, 22)));
 
         JLabel title = new JLabel("Edit Remark");
-        title.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 18));
+        title.setFont(YH_LG);
         title.setForeground(TEXT_MAIN);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(title);
         panel.add(Box.createVerticalStrut(6));
 
         JLabel hint = new JLabel("Leave it empty to show this friend's real name.");
-        hint.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 12));
+        hint.setFont(YH_SM);
         hint.setForeground(TEXT_HINT);
         hint.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(hint);
@@ -998,8 +1097,10 @@ public class MainContentPanel extends JPanel {
         field.setFont(YH);
         field.setForeground(TEXT_MAIN);
         field.setCaretColor(BRAND);
-        field.setBorder(new EmptyBorder(10, 12, 10, 12));
-        field.setBackground(INPUT_BG);
+        field.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(9, 12, 9, 12)));
+        field.setBackground(Color.WHITE);
         field.setMaximumSize(new Dimension(320, 40));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(field);
@@ -1148,7 +1249,7 @@ public class MainContentPanel extends JPanel {
         input.setLineWrap(true);
         input.setWrapStyleWord(true);
         input.setBorder(new EmptyBorder(8, 8, 8, 8));
-        input.setBackground(INPUT_BG);
+        input.setBackground(Color.WHITE);
         input.setCaretColor(BRAND);
 
         JScrollPane inputScroll = new JScrollPane(input);
@@ -1188,7 +1289,7 @@ public class MainContentPanel extends JPanel {
         author.setForeground(TEXT_MAIN);
         meta.add(author, BorderLayout.WEST);
         JLabel time = new JLabel(comment.getTimestampString());
-        time.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 11));
+        time.setFont(YH_XS);
         time.setForeground(TEXT_HINT);
         meta.add(time, BorderLayout.EAST);
         body.add(meta);
@@ -1228,15 +1329,24 @@ public class MainContentPanel extends JPanel {
     }
 
     private JPanel createPostCard(Post post, User cur, int contentWidth, int maxWidth, int maxHeight) {
-        JPanel card = new JPanel(new BorderLayout(8, 4));
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(true);
-        card.setBackground(Color.WHITE);
-        card.setBorder(new EmptyBorder(12, 12, 12, 12));
-        card.setMaximumSize(new Dimension(maxWidth, maxHeight));
+        card.setBackground(CANVAS);
+        // Apple utility card: 1px hairline border, 18px radius (rounded.lg)
+        card.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(14, 14, 14, 14)));
+        card.setMaximumSize(new Dimension(maxWidth, maxHeight + 90));
 
+        // Header: fixed-size avatar + meta
         JPanel top = new JPanel(new BorderLayout(8, 0));
         top.setOpaque(false);
-        top.add(new AvatarLabel(34, post.getAuthor()), BorderLayout.WEST);
+        top.setMaximumSize(new Dimension(maxWidth, 42));
+        AvatarLabel avatar = new AvatarLabel(34, post.getAuthor());
+        avatar.setPreferredSize(new Dimension(34, 34));
+        avatar.setMinimumSize(new Dimension(34, 34));
+        top.add(avatar, BorderLayout.WEST);
 
         JPanel meta = new JPanel();
         meta.setLayout(new BoxLayout(meta, BoxLayout.Y_AXIS));
@@ -1245,49 +1355,102 @@ public class MainContentPanel extends JPanel {
         author.setFont(YHB); author.setForeground(TEXT_MAIN);
         meta.add(author);
         JLabel time = new JLabel(post.getTimestampString());
-        time.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 11));
+        time.setFont(YH_XS);
         time.setForeground(TEXT_HINT);
         meta.add(time);
         top.add(meta, BorderLayout.CENTER);
-        card.add(top, BorderLayout.NORTH);
+        card.add(top);
+        card.add(Box.createVerticalStrut(8));
 
+        // Content
         JLabel content = new JLabel("<html><body style='width:" + contentWidth + "px'>"
                 + escapeHtml(post.getContent()) + "</body></html>");
         content.setFont(YH); content.setForeground(TEXT_MAIN);
-        card.add(content, BorderLayout.CENTER);
+        content.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.add(content);
+        card.add(Box.createVerticalStrut(8));
 
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        // Action bar: heart + comment count + view
+        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         bottom.setOpaque(false);
+        bottom.setAlignmentX(Component.LEFT_ALIGNMENT);
+        bottom.setMaximumSize(new Dimension(maxWidth, 28));
+
         boolean liked = cur != null && post.isLikedBy(cur);
-        JLabel likeLabel = new JLabel((liked ? "\u2665 " : "\u2661 ") + post.getLikeCount());
-        likeLabel.setFont(YH);
-        likeLabel.setForeground(liked ? new Color(239, 68, 68) : TEXT_HINT);
-        likeLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        likeLabel.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { toggleLike(post); }
-        });
-        bottom.add(likeLabel);
-        JLabel commentLabel = new JLabel("Comments " + post.getCommentCount());
-        commentLabel.setFont(YH);
-        commentLabel.setForeground(TEXT_HINT);
-        commentLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        commentLabel.addMouseListener(new MouseAdapter() {
+        HeartIcon heart = new HeartIcon(liked, post);
+        heart.setAlignmentY(Component.CENTER_ALIGNMENT);
+        bottom.add(heart);
+
+        JLabel likeCount = new JLabel(String.valueOf(post.getLikeCount()));
+        likeCount.setFont(YH_SM);
+        likeCount.setForeground(TEXT_HINT);
+        likeCount.setAlignmentY(Component.CENTER_ALIGNMENT);
+        bottom.add(likeCount);
+
+        JLabel commentBtn = new JLabel("\uD83D\uDCAC " + post.getCommentCount());
+        commentBtn.setFont(YH_SM);
+        commentBtn.setForeground(TEXT_HINT);
+        commentBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        commentBtn.setAlignmentY(Component.CENTER_ALIGNMENT);
+        commentBtn.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) { showPostDetail(post); }
         });
-        bottom.add(commentLabel);
+        bottom.add(commentBtn);
+
         JLabel viewLabel = new JLabel("View \u203A");
         viewLabel.setFont(YH); viewLabel.setForeground(BRAND);
         viewLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        viewLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
         viewLabel.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) { showPostDetail(post); }
         });
         bottom.add(viewLabel);
-        card.add(bottom, BorderLayout.SOUTH);
+        card.add(bottom);
+
+        // Inline comments (show first 3)
+        if (!post.getComments().isEmpty()) {
+            card.add(Box.createVerticalStrut(6));
+            JPanel commentsArea = new JPanel();
+            commentsArea.setLayout(new BoxLayout(commentsArea, BoxLayout.Y_AXIS));
+            commentsArea.setOpaque(false);
+            commentsArea.setAlignmentX(Component.LEFT_ALIGNMENT);
+            int shown = 0;
+            for (Comment cmt : post.getComments()) {
+                if (shown >= 3) break;
+                JPanel cItem = new JPanel(new BorderLayout(6, 0));
+                cItem.setOpaque(false);
+                cItem.setBorder(new EmptyBorder(2, 0, 2, 0));
+                cItem.setMaximumSize(new Dimension(maxWidth, 30));
+                AvatarLabel cAv = new AvatarLabel(20, cmt.getAuthor());
+                cAv.setPreferredSize(new Dimension(20, 20));
+                cAv.setMinimumSize(new Dimension(20, 20));
+                cItem.add(cAv, BorderLayout.WEST);
+                JLabel cText = new JLabel("<html><body style='width:" + (contentWidth - 30) + "px'><b>"
+                        + escapeHtml(cmt.getAuthor().getName()) + "</b> "
+                        + escapeHtml(cmt.getContent()) + "</body></html>");
+                cText.setFont(YH_SM);
+                cText.setForeground(TEXT_MAIN);
+                cItem.add(cText, BorderLayout.CENTER);
+                commentsArea.add(cItem);
+                shown++;
+            }
+            if (post.getCommentCount() > 3) {
+                JLabel more = new JLabel("View all " + post.getCommentCount() + " comments");
+                more.setFont(YH_XS);
+                more.setForeground(TEXT_HINT);
+                more.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                more.addMouseListener(new MouseAdapter() {
+                    public void mouseClicked(MouseEvent e) { showPostDetail(post); }
+                });
+                commentsArea.add(more);
+            }
+            card.add(commentsArea);
+        }
 
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) { card.setBackground(HOVER_BG); }
-            public void mouseExited(MouseEvent e) { card.setBackground(Color.WHITE); }
+            public void mouseExited(MouseEvent e) { card.setBackground(CANVAS); }
             public void mouseClicked(MouseEvent e) { showPostDetail(post); }
         });
         return card;
@@ -1296,8 +1459,10 @@ public class MainContentPanel extends JPanel {
     // ======== HELPERS ========
     static Image loadAvatarImage(String path, int size) {
         if (path == null || path.isEmpty()) return null;
+        String resolved = resolveAvatarPath(path);
+        if (resolved == null) resolved = path;
         try {
-            Image img = ImageIO.read(new File(path));
+            Image img = ImageIO.read(new File(resolved));
             return img.getScaledInstance(size, size, Image.SCALE_SMOOTH);
         } catch (Exception e) { return null; }
     }
@@ -1319,35 +1484,96 @@ public class MainContentPanel extends JPanel {
         protected void paintComponent(Graphics g) { g.setColor(DIVIDER); g.fillRect(0, 0, 1, getHeight()); }
     }
 
+    /** Text field with placeholder hint text */
+    static class PlaceholderField extends JTextField {
+        private String placeholder;
+        PlaceholderField(String placeholder) {
+            this.placeholder = placeholder;
+        }
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (getText().isEmpty()) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setColor(TEXT_HINT);
+                g2.setFont(getFont());
+                Insets insets = getInsets();
+                g2.drawString(placeholder, insets.left + 2, getHeight() / 2 + g2.getFontMetrics().getAscent() / 2 - 2);
+                g2.dispose();
+            }
+        }
+    }
+
+
     /** Circular avatar label */
     static class AvatarLabel extends JLabel {
         int size; User user;
         AvatarLabel(int size, User user) {
             this.size = size; this.user = user;
             setPreferredSize(new Dimension(size, size));
+            setMinimumSize(new Dimension(size, size));
         }
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            Shape circle = new Ellipse2D.Float(0, 0, size, size);
-            g2.setClip(circle);
-            if (user != null && !user.getAvatarPath().isEmpty()) {
-                Image img = loadAvatarImage(user.getAvatarPath(), size);
-                if (img != null) { g2.drawImage(img, 0, 0, null); g2.dispose(); return; }
+
+            // Use size field as fallback if component not yet laid out
+            int w = getWidth() > 0 ? getWidth() : size;
+            int h = getHeight() > 0 ? getHeight() : size;
+            int d = Math.min(size, Math.min(w, h));
+            if (d <= 0) d = size;
+            int x = (w - d) / 2;
+            int y = (h - d) / 2;
+            Ellipse2D.Double clip = new Ellipse2D.Double(x, y, d, d);
+
+            // Try loading image from avatar path
+            boolean imageDrawn = false;
+            if (user != null && user.getAvatarPath() != null && !user.getAvatarPath().isEmpty()) {
+                try {
+                    Image img = loadAvatarImage(user.getAvatarPath(), d);
+                    if (img != null) {
+                        Shape oldClip = g2.getClip();
+                        g2.setClip(clip);
+                        g2.drawImage(img, x, y, d, d, this);
+                        g2.setClip(oldClip);
+                        imageDrawn = true;
+                    }
+                } catch (Exception e) {
+                    imageDrawn = false;
+                }
             }
-            g2.setColor(new Color(209, 213, 219));
-            g2.fill(circle);
-            g2.setColor(Color.WHITE);
-            g2.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, size / 2));
-            String init = (user != null && !user.getName().isEmpty()) ? user.getName().substring(0, 1).toUpperCase() : "?";
-            FontMetrics fm = g2.getFontMetrics();
-            g2.drawString(init, (size - fm.stringWidth(init)) / 2, (size + fm.getAscent()) / 2 - 4);
+
+            // Fallback: filled circle with person silhouette
+            if (!imageDrawn) {
+                g2.setColor(new Color(209, 213, 219));
+                g2.fill(clip);
+                g2.setColor(Color.WHITE);
+                int cx = x + d / 2;
+                int cy = y + d / 2;
+                // Head - filled circle
+                int headD = d / 4;
+                int headX = cx - headD / 2;
+                int headY = cy - d / 4;
+                g2.fillOval(headX, headY, headD, headD);
+                // Body - filled arc (half ellipse)
+                int bodyW = d / 2;
+                int bodyH = d / 3;
+                int bodyX = cx - bodyW / 2;
+                int bodyY = cy + 2;
+                g2.fillArc(bodyX, bodyY, bodyW, bodyH, 0, 180);
+            }
+
+            // Border ring — hairline
+            g2.setColor(HAIRLINE);
+            g2.setStroke(new BasicStroke(1.2f));
+            g2.draw(clip);
             g2.dispose();
         }
     }
 
-    /** Nav icon button */
+    /** Nav icon — Apple global nav: white icons, blue selected, dark hover */
     class NavIcon extends JPanel {
         int idx; String tip; boolean hover;
         NavIcon(int idx, String tip) {
@@ -1360,9 +1586,6 @@ public class MainContentPanel extends JPanel {
                 public void mouseExited(MouseEvent e) { hover = false; repaint(); }
                 public void mouseClicked(MouseEvent e) {
                     if (idx <= 3) selectNav(idx);
-                    else if (idx == 10) saveNetworkFile();
-                    else if (idx == 11) loadNetworkFile();
-                    else if (idx == 12) { network.setCurrentUser(null); mainGUI.showCard(MainGUI.LOGIN_CARD); }
                 }
             });
         }
@@ -1370,20 +1593,26 @@ public class MainContentPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            if (hover && idx <= 3) { g2.setColor(HOVER_BG); g2.fillRect(0, 4, 60, 40); }
             boolean sel = (idx == navIdx && idx <= 3);
-            Color c = sel ? BRAND : new Color(75, 85, 99);
+            // Hover: subtle dark highlight pill
+            if (hover && !sel && idx <= 3) {
+                g2.setColor(new Color(255, 255, 255, 18));
+                g2.fillRoundRect(10, 8, 44, 36, 12, 12);
+            }
+            // Selected: Action Blue icon
+            Color c = sel ? BRAND : (hover ? Color.WHITE : new Color(180, 180, 180));
             g2.setColor(c);
-            g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            int cx = 30, cy = 24;
+            g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int cx = 32, cy = 26;
             if (idx == 0) drawPersonIcon(g2, cx, cy);
             else if (idx == 1) drawFriendsIcon(g2, cx, cy);
             else if (idx == 2) drawMomentsIcon(g2, cx, cy);
             else if (idx == 3) drawSearchIcon(g2, cx, cy);
-            else if (idx == 10) drawSaveIcon(g2, cx, cy);
-            else if (idx == 11) drawLoadIcon(g2, cx, cy);
-            else if (idx == 12) drawLogoutIcon(g2, cx, cy);
-            if (sel) { g2.setColor(BRAND); g2.fillRect(0, 8, 3, 32); }
+            // Selected indicator: small blue dot below icon
+            if (sel) {
+                g2.setColor(BRAND);
+                g2.fillOval(cx - 2, 44, 4, 4);
+            }
             g2.dispose();
         }
     }
@@ -1406,24 +1635,6 @@ public class MainContentPanel extends JPanel {
     private void drawSearchIcon(Graphics2D g, int cx, int cy) {
         g.drawOval(cx - 7, cy - 7, 12, 12);
         g.drawLine(cx + 2, cy + 2, cx + 8, cy + 8);
-    }
-    private void drawSaveIcon(Graphics2D g, int cx, int cy) {
-        g.drawRect(cx - 8, cy - 8, 16, 16);
-        g.drawLine(cx - 4, cy - 8, cx - 4, cy - 2);
-        g.drawLine(cx + 4, cy - 8, cx + 4, cy - 2);
-        g.drawRect(cx - 5, cy + 1, 10, 7);
-    }
-    private void drawLoadIcon(Graphics2D g, int cx, int cy) {
-        g.drawRoundRect(cx - 9, cy - 4, 18, 12, 4, 4);
-        g.drawLine(cx, cy - 8, cx, cy + 2);
-        g.drawLine(cx - 4, cy - 4, cx, cy - 8);
-        g.drawLine(cx + 4, cy - 4, cx, cy - 8);
-    }
-    private void drawLogoutIcon(Graphics2D g, int cx, int cy) {
-        g.drawArc(cx - 8, cy - 8, 16, 16, 90, 270);
-        g.drawLine(cx, cy, cx + 10, cy);
-        g.drawLine(cx + 6, cy - 4, cx + 10, cy);
-        g.drawLine(cx + 6, cy + 4, cx + 10, cy);
     }
 
     static class EmptyChatIcon extends JPanel {
@@ -1452,9 +1663,78 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Styled button */
+    /** Heart icon for like/unlike with animation */
+    class HeartIcon extends JPanel {
+        private boolean liked;
+        private final Post post;
+        private boolean hover;
+        private float animProgress = 1f;
+        private javax.swing.Timer animTimer;
+
+        HeartIcon(boolean initialLiked, Post post) {
+            this.liked = initialLiked;
+            this.post = post;
+            setOpaque(false);
+            setPreferredSize(new Dimension(24, 24));
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
+                public void mouseExited(MouseEvent e) { hover = false; repaint(); }
+                public void mouseClicked(MouseEvent e) {
+                    toggleLike(post);
+                    liked = !liked;
+                    // Animate
+                    animProgress = 0f;
+                    if (animTimer != null && animTimer.isRunning()) animTimer.stop();
+                    animTimer = new javax.swing.Timer(16, null);
+                    animTimer.addActionListener(ev -> {
+                        animProgress += 0.12f;
+                        if (animProgress >= 1f) { animProgress = 1f; animTimer.stop(); }
+                        repaint();
+                    });
+                    animTimer.start();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth(), h = getHeight();
+            // Scale animation: bounce from 0.7 to 1.0
+            float scale = 0.7f + 0.3f * Math.min(animProgress, 1f);
+            int cx = w / 2, cy = h / 2;
+            double s = scale;
+            g2.translate(cx, cy);
+            g2.scale(s, s);
+            g2.translate(-cx, -cy);
+
+            if (liked) {
+                g2.setColor(new Color(239, 68, 68)); // red
+                drawHeart(g2, w, h, true);
+            } else {
+                g2.setColor(hover ? new Color(239, 68, 68) : TEXT_HINT);
+                drawHeart(g2, w, h, false);
+            }
+            g2.dispose();
+        }
+
+        private void drawHeart(Graphics2D g, int w, int h, boolean fill) {
+            int cx = w / 2;
+            Path2D.Double heart = new Path2D.Double();
+            heart.moveTo(cx, h * 0.85);
+            heart.curveTo(cx - w * 0.55, h * 0.55, cx - w * 0.35, h * 0.05, cx, h * 0.3);
+            heart.curveTo(cx + w * 0.35, h * 0.05, cx + w * 0.55, h * 0.55, cx, h * 0.85);
+            if (fill) g.fill(heart);
+            else { g.setStroke(new BasicStroke(1.5f)); g.draw(heart); }
+        }
+    }
+
+    /** Apple button-primary: flat pill, Action Blue, press scale */
     static class StyledButton extends JButton {
         private boolean primary, hover;
+        private boolean pressed;
         StyledButton(String text, boolean primary) {
             super(text);
             this.primary = primary;
@@ -1464,35 +1744,37 @@ public class MainContentPanel extends JPanel {
             setPreferredSize(new Dimension(primary ? 220 : 140, primary ? 44 : 36));
             addMouseListener(new MouseAdapter() {
                 public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
-                public void mouseExited(MouseEvent e) { hover = false; repaint(); }
+                public void mouseExited(MouseEvent e) { hover = false; pressed = false; repaint(); }
+                public void mousePressed(MouseEvent e) { pressed = true; repaint(); }
+                public void mouseReleased(MouseEvent e) { pressed = false; repaint(); }
             });
         }
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int yOff = hover ? -2 : 0;
             if (primary) {
-                if (hover) { g2.setColor(new Color(59, 130, 246, 30)); g2.fillRoundRect(2, yOff + 3, getWidth() - 4, getHeight() - 2, 12, 12); }
-                g2.setColor(hover ? BRAND_DARK : BRAND);
-                g2.fillRoundRect(0, yOff, getWidth(), getHeight(), 12, 12);
+                // Apple: flat fill, darker on press
+                g2.setColor(pressed ? BRAND_DARK : BRAND);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
             } else {
-                if (hover) { g2.setColor(new Color(59, 130, 246, 15)); g2.fillRoundRect(0, yOff, getWidth(), getHeight(), 12, 12); }
-                g2.setColor(BRAND); g2.setStroke(new BasicStroke(1.5f));
-                g2.drawRoundRect(1, yOff + 1, getWidth() - 2, getHeight() - 2, 12, 12);
+                // Secondary: ghost pill with 1px blue border
+                if (hover) { g2.setColor(new Color(0, 102, 204, 12)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16); }
+                g2.setColor(BRAND); g2.setStroke(new BasicStroke(1.0f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
             }
             g2.dispose();
             super.paintComponent(g);
         }
     }
 
-    /** Filter chip button */
+    /** Apple configurator-option-chip: pill, hairline border, blue selected */
     class FilterChip extends JButton {
         private boolean active, hover;
         FilterChip(String text, boolean active) {
             super(text);
             this.active = active;
-            setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 12));
+            setFont(YH_SM);
             setForeground(active ? Color.WHITE : TEXT_SUB);
             setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false);
             setOpaque(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -1513,10 +1795,18 @@ public class MainContentPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            if (active) g2.setColor(BRAND);
-            else if (hover) g2.setColor(HOVER_BG);
-            else g2.setColor(INPUT_BG);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            if (active) {
+                g2.setColor(BRAND);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            } else if (hover) {
+                g2.setColor(HOVER_BG);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(HAIRLINE); g2.setStroke(new BasicStroke(1.0f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+            } else {
+                g2.setColor(HAIRLINE); g2.setStroke(new BasicStroke(1.0f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+            }
             g2.dispose();
             super.paintComponent(g);
         }
@@ -1529,7 +1819,7 @@ public class MainContentPanel extends JPanel {
             User u = (User) value;
             JPanel row = new JPanel(new BorderLayout(8, 0));
             row.setOpaque(true);
-            row.setBackground(isSelected ? new Color(239, 246, 255) : Color.WHITE);
+            row.setBackground(isSelected ? new Color(232, 240, 254) : CANVAS); // Apple blue selection
             row.setBorder(new EmptyBorder(8, 12, 8, 12));
 
             row.add(new AvatarLabel(42, u), BorderLayout.WEST);
@@ -1544,7 +1834,7 @@ public class MainContentPanel extends JPanel {
 
             String reason = sRecommendationReasons.getOrDefault(u, "Recommended");
             JLabel detail = new JLabel(reason);
-            detail.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.PLAIN, 12));
+            detail.setFont(YH_SM);
             detail.setForeground(TEXT_HINT);
             info.add(detail);
             row.add(info, BorderLayout.CENTER);
@@ -1559,7 +1849,7 @@ public class MainContentPanel extends JPanel {
             User u = (User) value;
             JPanel row = new JPanel(new BorderLayout(8, 0));
             row.setOpaque(true);
-            row.setBackground(isSelected ? new Color(239, 246, 255) : Color.WHITE);
+            row.setBackground(isSelected ? new Color(232, 240, 254) : CANVAS); // Apple blue selection
             row.setBorder(new EmptyBorder(8, 12, 8, 12));
 
             AvatarLabel av = new AvatarLabel(40, u);
