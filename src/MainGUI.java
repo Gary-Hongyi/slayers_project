@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
+import java.io.File;
 
 /**
  * Main GUI frame — borderless window with standard Windows title bar controls.
@@ -42,22 +43,19 @@ public class MainGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(true);
 
-        // Root panel with gradient background
+        // Root panel — Apple parchment canvas (no decorative gradients)
         JPanel root = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(
-                        0, 0, new Color(248, 250, 252),
-                        0, getHeight(), Color.WHITE);
-                g2.setPaint(gp);
-                if (maximized) {
-                    g2.fillRect(0, 0, getWidth(), getHeight());
-                } else {
-                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 32, 32);
+                int w = getWidth(), h = getHeight();
+                g.setColor(new Color(245, 245, 247)); // canvas-parchment
+                if (maximized) { g.fillRect(0, 0, w, h); }
+                else {
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.fillRoundRect(0, 0, w, h, 16, 16);
+                    g2.dispose();
                 }
-                g2.dispose();
             }
         };
         root.setOpaque(false);
@@ -82,6 +80,17 @@ public class MainGUI extends JFrame {
         applyShape();
         cardLayout.show(mainPanel, LOGIN_CARD);
 
+        // Auto-load saved network data on startup
+        autoLoadNetwork();
+
+        // Auto-save on window close
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                autoSaveNetwork();
+            }
+        });
+
         // Update shape on resize
         addComponentListener(new ComponentAdapter() {
             public void componentResized(ComponentEvent e) {
@@ -100,10 +109,10 @@ public class MainGUI extends JFrame {
         bar.setPreferredSize(new Dimension(0, 40));
         bar.setBorder(BorderFactory.createEmptyBorder(4, 16, 4, 0));
 
-        // App name
+        // App name — Apple style
         JLabel appName = new JLabel("SnapTok");
-        appName.setFont(new Font("\u5fae\u8f6f\u96c5\u9ed1", Font.BOLD, 13));
-        appName.setForeground(new Color(148, 163, 184));
+        appName.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        appName.setForeground(new Color(122, 122, 122)); // muted-48
         bar.add(appName, BorderLayout.WEST);
 
         // Windows-style button group: Minimize → Maximize → Close
@@ -204,14 +213,14 @@ public class MainGUI extends JFrame {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             if (pressed) {
-                g2.setColor(new Color(229, 231, 235));
+                g2.setColor(new Color(224, 224, 224)); // hairline
                 g2.fillOval(2, 2, 28, 28);
             } else if (hover) {
-                g2.setColor(new Color(243, 244, 246));
+                g2.setColor(new Color(245, 245, 247)); // parchment
                 g2.fillOval(2, 2, 28, 28);
             }
 
-            g2.setColor(new Color(30, 41, 59));
+            g2.setColor(new Color(29, 29, 31)); // ink
             g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
             int cx = 16, cy = 16;
@@ -246,4 +255,66 @@ public class MainGUI extends JFrame {
     }
 
     public SocialNetwork getNetwork() { return network; }
+
+    // ======== AUTO-SAVE / AUTO-LOAD ========
+
+    private static final String AUTO_SAVE_FILE;
+    static {
+        String dir = System.getProperty("user.dir");
+        File projectDir = new File(dir, "slayers_project");
+        if (projectDir.isDirectory()) {
+            AUTO_SAVE_FILE = new File(projectDir, "data/network.txt").getAbsolutePath();
+        } else {
+            AUTO_SAVE_FILE = new File(dir, "data/network.txt").getAbsolutePath();
+        }
+    }
+
+    private void autoLoadNetwork() {
+        File file = new File(AUTO_SAVE_FILE);
+        if (!file.exists()) return;
+        try {
+            SocialNetwork saved = FileManager.loadNetwork(AUTO_SAVE_FILE);
+            for (User u : saved.getAllUsers()) {
+                if (network.getUser(u.getUserId()) == null) {
+                    network.addUser(u);
+                } else {
+                    // Merge posts/friendships into existing user
+                    User existing = network.getUser(u.getUserId());
+                    for (Post p : u.getPosts()) existing.addPost(p);
+                    for (User f : u.getFriends()) {
+                        if (!existing.isFriendWith(f) && network.getUser(f.getUserId()) != null) {
+                            existing.addFriend(network.getUser(f.getUserId()));
+                        }
+                    }
+                }
+            }
+            // Merge friendships for users already loaded
+            for (User u : saved.getAllUsers()) {
+                User existing = network.getUser(u.getUserId());
+                if (existing != null) {
+                    for (User f : u.getFriends()) {
+                        User friendInNetwork = network.getUser(f.getUserId());
+                        if (friendInNetwork != null && !existing.isFriendWith(friendInNetwork)) {
+                            existing.addFriend(friendInNetwork);
+                        }
+                    }
+                }
+            }
+            if (saved.getPostCounter() > network.getPostCounter()) {
+                network.setPostCounter(saved.getPostCounter());
+            }
+        } catch (Exception e) {
+            // Silently ignore load errors
+        }
+    }
+
+    private void autoSaveNetwork() {
+        try {
+            File dir = new File(AUTO_SAVE_FILE).getParentFile();
+            if (!dir.exists()) dir.mkdirs();
+            FileManager.saveNetwork(AUTO_SAVE_FILE, network);
+        } catch (Exception e) {
+            // Silently ignore save errors
+        }
+    }
 }
