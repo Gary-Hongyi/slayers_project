@@ -40,7 +40,7 @@ public class MainGUI extends JFrame {
         setMinimumSize(new Dimension(800, 600));
         setLocationRelativeTo(null);
         setTitle("SnapTok");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(true);
 
         // Root panel — Apple parchment canvas (no decorative gradients)
@@ -88,6 +88,9 @@ public class MainGUI extends JFrame {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 autoSaveNetwork();
+                LoginPanel.rewriteUsersFile(network);
+                dispose();
+                System.exit(0);
             }
         });
 
@@ -126,7 +129,7 @@ public class MainGUI extends JFrame {
         maximizeBtn.addActionListener(e -> toggleMaximize());
 
         WinButton closeBtn = new WinButton(WinButton.TYPE_CLOSE);
-        closeBtn.addActionListener(e -> System.exit(0));
+        closeBtn.addActionListener(e -> dispatchEvent(new WindowEvent(this, WindowEvent.WINDOW_CLOSING)));
 
         btns.add(minimizeBtn);
         btns.add(maximizeBtn);
@@ -260,13 +263,16 @@ public class MainGUI extends JFrame {
 
     private static final String AUTO_SAVE_FILE;
     static {
-        String dir = System.getProperty("user.dir");
-        File projectDir = new File(dir, "slayers_project");
-        if (projectDir.isDirectory()) {
-            AUTO_SAVE_FILE = new File(projectDir, "data/network.txt").getAbsolutePath();
-        } else {
-            AUTO_SAVE_FILE = new File(dir, "data/network.txt").getAbsolutePath();
-        }
+        AUTO_SAVE_FILE = new File(LoginPanel.getProjectRoot(), "data/network.txt").getAbsolutePath();
+    }
+
+    public static String getDefaultNetworkFilePath() {
+        return AUTO_SAVE_FILE;
+    }
+
+    public void saveNetworkNow() {
+        autoSaveNetwork();
+        LoginPanel.rewriteUsersFile(network);
     }
 
     private void autoLoadNetwork() {
@@ -275,11 +281,15 @@ public class MainGUI extends JFrame {
         try {
             SocialNetwork saved = FileManager.loadNetwork(AUTO_SAVE_FILE);
             for (User u : saved.getAllUsers()) {
+                u.setAvatarPath(LoginPanel.normalizeAvatarPath(u.getAvatarPath()));
                 if (network.getUser(u.getUserId()) == null) {
                     network.addUser(u);
                 } else {
                     // Merge posts/friendships into existing user
                     User existing = network.getUser(u.getUserId());
+                    if (existing.getAvatarPath().isEmpty() && !u.getAvatarPath().isEmpty()) {
+                        existing.setAvatarPath(u.getAvatarPath());
+                    }
                     for (Post p : u.getPosts()) existing.addPost(p);
                     for (User f : u.getFriends()) {
                         if (!existing.isFriendWith(f) && network.getUser(f.getUserId()) != null) {

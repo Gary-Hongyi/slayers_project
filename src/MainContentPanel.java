@@ -42,7 +42,7 @@ public class MainContentPanel extends JPanel {
         if (path == null || path.isEmpty()) return null;
         File f = new File(path);
         if (f.isAbsolute()) return f.exists() ? path : null;
-        File resolved = new File(System.getProperty("user.dir"), path);
+        File resolved = new File(LoginPanel.getProjectRoot(), path);
         return resolved.exists() ? resolved.getAbsolutePath() : null;
     }
 
@@ -138,6 +138,36 @@ public class MainContentPanel extends JPanel {
             ni.setBounds(0, 28 + i * 60, 64, 52);
             nav.add(ni);
         }
+        NavActionIcon save = new NavActionIcon(0, "Save");
+        NavActionIcon load = new NavActionIcon(1, "Load");
+        NavActionIcon logout = new NavActionIcon(2, "Logout");
+        save.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) { saveNetworkFile(); }
+        });
+        load.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) { loadNetworkFile(); }
+        });
+        logout.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                mainGUI.saveNetworkNow();
+                network.setCurrentUser(null);
+                mainGUI.showCard(MainGUI.LOGIN_CARD);
+            }
+        });
+        save.setBounds(0, 420, 64, 52);
+        load.setBounds(0, 480, 64, 52);
+        logout.setBounds(0, 540, 64, 52);
+        nav.add(save);
+        nav.add(load);
+        nav.add(logout);
+        nav.addComponentListener(new ComponentAdapter() {
+            public void componentResized(ComponentEvent e) {
+                int y = Math.max(280, nav.getHeight() - 180);
+                save.setBounds(0, y, 64, 52);
+                load.setBounds(0, y + 60, 64, 52);
+                logout.setBounds(0, y + 120, 64, 52);
+            }
+        });
         return nav;
     }
 
@@ -443,6 +473,7 @@ public class MainContentPanel extends JPanel {
             String text = input.getText().trim();
             if (text.isEmpty()) { JOptionPane.showMessageDialog(dialog, "Write something first.", "SnapTok", JOptionPane.WARNING_MESSAGE); return; }
             network.createPost(cur, text);
+            mainGUI.saveNetworkNow();
             dialog.dispose();
             refreshMoments();
             refreshProfile();
@@ -524,7 +555,7 @@ public class MainContentPanel extends JPanel {
         top.add(title);
         top.add(Box.createVerticalStrut(12));
 
-        sField = new PlaceholderField("Search by name, ID, or hometown...");
+        sField = new PlaceholderField("Search by name or ID...");
         sField.setFont(YH); sField.setForeground(TEXT_MAIN);
         sField.setBorder(new CompoundBorder(
                 BorderFactory.createLineBorder(HAIRLINE, 1),
@@ -582,30 +613,10 @@ public class MainContentPanel extends JPanel {
         JPanel backBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         backBar.setOpaque(false);
         backBar.setBorder(new EmptyBorder(12, 16, 0, 0));
-        JButton backBtn = new JButton() {
-            private boolean hov;
-            {
-                setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false);
-                setOpaque(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                setPreferredSize(new Dimension(36, 36)); setToolTipText("Go back");
-                addMouseListener(new MouseAdapter() {
-                    public void mouseEntered(MouseEvent e) { hov = true; repaint(); }
-                    public void mouseExited(MouseEvent e) { hov = false; repaint(); }
-                    public void mouseClicked(MouseEvent e) { navigateBack(); }
-                });
-            }
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (hov) { g2.setColor(HOVER_BG); g2.fillRoundRect(0, 0, 36, 36, 8, 8); }
-                g2.setColor(hov ? BRAND : TEXT_SUB);
-                g2.setStroke(new BasicStroke(2.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                int cx = 18, cy = 18;
-                g2.drawLine(cx + 4, cy - 6, cx - 4, cy);
-                g2.drawLine(cx - 4, cy, cx + 4, cy + 6);
-                g2.dispose();
-            }
-        };
+        StyledButton backBtn = new StyledButton("Back", false);
+        backBtn.setPreferredSize(new Dimension(92, 34));
+        backBtn.setToolTipText("Go back");
+        backBtn.addActionListener(e -> navigateBack());
         backBar.add(backBtn);
         p.add(backBar, BorderLayout.NORTH);
 
@@ -712,7 +723,7 @@ public class MainContentPanel extends JPanel {
     private JPanel detailRow(String label, String val) {
         JPanel row = new JPanel(new BorderLayout(8, 0));
         row.setOpaque(false);
-        row.setMaximumSize(new Dimension(430, 32));
+        row.setMaximumSize(new Dimension(430, 76));
         JLabel l = new JLabel(label);
         l.setFont(YH); l.setForeground(TEXT_SUB);
         l.setPreferredSize(new Dimension(120, 32));
@@ -877,13 +888,13 @@ public class MainContentPanel extends JPanel {
                 if (!sameWorkplace) continue;
                 candidates.add(user);
                 String reason = "Same workplace: " + user.getWorkplace();
-                if (mutualCount > 0) reason += " · " + mutualCount + " mutual";
+                if (mutualCount > 0) reason += " | " + mutualCount + " mutual";
                 sRecommendationReasons.put(user, reason);
             } else if ("Same Hometown".equals(sFilter)) {
                 if (!sameHometown) continue;
                 candidates.add(user);
                 String reason = "Same hometown: " + user.getHometown();
-                if (mutualCount > 0) reason += " · " + mutualCount + " mutual";
+                if (mutualCount > 0) reason += " | " + mutualCount + " mutual";
                 sRecommendationReasons.put(user, reason);
             }
         }
@@ -917,6 +928,7 @@ public class MainContentPanel extends JPanel {
         cur.setHometown(pHomeF.getText().trim().isEmpty() ? "Unknown" : pHomeF.getText().trim());
         refreshProfile();
         LoginPanel.rewriteUsersFile(network);
+        mainGUI.saveNetworkNow();
         JOptionPane.showMessageDialog(this, "Profile updated!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
     }
 
@@ -927,8 +939,13 @@ public class MainContentPanel extends JPanel {
             User cur = network.getCurrentUser();
             if (cur != null) {
                 String relativePath = LoginPanel.copyAvatarToAssets(fc.getSelectedFile().getAbsolutePath());
+                if (relativePath.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Could not import that avatar.", "SnapTok", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
                 cur.setAvatarPath(relativePath);
                 LoginPanel.rewriteUsersFile(network);
+                mainGUI.saveNetworkNow();
                 refreshProfile();
             }
         }
@@ -943,6 +960,7 @@ public class MainContentPanel extends JPanel {
         User cur = network.getCurrentUser();
         if (cur == null) return;
         if (post.isLikedBy(cur)) post.removeLike(cur); else post.addLike(cur);
+        mainGUI.saveNetworkNow();
         refreshMoments();
         refreshProfilePosts();
     }
@@ -1045,6 +1063,7 @@ public class MainContentPanel extends JPanel {
             removeBtn.addActionListener(e -> {
                 if (cur != null && JOptionPane.showConfirmDialog(this, "Remove " + user.getName() + "?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
                     cur.removeFriend(user);
+                    mainGUI.saveNetworkNow();
                     refreshFriends();
                     showEmptyRight();
                 }
@@ -1055,6 +1074,7 @@ public class MainContentPanel extends JPanel {
                 StyledButton addBtn = new StyledButton("Add Friend", true);
                 addBtn.addActionListener(e -> {
                     cur.addFriend(user);
+                    mainGUI.saveNetworkNow();
                     JOptionPane.showMessageDialog(this, user.getName() + " added!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
                     refreshSearch();
                 });
@@ -1116,6 +1136,7 @@ public class MainContentPanel extends JPanel {
             String remark = field.getText().trim();
             cur.setFriendRemark(friend.getUserId(), remark);
             LoginPanel.rewriteUsersFile(network);
+            mainGUI.saveNetworkNow();
             if (fList != null) fList.repaint();
             updateDetailPanel(friend, true);
             dialog.dispose();
@@ -1186,7 +1207,10 @@ public class MainContentPanel extends JPanel {
 
     private void setDetailValue(JPanel row, String val) {
         if (row.getComponentCount() >= 2) {
-            ((JLabel) row.getComponent(1)).setText(val);
+            JLabel label = (JLabel) row.getComponent(1);
+            label.setText("<html><body style='width:260px'>"
+                    + escapeHtml(softWrapLongWords(val, 28))
+                    + "</body></html>");
         }
     }
 
@@ -1218,6 +1242,34 @@ public class MainContentPanel extends JPanel {
         title.setForeground(TEXT_MAIN);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         top.add(title);
+        top.add(Box.createVerticalStrut(8));
+
+        JTextArea input = new JTextArea(2, 20);
+        input.setFont(YH);
+        input.setForeground(TEXT_MAIN);
+        input.setLineWrap(true);
+        input.setWrapStyleWord(true);
+        input.setBorder(new EmptyBorder(8, 8, 8, 8));
+        input.setBackground(Color.WHITE);
+        input.setCaretColor(BRAND);
+
+        JScrollPane inputScroll = new JScrollPane(input);
+        inputScroll.setBorder(BorderFactory.createLineBorder(HAIRLINE));
+        inputScroll.setOpaque(false);
+        inputScroll.getViewport().setOpaque(false);
+        inputScroll.setPreferredSize(new Dimension(0, 54));
+
+        StyledButton send = new StyledButton("Comment", true);
+        send.setPreferredSize(new Dimension(120, 44));
+        send.addActionListener(e -> addComment(post, input));
+
+        JPanel inputRow = new JPanel(new BorderLayout(8, 0));
+        inputRow.setOpaque(false);
+        inputRow.setMaximumSize(new Dimension(430, 58));
+        inputRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        inputRow.add(inputScroll, BorderLayout.CENTER);
+        inputRow.add(send, BorderLayout.EAST);
+        top.add(inputRow);
         wrap.add(top, BorderLayout.NORTH);
 
         JPanel comments = new JPanel();
@@ -1239,34 +1291,9 @@ public class MainContentPanel extends JPanel {
         commentsScroll.setBorder(null);
         commentsScroll.setOpaque(false);
         commentsScroll.getViewport().setOpaque(false);
-        commentsScroll.setPreferredSize(new Dimension(420, 180));
+        commentsScroll.setPreferredSize(new Dimension(420, 120));
         commentsScroll.getVerticalScrollBar().setUnitIncrement(12);
         wrap.add(commentsScroll, BorderLayout.CENTER);
-
-        JTextArea input = new JTextArea(2, 20);
-        input.setFont(YH);
-        input.setForeground(TEXT_MAIN);
-        input.setLineWrap(true);
-        input.setWrapStyleWord(true);
-        input.setBorder(new EmptyBorder(8, 8, 8, 8));
-        input.setBackground(Color.WHITE);
-        input.setCaretColor(BRAND);
-
-        JScrollPane inputScroll = new JScrollPane(input);
-        inputScroll.setBorder(null);
-        inputScroll.setOpaque(false);
-        inputScroll.getViewport().setOpaque(false);
-        inputScroll.setPreferredSize(new Dimension(0, 52));
-
-        StyledButton send = new StyledButton("Comment", true);
-        send.setPreferredSize(new Dimension(120, 44));
-        send.addActionListener(e -> addComment(post, input));
-
-        JPanel inputRow = new JPanel(new BorderLayout(8, 0));
-        inputRow.setOpaque(false);
-        inputRow.add(inputScroll, BorderLayout.CENTER);
-        inputRow.add(send, BorderLayout.EAST);
-        wrap.add(inputRow, BorderLayout.SOUTH);
 
         return wrap;
     }
@@ -1314,6 +1341,7 @@ public class MainContentPanel extends JPanel {
         }
         post.addComment(cur, text);
         input.setText("");
+        mainGUI.saveNetworkNow();
         refreshMoments();
         refreshProfilePosts();
         showPostDetail(post);
@@ -1328,7 +1356,28 @@ public class MainContentPanel extends JPanel {
         return createPostCard(post, cur, 520, Integer.MAX_VALUE, 160);
     }
 
+    private JTextArea createWrappedPostText(String text, int width, int maxHeight) {
+        JTextArea area = new JTextArea(softWrapLongWords(text, 32));
+        area.setFont(YH);
+        area.setForeground(TEXT_MAIN);
+        area.setOpaque(false);
+        area.setEditable(false);
+        area.setFocusable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setBorder(null);
+        area.setSize(new Dimension(width, Short.MAX_VALUE));
+        int height = Math.min(Math.max(area.getPreferredSize().height, 24), maxHeight);
+        area.setPreferredSize(new Dimension(width, height));
+        area.setMaximumSize(new Dimension(width, height));
+        area.setToolTipText(text);
+        return area;
+    }
+
     private JPanel createPostCard(Post post, User cur, int contentWidth, int maxWidth, int maxHeight) {
+        int cardWidth = maxWidth == Integer.MAX_VALUE
+                ? contentWidth + 42
+                : Math.max(contentWidth + 42, maxWidth);
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(true);
@@ -1337,12 +1386,13 @@ public class MainContentPanel extends JPanel {
         card.setBorder(new CompoundBorder(
                 BorderFactory.createLineBorder(HAIRLINE, 1),
                 new EmptyBorder(14, 14, 14, 14)));
-        card.setMaximumSize(new Dimension(maxWidth, maxHeight + 90));
+        card.setMaximumSize(new Dimension(cardWidth, maxHeight + 150));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         // Header: fixed-size avatar + meta
         JPanel top = new JPanel(new BorderLayout(8, 0));
         top.setOpaque(false);
-        top.setMaximumSize(new Dimension(maxWidth, 42));
+        top.setMaximumSize(new Dimension(cardWidth, 42));
         AvatarLabel avatar = new AvatarLabel(34, post.getAuthor());
         avatar.setPreferredSize(new Dimension(34, 34));
         avatar.setMinimumSize(new Dimension(34, 34));
@@ -1363,9 +1413,7 @@ public class MainContentPanel extends JPanel {
         card.add(Box.createVerticalStrut(8));
 
         // Content
-        JLabel content = new JLabel("<html><body style='width:" + contentWidth + "px'>"
-                + escapeHtml(post.getContent()) + "</body></html>");
-        content.setFont(YH); content.setForeground(TEXT_MAIN);
+        JTextArea content = createWrappedPostText(post.getContent(), contentWidth, maxHeight);
         content.setAlignmentX(Component.LEFT_ALIGNMENT);
         card.add(content);
         card.add(Box.createVerticalStrut(8));
@@ -1374,7 +1422,7 @@ public class MainContentPanel extends JPanel {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         bottom.setOpaque(false);
         bottom.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bottom.setMaximumSize(new Dimension(maxWidth, 28));
+        bottom.setMaximumSize(new Dimension(cardWidth, 28));
 
         boolean liked = cur != null && post.isLikedBy(cur);
         HeartIcon heart = new HeartIcon(liked, post);
@@ -1420,14 +1468,14 @@ public class MainContentPanel extends JPanel {
                 JPanel cItem = new JPanel(new BorderLayout(6, 0));
                 cItem.setOpaque(false);
                 cItem.setBorder(new EmptyBorder(2, 0, 2, 0));
-                cItem.setMaximumSize(new Dimension(maxWidth, 30));
+                cItem.setMaximumSize(new Dimension(cardWidth, 34));
                 AvatarLabel cAv = new AvatarLabel(20, cmt.getAuthor());
                 cAv.setPreferredSize(new Dimension(20, 20));
                 cAv.setMinimumSize(new Dimension(20, 20));
                 cItem.add(cAv, BorderLayout.WEST);
                 JLabel cText = new JLabel("<html><body style='width:" + (contentWidth - 30) + "px'><b>"
                         + escapeHtml(cmt.getAuthor().getName()) + "</b> "
-                        + escapeHtml(cmt.getContent()) + "</body></html>");
+                        + escapeHtml(softWrapLongWords(cmt.getContent(), 24)) + "</body></html>");
                 cText.setFont(YH_SM);
                 cText.setForeground(TEXT_MAIN);
                 cItem.add(cText, BorderLayout.CENTER);
@@ -1473,6 +1521,26 @@ public class MainContentPanel extends JPanel {
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;");
+    }
+
+    static String softWrapLongWords(String value, int maxRun) {
+        if (value == null || value.isEmpty()) return "";
+        StringBuilder out = new StringBuilder();
+        int run = 0;
+        for (int i = 0; i < value.length(); i++) {
+            char ch = value.charAt(i);
+            out.append(ch);
+            if (Character.isWhitespace(ch)) {
+                run = 0;
+            } else {
+                run++;
+                if (run >= maxRun) {
+                    out.append(' ');
+                    run = 0;
+                }
+            }
+        }
+        return out.toString();
     }
 
     // ======== INNER CLASSES ========
@@ -1617,6 +1685,39 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    class NavActionIcon extends JPanel {
+        int type;
+        boolean hover;
+
+        NavActionIcon(int type, String tip) {
+            this.type = type;
+            setOpaque(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setToolTipText(tip);
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
+                public void mouseExited(MouseEvent e) { hover = false; repaint(); }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (hover) {
+                g2.setColor(new Color(255, 255, 255, 18));
+                g2.fillRoundRect(10, 8, 44, 36, 12, 12);
+            }
+            g2.setColor(hover ? Color.WHITE : new Color(180, 180, 180));
+            g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int cx = 32, cy = 26;
+            if (type == 0) drawSaveIcon(g2, cx, cy);
+            else if (type == 1) drawLoadIcon(g2, cx, cy);
+            else drawLogoutIcon(g2, cx, cy);
+            g2.dispose();
+        }
+    }
+
     private void drawPersonIcon(Graphics2D g, int cx, int cy) {
         g.drawOval(cx - 5, cy - 9, 10, 10);
         g.drawArc(cx - 10, cy + 1, 20, 16, 0, 180);
@@ -1635,6 +1736,24 @@ public class MainContentPanel extends JPanel {
     private void drawSearchIcon(Graphics2D g, int cx, int cy) {
         g.drawOval(cx - 7, cy - 7, 12, 12);
         g.drawLine(cx + 2, cy + 2, cx + 8, cy + 8);
+    }
+    private void drawSaveIcon(Graphics2D g, int cx, int cy) {
+        g.drawRect(cx - 10, cy - 10, 20, 20);
+        g.drawLine(cx - 5, cy - 10, cx - 5, cy - 3);
+        g.drawLine(cx + 5, cy - 10, cx + 5, cy - 3);
+        g.drawRect(cx - 6, cy + 2, 12, 8);
+    }
+    private void drawLoadIcon(Graphics2D g, int cx, int cy) {
+        g.drawRoundRect(cx - 10, cy - 4, 20, 14, 4, 4);
+        g.drawLine(cx, cy - 14, cx, cy + 2);
+        g.drawLine(cx, cy - 14, cx - 6, cy - 8);
+        g.drawLine(cx, cy - 14, cx + 6, cy - 8);
+    }
+    private void drawLogoutIcon(Graphics2D g, int cx, int cy) {
+        g.drawArc(cx - 10, cy - 10, 20, 20, 45, 270);
+        g.drawLine(cx + 2, cy, cx + 12, cy);
+        g.drawLine(cx + 8, cy - 4, cx + 12, cy);
+        g.drawLine(cx + 8, cy + 4, cx + 12, cy);
     }
 
     static class EmptyChatIcon extends JPanel {
@@ -1895,14 +2014,18 @@ public class MainContentPanel extends JPanel {
     }
 
     private void saveNetworkFile() {
-        JFileChooser c = new JFileChooser();
-        if (c.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                FileManager.saveNetwork(c.getSelectedFile().getAbsolutePath(), network);
-                JOptionPane.showMessageDialog(this, "Network saved!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
+        try {
+            String path = MainGUI.getDefaultNetworkFilePath();
+            File dir = new File(path).getParentFile();
+            if (!dir.exists()) dir.mkdirs();
+            FileManager.saveNetwork(path, network);
+            LoginPanel.rewriteUsersFile(network);
+            JOptionPane.showMessageDialog(this,
+                    "Network saved to:\n" + path,
+                    "SnapTok",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
     private void loadNetworkFile() {

@@ -34,6 +34,9 @@ public class LoginPanel extends JPanel {
     // Reset password
     private FloatInput resetIdField, resetNameField, resetWorkField, resetHomeField;
     private FloatInput resetPassField, resetConfirmField;
+    private JPanel resetPasswordPanel;
+    private JLabel resetVerifiedLabel;
+    private User resetVerifiedUser;
     // Success
     private AvatarPreview successAvatarPreview;
     private JLabel successIdLabel;
@@ -288,17 +291,32 @@ public class LoginPanel extends JPanel {
         form.add(resetHomeField);
         form.add(Box.createVerticalStrut(14));
 
+        PrimaryButton verifyBtn = new PrimaryButton("Verify identity");
+        verifyBtn.addActionListener(e -> verifyResetIdentity());
+        form.add(verifyBtn);
+        form.add(Box.createVerticalStrut(18));
+
+        resetPasswordPanel = new JPanel();
+        resetPasswordPanel.setLayout(new BoxLayout(resetPasswordPanel, BoxLayout.Y_AXIS));
+        resetPasswordPanel.setOpaque(false);
+        resetPasswordPanel.setVisible(false);
+
+        resetVerifiedLabel = centeredLabel("Identity verified. Set a new password.", YH, BRAND);
+        resetPasswordPanel.add(resetVerifiedLabel);
+        resetPasswordPanel.add(Box.createVerticalStrut(14));
+
         resetPassField = new FloatInput("New password", true);
-        form.add(resetPassField);
-        form.add(Box.createVerticalStrut(14));
+        resetPasswordPanel.add(resetPassField);
+        resetPasswordPanel.add(Box.createVerticalStrut(14));
 
         resetConfirmField = new FloatInput("Confirm password", true);
-        form.add(resetConfirmField);
-        form.add(Box.createVerticalStrut(28));
+        resetPasswordPanel.add(resetConfirmField);
+        resetPasswordPanel.add(Box.createVerticalStrut(28));
 
-        PrimaryButton resetBtn = new PrimaryButton("Reset password");
+        PrimaryButton resetBtn = new PrimaryButton("Save new password");
         resetBtn.addActionListener(e -> doResetPassword());
-        form.add(resetBtn);
+        resetPasswordPanel.add(resetBtn);
+        form.add(resetPasswordPanel);
         form.add(Box.createVerticalStrut(24));
 
         JPanel backRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
@@ -413,14 +431,15 @@ public class LoginPanel extends JPanel {
         String workplace = work.isEmpty() ? "Unknown" : work;
         String hometown = home.isEmpty() ? "Unknown" : home;
 
+        String avatarPath = copyAvatarToAssets(regAvatarPath);
         User newUser = new User(id, name, workplace, hometown, pw);
-        newUser.setAvatarPath(copyAvatarToAssets(regAvatarPath));
+        newUser.setAvatarPath(avatarPath);
         network.addUser(newUser);
 
         // Persist to users.txt
         saveUserToFile(id, pw, name, workplace, hometown);
 
-        showRegisterSuccess(id, regAvatarPath);
+        showRegisterSuccess(id, avatarPath);
         clearReg();
     }
 
@@ -437,15 +456,13 @@ public class LoginPanel extends JPanel {
         }
     }
 
-    private void doResetPassword() {
+    private void verifyResetIdentity() {
         loadUsersFile();
 
         String id = resetIdField.getText().trim();
         String name = resetNameField.getText().trim();
         String work = resetWorkField.getText().trim();
         String home = resetHomeField.getText().trim();
-        String newPassword = resetPassField.getText();
-        String confirmPassword = resetConfirmField.getText();
 
         if (id.isEmpty() || name.isEmpty() || work.isEmpty() || home.isEmpty()) {
             err("Please fill in User ID, name, workplace, and hometown.");
@@ -468,12 +485,34 @@ public class LoginPanel extends JPanel {
             err("The profile details do not match this account.");
             return;
         }
+
+        resetVerifiedUser = user;
+        setResetIdentityEnabled(false);
+        resetVerifiedLabel.setText("Verified @" + id + ". Set a new password.");
+        resetPasswordPanel.setVisible(true);
+        resetPasswordPanel.revalidate();
+        resetPasswordPanel.repaint();
+        SwingUtilities.invokeLater(resetPassField::requestFocusInWindow);
+    }
+
+    private void doResetPassword() {
+        if (resetVerifiedUser == null) {
+            verifyResetIdentity();
+            if (resetVerifiedUser == null) return;
+        }
+
+        String newPassword = resetPassField.getText();
+        String confirmPassword = resetConfirmField.getText();
+        if (newPassword.isEmpty() || confirmPassword.isEmpty()) {
+            err("Please enter and confirm your new password.");
+            return;
+        }
         if (!isValidPassword(newPassword)) { showStyledDialog(passwordRuleMessage()); return; }
         if (!newPassword.equals(confirmPassword)) { err("The two passwords do not match."); return; }
 
-        user.setPassword(newPassword);
+        resetVerifiedUser.setPassword(newPassword);
         rewriteUsersFile(network);
-        loginIdField.setText(id);
+        loginIdField.setText(resetVerifiedUser.getUserId());
         loginPassField.setText("");
         clearReset();
         loginNoticeLabel.setText("Password reset successfully. Please sign in.");
@@ -492,6 +531,16 @@ public class LoginPanel extends JPanel {
         resetIdField.setText(""); resetNameField.setText("");
         resetWorkField.setText(""); resetHomeField.setText("");
         resetPassField.setText(""); resetConfirmField.setText("");
+        resetVerifiedUser = null;
+        setResetIdentityEnabled(true);
+        if (resetPasswordPanel != null) resetPasswordPanel.setVisible(false);
+    }
+
+    private void setResetIdentityEnabled(boolean enabled) {
+        if (resetIdField != null) resetIdField.setEnabled(enabled);
+        if (resetNameField != null) resetNameField.setEnabled(enabled);
+        if (resetWorkField != null) resetWorkField.setEnabled(enabled);
+        if (resetHomeField != null) resetHomeField.setEnabled(enabled);
     }
 
     private void chooseRegisterAvatar() {
@@ -536,7 +585,10 @@ public class LoginPanel extends JPanel {
     }
 
     private static String passwordRuleMessage() {
-        return "Password must be 6-20 characters, include at least 1 letter and 1 number";
+        return "<html><div style='text-align:center; width:360px;'>"
+                + "Use 6-20 chars with letters and numbers.<br>"
+                + "Allowed symbols: ! @ # $ % ^ &amp; * . _ -"
+                + "</div></html>";
     }
 
     /** Styled message dialog — Apple design */
@@ -589,21 +641,49 @@ public class LoginPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    static File getProjectRoot() {
+        File cwd = new File(System.getProperty("user.dir")).getAbsoluteFile();
+        if ("src".equalsIgnoreCase(cwd.getName()) && cwd.getParentFile() != null) {
+            return cwd.getParentFile();
+        }
+        File nested = new File(cwd, "slayers_project");
+        if (nested.isDirectory()) return nested;
+        return cwd;
+    }
+
+    static String normalizeAvatarPath(String avatarPath) {
+        if (avatarPath == null || avatarPath.trim().isEmpty()) return "";
+        String clean = avatarPath.trim();
+        File file = new File(clean);
+        if (!file.isAbsolute()) {
+            return clean.replace('\\', '/');
+        }
+        return copyAvatarToAssets(clean);
+    }
+
     /** Copies an avatar image to the project's assets/avatars directory and returns the relative path. */
     static String copyAvatarToAssets(String sourcePath) {
         if (sourcePath == null || sourcePath.isEmpty()) return "";
         try {
-            File source = new File(sourcePath);
-            if (!source.exists()) return sourcePath;
-            String dir = System.getProperty("user.dir");
-            File avatarDir = new File(dir, "assets/avatars");
-            if (!avatarDir.exists()) avatarDir.mkdirs();
-            String fileName = System.currentTimeMillis() + "_" + source.getName();
-            File dest = new File(avatarDir, fileName);
-            java.nio.file.Files.copy(source.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-            return "assets/avatars/" + fileName;
+            Path source = Paths.get(sourcePath).toAbsolutePath().normalize();
+            if (!Files.isRegularFile(source)) return "";
+
+            Path root = getProjectRoot().toPath().toAbsolutePath().normalize();
+            Path avatarDir = root.resolve("assets").resolve("avatars");
+            Files.createDirectories(avatarDir);
+
+            if (source.startsWith(avatarDir)) {
+                return root.relativize(source).toString().replace(File.separatorChar, '/');
+            }
+
+            String originalName = source.getFileName().toString();
+            String safeName = originalName.replaceAll("[^A-Za-z0-9._-]", "_");
+            String fileName = System.currentTimeMillis() + "_" + safeName;
+            Path dest = avatarDir.resolve(fileName);
+            Files.copy(source, dest, StandardCopyOption.REPLACE_EXISTING);
+            return root.relativize(dest).toString().replace(File.separatorChar, '/');
         } catch (Exception e) {
-            return sourcePath;
+            return "";
         }
     }
 
@@ -618,6 +698,7 @@ public class LoginPanel extends JPanel {
             try { file.createNewFile(); } catch (IOException e) { /* ignore */ }
             return;
         }
+        boolean migratedAvatarPath = false;
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -630,18 +711,27 @@ public class LoginPanel extends JPanel {
                     String name = unescapeUserField(parts[2]).trim();
                     String work = unescapeUserField(parts[3]).trim();
                     String home = unescapeUserField(parts[4]).trim();
+                    String avatarPath = "";
+                    if (parts.length >= 7) {
+                        String rawAvatarPath = unescapeUserField(parts[6]).trim();
+                        avatarPath = normalizeAvatarPath(rawAvatarPath);
+                        if (!avatarPath.equals(rawAvatarPath)) migratedAvatarPath = true;
+                    }
                     if (network.getUser(uid) == null) {
                         User newUser = new User(uid, name, work, home, pw);
                         if (parts.length >= 6) newUser.setSignature(unescapeUserField(parts[5]).trim());
-                        if (parts.length >= 7) newUser.setAvatarPath(unescapeUserField(parts[6]).trim());
+                        newUser.setAvatarPath(avatarPath);
                         if (parts.length >= 8) parseRemarks(unescapeUserField(parts[7]), newUser);
                         network.addUser(newUser);
+                    } else if (!avatarPath.isEmpty()) {
+                        network.getUser(uid).setAvatarPath(avatarPath);
                     }
                 }
             }
         } catch (IOException e) {
             /* silently ignore read errors */
         }
+        if (migratedAvatarPath) rewriteUsersFile(network);
     }
 
     /** Appends a new user record to users.txt. */
@@ -938,6 +1028,13 @@ public class LoginPanel extends JPanel {
         }
 
         public void setText(String t) { field.setText(t); }
+
+        @Override
+        public void setEnabled(boolean enabled) {
+            super.setEnabled(enabled);
+            if (field != null) field.setEnabled(enabled);
+            repaint();
+        }
     }
 
     // ================================================================
@@ -999,7 +1096,11 @@ public class LoginPanel extends JPanel {
             image = null;
             if (!imagePath.isEmpty()) {
                 try {
-                    image = ImageIO.read(new File(imagePath));
+                    File file = new File(imagePath);
+                    if (!file.isAbsolute()) {
+                        file = new File(getProjectRoot(), imagePath);
+                    }
+                    image = ImageIO.read(file);
                 } catch (IOException ignored) {
                     image = null;
                 }
