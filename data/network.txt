@@ -1,6 +1,9 @@
 [USERS]
+gary|wefw|ferf|erfw|123456|||
+123456|Zhanqi Wa|ChangSha|Jing|123|hello||gary:d2Vmdw
 [FRIENDSHIPS]
 [POSTS]
+[COMMENTS]
 [COUNTER]
 0
 [END]

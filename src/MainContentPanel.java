@@ -35,7 +35,6 @@ public class MainContentPanel extends JPanel {
     static final Color HAIRLINE = new Color(224, 224, 224);    // #e0e0e0 hairline
     static final Color HOVER_BG = new Color(245, 245, 247);    // #f5f5f7 parchment
     static final Color CANVAS = Color.WHITE;                    // canvas #ffffff
-    static final Color SURFACE_BLACK = new Color(0, 0, 0);     // global nav
 
     /** Resolves relative avatar paths against the working directory. */
     static String resolveAvatarPath(String path) {
@@ -122,52 +121,28 @@ public class MainContentPanel extends JPanel {
         rightCards.show(rightPanel, "PROFILE");
     }
 
-    // ======== LEFT NAV — Apple global nav style ========
+    // ======== LEFT NAV — parchment sidebar with hairline border ========
     private JPanel buildNav() {
         JPanel nav = new JPanel(null) {
             @Override
             protected void paintComponent(Graphics g) {
-                g.setColor(SURFACE_BLACK);
-                g.fillRect(0, 0, getWidth(), getHeight());
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(HOVER_BG); // parchment #f5f5f7
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                // Hairline right border
+                g2.setColor(HAIRLINE);
+                g2.drawLine(getWidth() - 1, 0, getWidth() - 1, getHeight());
+                g2.dispose();
             }
         };
         nav.setPreferredSize(new Dimension(64, 0));
         String[] tips = {"Profile", "Friends", "Moments", "Search"};
         for (int i = 0; i < 4; i++) {
             NavIcon ni = new NavIcon(i, tips[i]);
-            ni.setBounds(0, 28 + i * 60, 64, 52);
+            ni.setBounds(0, 16 + i * 52, 64, 44);
             nav.add(ni);
         }
-        NavActionIcon save = new NavActionIcon(0, "Save");
-        NavActionIcon load = new NavActionIcon(1, "Load");
-        NavActionIcon logout = new NavActionIcon(2, "Logout");
-        save.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { saveNetworkFile(); }
-        });
-        load.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { loadNetworkFile(); }
-        });
-        logout.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
-                mainGUI.saveNetworkNow();
-                network.setCurrentUser(null);
-                mainGUI.showCard(MainGUI.LOGIN_CARD);
-            }
-        });
-        save.setBounds(0, 420, 64, 52);
-        load.setBounds(0, 480, 64, 52);
-        logout.setBounds(0, 540, 64, 52);
-        nav.add(save);
-        nav.add(load);
-        nav.add(logout);
-        nav.addComponentListener(new ComponentAdapter() {
-            public void componentResized(ComponentEvent e) {
-                int y = Math.max(280, nav.getHeight() - 180);
-                save.setBounds(0, y, 64, 52);
-                load.setBounds(0, y + 60, 64, 52);
-                logout.setBounds(0, y + 120, 64, 52);
-            }
-        });
         return nav;
     }
 
@@ -471,7 +446,7 @@ public class MainContentPanel extends JPanel {
         StyledButton post = new StyledButton("Post", true);
         post.addActionListener(e -> {
             String text = input.getText().trim();
-            if (text.isEmpty()) { JOptionPane.showMessageDialog(dialog, "Write something first.", "SnapTok", JOptionPane.WARNING_MESSAGE); return; }
+            if (text.isEmpty()) { showStyledDialog("Write something first."); return; }
             network.createPost(cur, text);
             mainGUI.saveNetworkNow();
             dialog.dispose();
@@ -921,7 +896,7 @@ public class MainContentPanel extends JPanel {
         User cur = network.getCurrentUser();
         if (cur == null) return;
         String name = pNameF.getText().trim();
-        if (name.isEmpty()) { JOptionPane.showMessageDialog(this, "Name cannot be empty.", "SnapTok", JOptionPane.WARNING_MESSAGE); return; }
+        if (name.isEmpty()) { showStyledDialog("Name cannot be empty."); return; }
         cur.setName(name);
         cur.setSignature(pSigArea.getText().trim());
         cur.setWorkplace(pWorkF.getText().trim().isEmpty() ? "Unknown" : pWorkF.getText().trim());
@@ -929,7 +904,7 @@ public class MainContentPanel extends JPanel {
         refreshProfile();
         LoginPanel.rewriteUsersFile(network);
         mainGUI.saveNetworkNow();
-        JOptionPane.showMessageDialog(this, "Profile updated!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
+        showStyledDialog("Profile updated successfully!");
     }
 
     private void chooseAvatar() {
@@ -940,7 +915,7 @@ public class MainContentPanel extends JPanel {
             if (cur != null) {
                 String relativePath = LoginPanel.copyAvatarToAssets(fc.getSelectedFile().getAbsolutePath());
                 if (relativePath.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Could not import that avatar.", "SnapTok", JOptionPane.WARNING_MESSAGE);
+                    showStyledDialog("Could not import that avatar.");
                     return;
                 }
                 cur.setAvatarPath(relativePath);
@@ -1061,7 +1036,7 @@ public class MainContentPanel extends JPanel {
             rActionPanel.add(viewFriends);
             StyledButton removeBtn = new StyledButton("Remove Friend", false);
             removeBtn.addActionListener(e -> {
-                if (cur != null && JOptionPane.showConfirmDialog(this, "Remove " + user.getName() + "?", "Confirm", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+                if (cur != null && showStyledConfirm("Remove " + user.getName() + " from friends?", "Remove")) {
                     cur.removeFriend(user);
                     mainGUI.saveNetworkNow();
                     refreshFriends();
@@ -1075,7 +1050,7 @@ public class MainContentPanel extends JPanel {
                 addBtn.addActionListener(e -> {
                     cur.addFriend(user);
                     mainGUI.saveNetworkNow();
-                    JOptionPane.showMessageDialog(this, user.getName() + " added!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
+                    showStyledDialog(user.getName() + " has been added as a friend!");
                     refreshSearch();
                 });
                 rActionPanel.add(addBtn);
@@ -1336,7 +1311,7 @@ public class MainContentPanel extends JPanel {
         if (cur == null || post == null) return;
         String text = input.getText().trim();
         if (text.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Write a comment first.", "SnapTok", JOptionPane.WARNING_MESSAGE);
+            showStyledDialog("Write a comment first.");
             return;
         }
         post.addComment(cur, text);
@@ -1641,7 +1616,7 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Nav icon — Apple global nav: white icons, blue selected, dark hover */
+    /** Nav icon — parchment sidebar: gray icons, blue active with left bar indicator */
     class NavIcon extends JPanel {
         int idx; String tip; boolean hover;
         NavIcon(int idx, String tip) {
@@ -1662,29 +1637,30 @@ public class MainContentPanel extends JPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             boolean sel = (idx == navIdx && idx <= 3);
-            // Hover: subtle dark highlight pill
+            // Hover: divider background pill (10px radius)
             if (hover && !sel && idx <= 3) {
-                g2.setColor(new Color(255, 255, 255, 18));
-                g2.fillRoundRect(10, 8, 44, 36, 12, 12);
+                g2.setColor(DIVIDER);
+                g2.fillRoundRect(10, 2, 44, 40, 10, 10);
             }
-            // Selected: Action Blue icon
-            Color c = sel ? BRAND : (hover ? Color.WHITE : new Color(180, 180, 180));
+            // Icon color: blue if selected, ink-48 gray otherwise
+            Color c = sel ? BRAND : TEXT_SUB;
             g2.setColor(c);
             g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            int cx = 32, cy = 26;
+            int cx = 32, cy = 22;
             if (idx == 0) drawPersonIcon(g2, cx, cy);
             else if (idx == 1) drawFriendsIcon(g2, cx, cy);
             else if (idx == 2) drawMomentsIcon(g2, cx, cy);
             else if (idx == 3) drawSearchIcon(g2, cx, cy);
-            // Selected indicator: small blue dot below icon
+            // Selected: 3px blue left bar indicator
             if (sel) {
                 g2.setColor(BRAND);
-                g2.fillOval(cx - 2, 44, 4, 4);
+                g2.fillRoundRect(0, 8, 3, 28, 0, 2);
             }
             g2.dispose();
         }
     }
 
+    /** Bottom action icons — parchment sidebar: gray icons, hover divider */
     class NavActionIcon extends JPanel {
         int type;
         boolean hover;
@@ -1705,14 +1681,14 @@ public class MainContentPanel extends JPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (hover) {
-                g2.setColor(new Color(255, 255, 255, 18));
-                g2.fillRoundRect(10, 8, 44, 36, 12, 12);
+                g2.setColor(DIVIDER);
+                g2.fillRoundRect(10, 2, 44, 40, 10, 10);
             }
-            g2.setColor(hover ? Color.WHITE : new Color(180, 180, 180));
+            g2.setColor(TEXT_SUB);
             g2.setStroke(new BasicStroke(2.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            int cx = 32, cy = 26;
+            int cx = 32, cy = 22;
             if (type == 0) drawSaveIcon(g2, cx, cy);
-            else if (type == 1) drawLoadIcon(g2, cx, cy);
+            else if (type == 1) drawShareIcon(g2, cx, cy);
             else drawLogoutIcon(g2, cx, cy);
             g2.dispose();
         }
@@ -1743,11 +1719,11 @@ public class MainContentPanel extends JPanel {
         g.drawLine(cx + 5, cy - 10, cx + 5, cy - 3);
         g.drawRect(cx - 6, cy + 2, 12, 8);
     }
-    private void drawLoadIcon(Graphics2D g, int cx, int cy) {
-        g.drawRoundRect(cx - 10, cy - 4, 20, 14, 4, 4);
-        g.drawLine(cx, cy - 14, cx, cy + 2);
-        g.drawLine(cx, cy - 14, cx - 6, cy - 8);
-        g.drawLine(cx, cy - 14, cx + 6, cy - 8);
+    private void drawShareIcon(Graphics2D g, int cx, int cy) {
+        g.drawLine(cx, cy - 10, cx, cy + 6);
+        g.drawLine(cx - 6, cy - 4, cx, cy - 10);
+        g.drawLine(cx + 6, cy - 4, cx, cy - 10);
+        g.drawLine(cx - 8, cy + 10, cx + 8, cy + 10);
     }
     private void drawLogoutIcon(Graphics2D g, int cx, int cy) {
         g.drawArc(cx - 10, cy - 10, 20, 20, 45, 270);
@@ -2005,6 +1981,125 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    // ================================================================
+    //  APPLE-STYLE DIALOGS — replaces JOptionPane everywhere
+    // ================================================================
+
+    /** Shows a styled info/warning dialog with a single OK button. */
+    void showStyledDialog(String message) {
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "SnapTok",
+                java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        JPanel panel = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(0,0,0,20));
+                g2.fillRoundRect(0, 2, getWidth(), getHeight(), 16, 16);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight()-2, 16, 16);
+                g2.setColor(HAIRLINE); g2.setStroke(new BasicStroke(0.5f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-3, 16, 16);
+                g2.dispose();
+            }
+        };
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(26, 32, 22, 32));
+        JLabel msg = new JLabel("<html><div style='text-align:center;width:260px;'>" +
+                MainContentPanel.escapeHtml(message) + "</div></html>");
+        msg.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+        msg.setForeground(TEXT_MAIN);
+        msg.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(msg);
+        panel.add(Box.createVerticalStrut(20));
+        JButton ok = makeDialogButton("OK", true);
+        ok.addActionListener(e -> dialog.dispose());
+        ok.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(ok);
+        dialog.setContentPane(panel);
+        dialog.pack(); dialog.setLocationRelativeTo(this);
+        dialog.getRootPane().setDefaultButton(ok);
+        dialog.setVisible(true);
+    }
+
+    /** Shows a styled confirm dialog; returns true if user clicks the affirmative button. */
+    boolean showStyledConfirm(String message, String confirmLabel) {
+        final boolean[] result = {false};
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "SnapTok",
+                java.awt.Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        JPanel panel = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(0,0,0,20));
+                g2.fillRoundRect(0, 2, getWidth(), getHeight(), 16, 16);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight()-2, 16, 16);
+                g2.setColor(HAIRLINE); g2.setStroke(new BasicStroke(0.5f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-3, 16, 16);
+                g2.dispose();
+            }
+        };
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        panel.setBorder(BorderFactory.createEmptyBorder(26, 32, 22, 32));
+        JLabel msg = new JLabel("<html><div style='text-align:center;width:240px;'>" +
+                MainContentPanel.escapeHtml(message) + "</div></html>");
+        msg.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+        msg.setForeground(TEXT_MAIN);
+        msg.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(msg);
+        panel.add(Box.createVerticalStrut(20));
+        JPanel btns = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        btns.setOpaque(false);
+        JButton cancel = makeDialogButton("Cancel", false);
+        cancel.addActionListener(e -> dialog.dispose());
+        JButton confirm = makeDialogButton(confirmLabel, true);
+        confirm.addActionListener(e -> { result[0] = true; dialog.dispose(); });
+        btns.add(cancel); btns.add(confirm);
+        panel.add(btns);
+        dialog.setContentPane(panel);
+        dialog.pack(); dialog.setLocationRelativeTo(this);
+        dialog.getRootPane().setDefaultButton(confirm);
+        dialog.setVisible(true);
+        return result[0];
+    }
+
+    private JButton makeDialogButton(String text, boolean primary) {
+        JButton btn = new JButton(text) {
+            private boolean hov, prs;
+            {
+                setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+                setForeground(primary ? Color.WHITE : BRAND);
+                setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false);
+                setOpaque(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                setPreferredSize(new Dimension(primary ? 140 : 100, 40));
+                addMouseListener(new MouseAdapter() {
+                    public void mouseEntered(MouseEvent e) { hov = true; repaint(); }
+                    public void mouseExited(MouseEvent e) { hov = false; prs = false; repaint(); }
+                    public void mousePressed(MouseEvent e) { prs = true; repaint(); }
+                    public void mouseReleased(MouseEvent e) { prs = false; repaint(); }
+                });
+            }
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (primary) {
+                    g2.setColor(prs ? BRAND_DARK : (hov ? new Color(0,90,185) : BRAND));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9999, 9999);
+                } else {
+                    if (hov) { g2.setColor(new Color(0,102,204,12)); g2.fillRoundRect(0,0,getWidth(),getHeight(),9999,9999); }
+                    g2.setColor(BRAND); g2.setStroke(new BasicStroke(1f));
+                    g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 9999, 9999);
+                }
+                g2.dispose(); super.paintComponent(g);
+            }
+        };
+        return btn;
+    }
+
     /** File operations */
     static void loadNetworkInto(SocialNetwork network, java.io.File file) throws Exception {
         SocialNetwork ld = FileManager.loadNetwork(file.getAbsolutePath());
@@ -2020,12 +2115,9 @@ public class MainContentPanel extends JPanel {
             if (!dir.exists()) dir.mkdirs();
             FileManager.saveNetwork(path, network);
             LoginPanel.rewriteUsersFile(network);
-            JOptionPane.showMessageDialog(this,
-                    "Network saved to:\n" + path,
-                    "SnapTok",
-                    JOptionPane.INFORMATION_MESSAGE);
+            showStyledDialog("Network saved successfully.");
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            showStyledDialog("Save failed: " + ex.getMessage());
         }
     }
     private void loadNetworkFile() {
@@ -2033,9 +2125,9 @@ public class MainContentPanel extends JPanel {
         if (c.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             try {
                 loadNetworkInto(network, c.getSelectedFile());
-                JOptionPane.showMessageDialog(this, "Network loaded!", "SnapTok", JOptionPane.INFORMATION_MESSAGE);
+                showStyledDialog("Network loaded!");
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                showStyledDialog("Load failed: " + ex.getMessage());
             }
         }
     }

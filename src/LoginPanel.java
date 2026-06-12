@@ -51,11 +51,9 @@ public class LoginPanel extends JPanel {
     private static final Color TEXT_MAIN = new Color(29, 29, 31);      // #1d1d1f ink
     private static final Color TEXT_SUB = new Color(122, 122, 122);    // #7a7a7a muted-48
     private static final Color TEXT_HINT = new Color(122, 122, 122);   // #7a7a7a muted-48
-    private static final Color INPUT_BG = new Color(245, 245, 247);    // #f5f5f7 canvas-parchment
+    private static final Color INPUT_BG = new Color(255, 255, 255);    // #ffffff white input background
     private static final Color HAIRLINE = new Color(224, 224, 224);    // #e0e0e0 hairline
-    private static final Font YH = new Font(FONT_FAMILY, Font.PLAIN, 14);
-    private static final Font YH_BOLD = new Font(FONT_FAMILY, Font.BOLD, 14);
-    private static final int FIELD_W = 340;
+    private static final int FIELD_W = 352;
     private static final Pattern USER_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_]{3,16}$");
     private static final Pattern PASSWORD_PATTERN =
             Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
@@ -108,13 +106,14 @@ public class LoginPanel extends JPanel {
 
         // Title
         JLabel title = centeredLabel("SnapTok",
-                new Font(FONT_FAMILY, Font.BOLD, 32), BRAND);
+                new Font(FONT_FAMILY, Font.BOLD, 34), BRAND);
         form.add(title);
-        form.add(Box.createVerticalStrut(8));
+        form.add(Box.createVerticalStrut(6));
 
         // Subtitle
-        form.add(centeredLabel("Sign in to your account", YH, TEXT_HINT));
-        form.add(Box.createVerticalStrut(12));
+        form.add(centeredLabel("Sign in to your account",
+                new Font(FONT_FAMILY, Font.PLAIN, 17), TEXT_HINT));
+        form.add(Box.createVerticalStrut(10));
 
         loginNoticeLabel = centeredLabel(" ", new Font(FONT_FAMILY, Font.PLAIN, 12), BRAND);
         form.add(loginNoticeLabel);
@@ -123,21 +122,21 @@ public class LoginPanel extends JPanel {
         // User ID
         loginIdField = new FloatInput("User ID", false);
         form.add(loginIdField);
-        form.add(Box.createVerticalStrut(16));
+        form.add(Box.createVerticalStrut(12));
 
         // Password
         loginPassField = new FloatInput("Password", true);
         form.add(loginPassField);
-        form.add(Box.createVerticalStrut(4));
+        form.add(Box.createVerticalStrut(10));
 
         // Forgot password
         JPanel forgotRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         forgotRow.setOpaque(false);
         forgotRow.setMaximumSize(new Dimension(FIELD_W, 20));
         forgotRow.setAlignmentX(Component.CENTER_ALIGNMENT);
-        JLabel forgotLink = linkLabel("Forgot password?", 12);
+        JLabel forgotLink = linkLabel("Forgot password?", 14);
         forgotLink.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 loginNoticeLabel.setText(" ");
                 clearReset();
                 internalCards.show(internalPanel, RESET);
@@ -145,26 +144,26 @@ public class LoginPanel extends JPanel {
         });
         forgotRow.add(forgotLink);
         form.add(forgotRow);
-        form.add(Box.createVerticalStrut(32));
+        form.add(Box.createVerticalStrut(20));
 
         // Sign in button
         PrimaryButton signIn = new PrimaryButton("Sign in");
         signIn.addActionListener(e -> doLogin());
         form.add(signIn);
-        form.add(Box.createVerticalStrut(32));
+        form.add(Box.createVerticalStrut(16));
 
         // Separator
         form.add(buildSeparator("OR"));
-        form.add(Box.createVerticalStrut(24));
+        form.add(Box.createVerticalStrut(16));
 
         // Register link
         JPanel regRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         regRow.setOpaque(false);
         JLabel noAcc = new JLabel("Don't have an account?  ");
-        noAcc.setFont(YH); noAcc.setForeground(TEXT_SUB);
-        JLabel regLink = linkLabel("Create account", 14);
+        noAcc.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17)); noAcc.setForeground(TEXT_SUB);
+        JLabel regLink = linkLabel("Create account", 17);
         regLink.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 loginNoticeLabel.setText(" ");
                 clearReg();
                 internalCards.show(internalPanel, REGISTER);
@@ -173,7 +172,9 @@ public class LoginPanel extends JPanel {
         regRow.add(noAcc); regRow.add(regLink);
         form.add(regRow);
 
-        wrap.add(form);
+        JPanel card = createCardPanel(56, 64, 48);
+        card.add(form, BorderLayout.CENTER);
+        wrap.add(card);
         return wrap;
     }
 
@@ -184,77 +185,106 @@ public class LoginPanel extends JPanel {
         JPanel wrap = new JPanel(new GridBagLayout());
         wrap.setOpaque(false);
 
+        // Inner form — uses BoxLayout, no fixed max height so JScrollPane can scroll it
         JPanel form = new JPanel();
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setOpaque(false);
+        form.setBorder(BorderFactory.createEmptyBorder(36, 64, 40, 64));
 
         form.add(centeredLabel("SnapTok",
-                new Font("Inter", Font.BOLD, 32), BRAND));
-        form.add(Box.createVerticalStrut(8));
-        form.add(centeredLabel("Create your account", YH, TEXT_HINT));
+                new Font(FONT_FAMILY, Font.BOLD, 34), BRAND));
+        form.add(Box.createVerticalStrut(6));
+        form.add(centeredLabel("Create your account",
+                new Font(FONT_FAMILY, Font.PLAIN, 17), TEXT_HINT));
         form.add(Box.createVerticalStrut(24));
 
-        regAvatarPreview = new AvatarPreview(64);
+        regAvatarPreview = new AvatarPreview(72);
         regAvatarPreview.setAlignmentX(Component.CENTER_ALIGNMENT);
         regAvatarPreview.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         regAvatarPreview.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { chooseRegisterAvatar(); }
+            public void mousePressed(MouseEvent e) { chooseRegisterAvatar(); }
         });
         form.add(regAvatarPreview);
         form.add(Box.createVerticalStrut(8));
 
-        JLabel avatarLink = linkLabel("Choose avatar", 12);
+        JLabel avatarLink = linkLabel("Choose avatar", 14);
         avatarLink.setAlignmentX(Component.CENTER_ALIGNMENT);
         avatarLink.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { chooseRegisterAvatar(); }
+            public void mousePressed(MouseEvent e) { chooseRegisterAvatar(); }
         });
         form.add(avatarLink);
         form.add(Box.createVerticalStrut(20));
 
         regNameField = new FloatInput("Name", false);
         form.add(regNameField);
-        form.add(Box.createVerticalStrut(16));
+        form.add(Box.createVerticalStrut(10));
 
         regIdField = new FloatInput("Choose a User ID", false);
         form.add(regIdField);
-        form.add(Box.createVerticalStrut(16));
+        form.add(Box.createVerticalStrut(10));
 
         regPassField = new FloatInput("Password", true);
         form.add(regPassField);
-        form.add(Box.createVerticalStrut(16));
+        form.add(Box.createVerticalStrut(10));
 
         regWorkField = new FloatInput("Workplace", false);
         form.add(regWorkField);
-        form.add(Box.createVerticalStrut(16));
+        form.add(Box.createVerticalStrut(10));
 
         regHomeField = new FloatInput("Hometown", false);
         form.add(regHomeField);
-        form.add(Box.createVerticalStrut(32));
+        form.add(Box.createVerticalStrut(20));
 
         PrimaryButton createBtn = new PrimaryButton("Create account");
         createBtn.addActionListener(e -> doRegister());
         form.add(createBtn);
-        form.add(Box.createVerticalStrut(32));
+        form.add(Box.createVerticalStrut(16));
 
         JPanel backRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         backRow.setOpaque(false);
         JLabel already = new JLabel("Already have an account?  ");
-        already.setFont(YH); already.setForeground(TEXT_SUB);
-        JLabel backLink = linkLabel("Sign in", 14);
+        already.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17)); already.setForeground(TEXT_SUB);
+        JLabel backLink = linkLabel("Sign in", 17);
         backLink.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 internalCards.show(internalPanel, LOGIN);
             }
         });
         backRow.add(already); backRow.add(backLink);
         form.add(backRow);
+        form.add(Box.createVerticalStrut(8));
 
-        // Scroll wrapper
-        JScrollPane sp = new JScrollPane(form);
-        sp.setBorder(null); sp.setOpaque(false);
-        sp.getViewport().setOpaque(false);
-        sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        wrap.add(sp);
+        // Scroll pane wraps the form so nothing gets clipped at any window height
+        JScrollPane scroll = new JScrollPane(form);
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+
+        // White card that fills the scroll pane
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth(), h = getHeight();
+                g2.setColor(new Color(0, 0, 0, 18));
+                g2.fillRoundRect(0, 2, w, h, 12, 12);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, w, h - 2, 12, 12);
+                g2.setColor(HAIRLINE);
+                g2.setStroke(new BasicStroke(0.5f));
+                g2.drawRoundRect(0, 0, w - 1, h - 2, 12, 12);
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BorderLayout());
+        card.setPreferredSize(new Dimension(FIELD_W + 128, 560));
+        card.add(scroll, BorderLayout.CENTER);
+
+        wrap.add(card);
         return wrap;
     }
 
@@ -270,9 +300,10 @@ public class LoginPanel extends JPanel {
         form.setOpaque(false);
 
         form.add(centeredLabel("SnapTok",
-                new Font("Inter", Font.BOLD, 32), BRAND));
+                new Font(FONT_FAMILY, Font.BOLD, 34), BRAND));
         form.add(Box.createVerticalStrut(8));
-        form.add(centeredLabel("Reset your password", YH, TEXT_HINT));
+        form.add(centeredLabel("Reset your password",
+                new Font(FONT_FAMILY, Font.PLAIN, 17), TEXT_HINT));
         form.add(Box.createVerticalStrut(28));
 
         resetIdField = new FloatInput("User ID", false);
@@ -301,7 +332,8 @@ public class LoginPanel extends JPanel {
         resetPasswordPanel.setOpaque(false);
         resetPasswordPanel.setVisible(false);
 
-        resetVerifiedLabel = centeredLabel("Identity verified. Set a new password.", YH, BRAND);
+        resetVerifiedLabel = centeredLabel("Identity verified. Set a new password.", 
+                new Font(FONT_FAMILY, Font.PLAIN, 14), BRAND);
         resetPasswordPanel.add(resetVerifiedLabel);
         resetPasswordPanel.add(Box.createVerticalStrut(14));
 
@@ -322,10 +354,10 @@ public class LoginPanel extends JPanel {
         JPanel backRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         backRow.setOpaque(false);
         JLabel remember = new JLabel("Remember your password?  ");
-        remember.setFont(YH); remember.setForeground(TEXT_SUB);
-        JLabel backLink = linkLabel("Sign in", 14);
+        remember.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17)); remember.setForeground(TEXT_SUB);
+        JLabel backLink = linkLabel("Sign in", 17);
         backLink.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { internalCards.show(internalPanel, LOGIN); }
+            public void mousePressed(MouseEvent e) { internalCards.show(internalPanel, LOGIN); }
         });
         backRow.add(remember); backRow.add(backLink);
         form.add(backRow);
@@ -350,9 +382,10 @@ public class LoginPanel extends JPanel {
         form.setOpaque(false);
 
         form.add(centeredLabel("SnapTok",
-                new Font("Inter", Font.BOLD, 32), BRAND));
+                new Font(FONT_FAMILY, Font.BOLD, 34), BRAND));
         form.add(Box.createVerticalStrut(8));
-        form.add(centeredLabel("Account created successfully", YH, TEXT_HINT));
+        form.add(centeredLabel("Account created successfully",
+                new Font(FONT_FAMILY, Font.PLAIN, 17), TEXT_HINT));
         form.add(Box.createVerticalStrut(28));
 
         successAvatarPreview = new AvatarPreview(72);
@@ -360,7 +393,8 @@ public class LoginPanel extends JPanel {
         form.add(successAvatarPreview);
         form.add(Box.createVerticalStrut(14));
 
-        successIdLabel = centeredLabel("@", YH_BOLD, TEXT_MAIN);
+        successIdLabel = centeredLabel("@", 
+                new Font(FONT_FAMILY, Font.BOLD, 14), TEXT_MAIN);
         form.add(successIdLabel);
         form.add(Box.createVerticalStrut(32));
 
@@ -390,13 +424,11 @@ public class LoginPanel extends JPanel {
             u = network.getUser(id);
         }
         if (u == null) {
-            JOptionPane.showMessageDialog(this, "Invalid User ID or Password",
-                    "SnapTok", JOptionPane.WARNING_MESSAGE);
+            showStyledDialog("Invalid User ID or Password");
             return;
         }
         if (!u.getPassword().equals(pw)) {
-            JOptionPane.showMessageDialog(this, "Invalid User ID or Password",
-                    "SnapTok", JOptionPane.WARNING_MESSAGE);
+            showStyledDialog("Invalid User ID or Password");
             loginPassField.setText("");
             return;
         }
@@ -423,8 +455,7 @@ public class LoginPanel extends JPanel {
         // Check both in-memory and file
         loadUsersFile();
         if (network.getUser(id) != null) {
-            JOptionPane.showMessageDialog(this, "User ID already exists",
-                    "SnapTok", JOptionPane.WARNING_MESSAGE);
+            showStyledDialog("User ID already exists. Please choose a different one.");
             return;
         }
 
@@ -443,18 +474,6 @@ public class LoginPanel extends JPanel {
         clearReg();
     }
 
-    private void loadFile() {
-        JFileChooser c = new JFileChooser();
-        if (c.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                MainContentPanel.loadNetworkInto(network, c.getSelectedFile());
-                JOptionPane.showMessageDialog(this, "Network loaded!");
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error: " + ex.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }
 
     private void verifyResetIdentity() {
         loadUsersFile();
@@ -561,7 +580,7 @@ public class LoginPanel extends JPanel {
     }
 
     private void err(String msg) {
-        JOptionPane.showMessageDialog(this, msg, "SnapTok", JOptionPane.WARNING_MESSAGE);
+        showStyledDialog(msg);
     }
 
     private static boolean isValidUserId(String id) {
@@ -591,32 +610,45 @@ public class LoginPanel extends JPanel {
                 + "</div></html>";
     }
 
-    /** Styled message dialog — Apple design */
-    private void showStyledDialog(String message) {
+    /** Styled message dialog — Apple design, replaces JOptionPane */
+    void showStyledDialog(String message) {
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "SnapTok", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setUndecorated(true);
-        JPanel panel = new JPanel();
+
+        JPanel panel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(0, 0, 0, 20));
+                g2.fillRoundRect(0, 2, getWidth(), getHeight(), 16, 16);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight() - 2, 16, 16);
+                g2.setColor(HAIRLINE);
+                g2.setStroke(new BasicStroke(0.5f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 3, 16, 16);
+                g2.dispose();
+            }
+        };
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
+        panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(28, 32, 24, 32));
 
-        JLabel msg = new JLabel(message);
-        java.util.HashMap<java.awt.font.TextAttribute, Object> attrs = new java.util.HashMap<>();
-        attrs.put(java.awt.font.TextAttribute.TRACKING, 0.04);
-        attrs.put(java.awt.font.TextAttribute.SIZE, 14f);
-        attrs.put(java.awt.font.TextAttribute.FAMILY, FONT_FAMILY);
-        msg.setFont(Font.getFont(attrs));
+        JLabel msg = new JLabel("<html><div style='text-align:center;width:280px;'>" +
+                message.replace("\n", "<br>") + "</div></html>");
+        msg.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
         msg.setForeground(TEXT_MAIN);
         msg.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(msg);
-        panel.add(Box.createVerticalStrut(24));
+        panel.add(Box.createVerticalStrut(22));
 
         JButton ok = new JButton("OK") {
             private boolean hov;
-            { setFont(new Font(FONT_FAMILY, Font.BOLD, 14)); setForeground(Color.WHITE);
+            { setFont(new Font(FONT_FAMILY, Font.BOLD, 15)); setForeground(Color.WHITE);
               setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false);
               setOpaque(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-              setPreferredSize(new Dimension(140, 40));
+              setPreferredSize(new Dimension(160, 42));
+              setMaximumSize(new Dimension(160, 42));
               addMouseListener(new MouseAdapter() {
                   public void mouseEntered(MouseEvent e) { hov = true; repaint(); }
                   public void mouseExited(MouseEvent e) { hov = false; repaint(); }
@@ -625,8 +657,8 @@ public class LoginPanel extends JPanel {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(hov ? new Color(0, 89, 178) : new Color(0, 102, 204));
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(hov ? BRAND_DARK : BRAND);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9999, 9999);
                 g2.dispose(); super.paintComponent(g);
             }
         };
@@ -863,17 +895,93 @@ public class LoginPanel extends JPanel {
     }
 
     private JPanel buildSeparator(String text) {
-        JPanel row = new JPanel(new BorderLayout(12, 0));
+        JPanel row = new JPanel(new GridBagLayout());
         row.setOpaque(false);
         row.setMaximumSize(new Dimension(FIELD_W, 20));
         row.setAlignmentX(Component.CENTER_ALIGNMENT);
-        JSeparator sL = new JSeparator(); sL.setForeground(HAIRLINE);
-        JSeparator sR = new JSeparator(); sR.setForeground(HAIRLINE);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weighty = 0;
+
+        // Left line — 0.5px hairline
+        gbc.gridx = 0;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        JPanel leftLine = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(HAIRLINE);
+                g2.setStroke(new BasicStroke(0.5f));
+                int y = getHeight() / 2;
+                g2.drawLine(0, y, getWidth(), y);
+                g2.dispose();
+            }
+        };
+        leftLine.setOpaque(false);
+        row.add(leftLine, gbc);
+
+        // Text — 13px, ink-48 color
+        gbc.gridx = 1;
+        gbc.weightx = 0;
+        gbc.insets = new Insets(0, 12, 0, 12);
         JLabel t = new JLabel(text, SwingConstants.CENTER);
-        t.setFont(YH); t.setForeground(TEXT_HINT);
-        row.add(sL, BorderLayout.WEST); row.add(t, BorderLayout.CENTER);
-        row.add(sR, BorderLayout.EAST);
+        t.setFont(new Font(FONT_FAMILY, Font.PLAIN, 13));
+        t.setForeground(TEXT_HINT);
+        row.add(t, gbc);
+
+        // Right line — 0.5px hairline
+        gbc.gridx = 2;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        JPanel rightLine = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(HAIRLINE);
+                g2.setStroke(new BasicStroke(0.5f));
+                int y = getHeight() / 2;
+                g2.drawLine(0, y, getWidth(), y);
+                g2.dispose();
+            }
+        };
+        rightLine.setOpaque(false);
+        row.add(rightLine, gbc);
+
         return row;
+    }
+
+    // ================================================================
+    //  WHITE CARD — rounded 12px, hairline border, shadow
+    // ================================================================
+    private JPanel createCardPanel(int topPad, int sidePad, int bottomPad) {
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int w = getWidth();
+                int h = getHeight();
+                // Shadow
+                g2.setColor(new Color(0, 0, 0, 18));
+                g2.fillRoundRect(0, 2, w, h, 12, 12);
+                // White fill
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, w, h - 2, 12, 12);
+                // Hairline border
+                g2.setColor(HAIRLINE);
+                g2.setStroke(new BasicStroke(0.5f));
+                g2.drawRoundRect(0, 0, w - 1, h - 2, 12, 12);
+                g2.dispose();
+            }
+        };
+        card.setOpaque(false);
+        card.setLayout(new BorderLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(topPad, sidePad, bottomPad, sidePad));
+        return card;
     }
 
     // ================================================================
@@ -902,7 +1010,7 @@ public class LoginPanel extends JPanel {
                 this.field = new JTextField();
             }
 
-            field.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+            field.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
             field.setForeground(TEXT_MAIN);
             field.setCaretColor(BRAND);
             field.setOpaque(false);
@@ -912,9 +1020,9 @@ public class LoginPanel extends JPanel {
 
             // Overlay label
             label = new JLabel(labelText);
-            label.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+            label.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
             label.setForeground(TEXT_HINT);
-            label.setBounds(16, 15, FIELD_W - 60, 20);
+            label.setBounds(16, 14, FIELD_W - 60, 22);
 
             field.addFocusListener(new FocusAdapter() {
                 public void focusGained(FocusEvent e) {
@@ -985,19 +1093,20 @@ public class LoginPanel extends JPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // White background — visible against parchment canvas
-            g2.setColor(Color.WHITE);
-            g2.fillRoundRect(0, 0, getWidth(), 50, 6, 6);
+            // White background — matches HTML mockup input-field
+            g2.setColor(INPUT_BG); // #ffffff
+            g2.fillRoundRect(0, 0, getWidth(), 50, 10, 10);
 
-            // Border: blue on focus, hairline otherwise
+            // Subtle gray border like HTML - 1px #d1d1d6
+            g2.setColor(new Color(209, 209, 214));
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRoundRect(0, 0, getWidth() - 1, 49, 10, 10);
+
+            // Focus: soft blue glow ring (3px, 25% opacity)
             if (focused) {
-                g2.setColor(BRAND);
-                g2.setStroke(new BasicStroke(2f));
-                g2.drawRoundRect(1, 1, getWidth() - 2, 48, 6, 6);
-            } else {
-                g2.setColor(HAIRLINE);
-                g2.setStroke(new BasicStroke(1f));
-                g2.drawRoundRect(0, 0, getWidth() - 1, 49, 6, 6);
+                g2.setColor(new Color(0, 102, 204, 64)); // rgba(0,102,204,0.25)
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawRoundRect(1, 1, getWidth() - 2, 48, 10, 10);
             }
             g2.dispose();
             super.paintComponent(g);
@@ -1007,14 +1116,14 @@ public class LoginPanel extends JPanel {
             Timer timer = new Timer(10, null);
             final int[] step = {0};
             final int startY = label.getY();
-            final int targetY = up ? 4 : 15;
+            final int targetY = up ? 4 : 14;
             timer.addActionListener(e -> {
                 step[0]++;
                 float p = Math.min(step[0] / 12f, 1f);
                 float ease = 1 - (1 - p) * (1 - p);
                 label.setLocation(label.getX(), (int) (startY + (targetY - startY) * ease));
-                float sz = up ? 14f + (11f - 14f) * ease : 11f + (14f - 11f) * ease;
-                label.setFont(new Font(FONT_FAMILY, Font.PLAIN, Math.max(11, (int) sz)));
+                float sz = up ? 17f + (13f - 17f) * ease : 13f + (17f - 13f) * ease;
+                label.setFont(new Font(FONT_FAMILY, Font.PLAIN, Math.max(13, (int) sz)));
                 label.setForeground(up ? BRAND : TEXT_HINT);
                 if (p >= 1f) timer.stop();
             });
@@ -1047,7 +1156,7 @@ public class LoginPanel extends JPanel {
 
         PrimaryButton(String text) {
             super(text);
-            setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
+            setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
             setForeground(Color.WHITE);
             setContentAreaFilled(false);
             setOpaque(false);
@@ -1070,9 +1179,10 @@ public class LoginPanel extends JPanel {
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            // Apple: flat fill, darker on press
+            // Apple: flat fill, darker on press - 8px rounded rectangle
             g2.setColor(pressed ? BRAND_DARK : BRAND);
-            g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            int arc = 8; // 8px corner radius for rounded rectangle
+            g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
             g2.dispose();
             super.paintComponent(g);
         }
