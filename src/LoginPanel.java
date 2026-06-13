@@ -59,19 +59,7 @@ public class LoginPanel extends JPanel {
             Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
     static final String USERS_FILE;
     static {
-        // Locate users.txt in slayers_project/ directory
-        String dir = System.getProperty("user.dir");
-        File projectDir = new File(dir, "slayers_project");
-        if (projectDir.isDirectory()) {
-            // Working dir is the parent (e.g. teamwork/)
-            USERS_FILE = new File(projectDir, "users.txt").getAbsolutePath();
-        } else if (new File(dir).getName().equals("src")) {
-            // Working dir is src/, go up one level
-            USERS_FILE = new File(dir, ".." + File.separator + "users.txt").getAbsolutePath();
-        } else {
-            // Already in slayers_project/ or elsewhere
-            USERS_FILE = new File(dir, "users.txt").getAbsolutePath();
-        }
+        USERS_FILE = new File(getProjectRoot(), "users.txt").getAbsolutePath();
     }
 
     public LoginPanel(MainGUI mainGUI, SocialNetwork network) {
@@ -393,7 +381,7 @@ public class LoginPanel extends JPanel {
         form.add(successAvatarPreview);
         form.add(Box.createVerticalStrut(14));
 
-        successIdLabel = centeredLabel("@", 
+        successIdLabel = centeredLabel("ID:", 
                 new Font(FONT_FAMILY, Font.BOLD, 14), TEXT_MAIN);
         form.add(successIdLabel);
         form.add(Box.createVerticalStrut(32));
@@ -462,7 +450,7 @@ public class LoginPanel extends JPanel {
         String workplace = work.isEmpty() ? "Unknown" : work;
         String hometown = home.isEmpty() ? "Unknown" : home;
 
-        String avatarPath = copyAvatarToAssets(regAvatarPath);
+        String avatarPath = copyAvatarToImageFolder(regAvatarPath);
         User newUser = new User(id, name, workplace, hometown, pw);
         newUser.setAvatarPath(avatarPath);
         network.addUser(newUser);
@@ -507,7 +495,7 @@ public class LoginPanel extends JPanel {
 
         resetVerifiedUser = user;
         setResetIdentityEnabled(false);
-        resetVerifiedLabel.setText("Verified @" + id + ". Set a new password.");
+        resetVerifiedLabel.setText("Verified ID: " + id + ". Set a new password.");
         resetPasswordPanel.setVisible(true);
         resetPasswordPanel.revalidate();
         resetPasswordPanel.repaint();
@@ -572,7 +560,7 @@ public class LoginPanel extends JPanel {
     }
 
     private void showRegisterSuccess(String userId, String avatarPath) {
-        successIdLabel.setText("@" + userId);
+        successIdLabel.setText("ID: " + userId);
         successAvatarPreview.setImagePath(avatarPath);
         loginIdField.setText(userId);
         loginPassField.setText("");
@@ -675,12 +663,22 @@ public class LoginPanel extends JPanel {
 
     static File getProjectRoot() {
         File cwd = new File(System.getProperty("user.dir")).getAbsoluteFile();
-        if ("src".equalsIgnoreCase(cwd.getName()) && cwd.getParentFile() != null) {
-            return cwd.getParentFile();
+        for (File dir = cwd; dir != null; dir = dir.getParentFile()) {
+            if (isProjectRoot(dir)) return dir;
+
+            File nested = new File(dir, "slayers_project");
+            if (isProjectRoot(nested)) return nested;
+
+            File nestedInFolder = new File(new File(dir, "Data Structure Final"), "slayers_project");
+            if (isProjectRoot(nestedInFolder)) return nestedInFolder;
         }
-        File nested = new File(cwd, "slayers_project");
-        if (nested.isDirectory()) return nested;
         return cwd;
+    }
+
+    private static boolean isProjectRoot(File dir) {
+        return dir != null
+                && new File(dir, "src").isDirectory()
+                && new File(dir, "image").isDirectory();
     }
 
     static String normalizeAvatarPath(String avatarPath) {
@@ -690,18 +688,18 @@ public class LoginPanel extends JPanel {
         if (!file.isAbsolute()) {
             return clean.replace('\\', '/');
         }
-        return copyAvatarToAssets(clean);
+        return copyAvatarToImageFolder(clean);
     }
 
-    /** Copies an avatar image to the project's assets/avatars directory and returns the relative path. */
-    static String copyAvatarToAssets(String sourcePath) {
+    /** Copies an avatar image to the project's image/avatars directory and returns the relative path. */
+    static String copyAvatarToImageFolder(String sourcePath) {
         if (sourcePath == null || sourcePath.isEmpty()) return "";
         try {
             Path source = Paths.get(sourcePath).toAbsolutePath().normalize();
             if (!Files.isRegularFile(source)) return "";
 
             Path root = getProjectRoot().toPath().toAbsolutePath().normalize();
-            Path avatarDir = root.resolve("assets").resolve("avatars");
+            Path avatarDir = root.resolve("image").resolve("avatars");
             Files.createDirectories(avatarDir);
 
             if (source.startsWith(avatarDir)) {

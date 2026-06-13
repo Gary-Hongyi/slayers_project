@@ -1,5 +1,7 @@
 import javax.swing.*;
 import javax.swing.border.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.*;
@@ -35,6 +37,9 @@ public class MainContentPanel extends JPanel {
     static final Color HAIRLINE = new Color(224, 224, 224);    // #e0e0e0 hairline
     static final Color HOVER_BG = new Color(245, 245, 247);    // #f5f5f7 parchment
     static final Color CANVAS = Color.WHITE;                    // canvas #ffffff
+    static final Color POST_SELECTED_BG = new Color(232, 244, 255);
+    static final Color POST_SELECTED_HOVER_BG = new Color(222, 238, 255);
+    static final Color POST_SELECTED_BORDER = new Color(86, 142, 214);
 
     /** Resolves relative avatar paths against the working directory. */
     static String resolveAvatarPath(String path) {
@@ -67,8 +72,14 @@ public class MainContentPanel extends JPanel {
     private final List<FilterChip> fFilterChips = new ArrayList<>();
     private JPanel fListContainer; // CardLayout container for friend list/empty state
     // Moments
-    private JTextArea mInput;
     private JPanel mFeed;
+    private JScrollPane mFeedScroll;
+    private CardLayout momentsRightCards;
+    private JPanel momentsRightPanel;
+    private AvatarLabel postDetailAvatar;
+    private JLabel postDetailAuthor, postDetailTime, postDetailEngagement;
+    private JTextArea postDetailContent;
+    private JPanel postDetailActionPanel, postDetailCommentsSlot;
     // Search
     private JTextField sField;
     private DefaultListModel<User> sModel;
@@ -148,28 +159,80 @@ public class MainContentPanel extends JPanel {
         });
     }
 
+    private void onTextChanged(JTextField field, Runnable action) {
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { action.run(); }
+            public void removeUpdate(DocumentEvent e) { action.run(); }
+            public void changedUpdate(DocumentEvent e) { action.run(); }
+        });
+    }
+
+    private JPanel createChipRow() {
+        JPanel row = new JPanel();
+        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+        return row;
+    }
+
+    private void addChipToRow(JPanel row, FilterChip chip) {
+        if (row.getComponentCount() > 0) {
+            row.add(Box.createHorizontalStrut(8));
+        }
+        FontMetrics metrics = chip.getFontMetrics(chip.getFont());
+        Dimension base = chip.getPreferredSize();
+        Dimension size = new Dimension(Math.max(base.width, metrics.stringWidth(chip.getText()) + 48), 38);
+        chip.setPreferredSize(size);
+        chip.setMinimumSize(size);
+        chip.setMaximumSize(size);
+        chip.setAlignmentX(Component.LEFT_ALIGNMENT);
+        chip.setAlignmentY(Component.CENTER_ALIGNMENT);
+        row.add(chip);
+    }
+
+    private JComponent createHorizontalChipScroll(JPanel row) {
+        JViewport viewport = new JViewport();
+        viewport.setOpaque(false);
+        viewport.setView(row);
+        viewport.setViewPosition(new Point(0, 0));
+        MouseWheelListener wheel = e -> {
+            int maxX = Math.max(0, row.getPreferredSize().width - viewport.getExtentSize().width);
+            if (maxX > 0) {
+                Point position = viewport.getViewPosition();
+                int nextX = Math.max(0, Math.min(maxX, position.x + e.getWheelRotation() * 56));
+                viewport.setViewPosition(new Point(nextX, 0));
+                e.consume();
+            }
+        };
+        viewport.addMouseWheelListener(wheel);
+        row.addMouseWheelListener(wheel);
+        for (Component child : row.getComponents()) {
+            child.addMouseWheelListener(wheel);
+        }
+
+        JPanel wrap = new JPanel(new BorderLayout());
+        wrap.setOpaque(false);
+        wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
+        wrap.setPreferredSize(new Dimension(320, 44));
+        wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        wrap.add(viewport, BorderLayout.CENTER);
+        SwingUtilities.invokeLater(() -> {
+            row.setSize(row.getPreferredSize());
+            viewport.setViewPosition(new Point(0, 0));
+        });
+        return wrap;
+    }
+
     // ======== LEFT NAV — exact match to HTML sidebar ========
     private JPanel buildNav() {
-        // Load nav icon images from image/ folder
+        // Load nav icon images from the project's image/ folder
         String[] iconFiles = {"icon_profile.png", "icon_friends.png", "icon_memory.png", "icon_search.png"};
         for (int i = 0; i < 4; i++) {
             try {
-                // Try multiple paths for flexibility
-                java.io.File iconFile = null;
-                String[] possiblePaths = {
-                    "image/" + iconFiles[i],           // When running from project root
-                    "../image/" + iconFiles[i],        // When running from src/
-                    "../../image/" + iconFiles[i]      // When running from other directories
-                };
-                
-                for (String path : possiblePaths) {
-                    java.io.File testFile = new java.io.File(path);
-                    if (testFile.exists()) {
-                        iconFile = testFile;
-                        break;
-                    }
-                }
-                
+                java.io.File iconFile = new java.io.File(
+                        LoginPanel.getProjectRoot(),
+                        "image" + java.io.File.separator + iconFiles[i]);
                 if (iconFile != null && iconFile.exists()) {
                     navIcons[i] = ImageIO.read(iconFile);
                 } else {
@@ -207,7 +270,7 @@ public class MainContentPanel extends JPanel {
         switch (idx) {
             case 0: refreshProfile(); midCards.show(midPanel, "PROFILE"); break;
             case 1: refreshFriends(); midCards.show(midPanel, "FRIENDS"); showEmptyRight(); break;
-            case 2: refreshMoments(); midCards.show(midPanel, "MOMENTS"); showProfileRight(); break;
+            case 2: refreshMoments(); midCards.show(midPanel, "MOMENTS"); showMomentsRight(); break;
             case 3: refreshSearch(); midCards.show(midPanel, "SEARCH"); showSearchRight(); break;
         }
     }
@@ -649,17 +712,17 @@ public class MainContentPanel extends JPanel {
         JPanel searchWrapper = new JPanel(new BorderLayout());
         searchWrapper.setOpaque(false);
         searchWrapper.add(fSearch, BorderLayout.CENTER);
-        fSearch.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { refreshFriendList(); showEmptyRight(); }
+        onTextChanged(fSearch, () -> {
+            refreshFriendList();
+            showEmptyRight();
         });
         topWrap.add(searchWrapper);
         topWrap.add(Box.createVerticalStrut(12));
 
         // Filter chips row
-        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        filterRow.setOpaque(false);
+        JPanel filterRow = createChipRow();
         fFilterChips.clear();
-        for (String f : new String[]{"All", "Same Hometown"}) {
+        for (String f : new String[]{"All", "Same Workplace", "Same Hometown"}) {
             FilterChip chip = new FilterChip(f, f.equals(fFilter));
             fFilterChips.add(chip);
             chip.addActionListener(e -> {
@@ -669,9 +732,9 @@ public class MainContentPanel extends JPanel {
                 if (fList != null) fList.clearSelection();
                 showEmptyRight();
             });
-            filterRow.add(chip);
+            addChipToRow(filterRow, chip);
         }
-        topWrap.add(filterRow);
+        topWrap.add(createHorizontalChipScroll(filterRow));
         topWrap.add(Box.createVerticalStrut(12)); // Add spacing after filter row
         p.add(topWrap, BorderLayout.NORTH);
 
@@ -845,58 +908,12 @@ public class MainContentPanel extends JPanel {
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
         topSection.setOpaque(false);
 
-        // "SHARE A MOMENT" sub-title — uppercase, bold, 14px
-        JLabel subTitle = new JLabel("SHARE A MOMENT");
-        subTitle.setFont(new Font(FONT_FAMILY, Font.BOLD, 14));
-        subTitle.setForeground(TEXT_SUB);
+        // Left feed header
+        JLabel subTitle = new JLabel("Posts");
+        subTitle.setFont(new Font(FONT_FAMILY, Font.BOLD, 26));
+        subTitle.setForeground(TEXT_MAIN);
         subTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
         topSection.add(subTitle);
-        topSection.add(Box.createVerticalStrut(12));
-
-        // Compose textarea — parchment bg, 10px radius, with placeholder
-        mInput = new JTextArea(3, 20) {
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CANVAS); // White background
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-                
-                // Draw placeholder text when empty and not focused
-                if (getText().isEmpty() && !isFocusOwner()) {
-                    Graphics2D g3 = (Graphics2D) g.create();
-                    g3.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g3.setFont(getFont());
-                    g3.setColor(TEXT_HINT);
-                    g3.drawString("What's on your mind?", getInsets().left, getBaseline(getWidth(), getHeight()));
-                    g3.dispose();
-                }
-            }
-            
-            @Override protected void paintBorder(Graphics g) {
-                // No border - we draw our own rounded rect in paintComponent
-            }
-            
-            @Override public void setText(String t) {
-                super.setText(t);
-                repaint();
-            }
-        };
-        mInput.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
-        mInput.setForeground(TEXT_MAIN);
-        mInput.setLineWrap(true);
-        mInput.setWrapStyleWord(true);
-        mInput.setOpaque(false);
-        mInput.setBorder(new EmptyBorder(12, 16, 12, 16));
-        mInput.setCaretColor(BRAND);
-        JScrollPane inputScroll = new JScrollPane(mInput);
-        inputScroll.setBorder(null);
-        inputScroll.setOpaque(false);
-        inputScroll.getViewport().setOpaque(false);
-        inputScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
-        inputScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        topSection.add(inputScroll);
         topSection.add(Box.createVerticalStrut(12));
 
         // "Post" button — full width, pill, blue
@@ -913,15 +930,7 @@ public class MainContentPanel extends JPanel {
                   public void mouseReleased(MouseEvent e) { pressed=false; repaint(); }
               });
               addActionListener(e -> {
-                  User cur = network.getCurrentUser();
-                  if (cur == null) return;
-                  String text = mInput.getText().trim();
-                  if (text.isEmpty()) { showStyledDialog("Write something first."); return; }
-                  network.createPost(cur, text);
-                  mInput.setText("");
-                  mainGUI.saveNetworkNow();
-                  refreshMoments();
-                  refreshProfile();
+                  showPostModal();
               });
             }
             @Override protected void paintComponent(Graphics g) {
@@ -978,12 +987,12 @@ public class MainContentPanel extends JPanel {
         feedContainer.add(mFeed, "FEED");
         feedContainer.add(emptyState, "EMPTY");
         
-        JScrollPane feedSp = new JScrollPane(feedContainer);
-        feedSp.setBorder(null); feedSp.setOpaque(false);
-        feedSp.getViewport().setOpaque(false);
-        feedSp.getVerticalScrollBar().setUnitIncrement(16);
-        feedSp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        p.add(feedSp, BorderLayout.CENTER);
+        mFeedScroll = new JScrollPane(feedContainer);
+        mFeedScroll.setBorder(null); mFeedScroll.setOpaque(false);
+        mFeedScroll.getViewport().setOpaque(false);
+        mFeedScroll.getVerticalScrollBar().setUnitIncrement(16);
+        mFeedScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        p.add(mFeedScroll, BorderLayout.CENTER);
         
         return p;
     }
@@ -993,71 +1002,113 @@ public class MainContentPanel extends JPanel {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(CANVAS);
         p.setOpaque(true);
-        
-        // Header section with "My Posts" title and stats
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(CANVAS);
-        header.setOpaque(true);
-        header.setBorder(BorderFactory.createEmptyBorder(36, 36, 24, 36));
-        
-        JLabel title = new JLabel("My Posts");
-        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 32));
-        title.setForeground(TEXT_MAIN);
-        header.add(title, BorderLayout.WEST);
-        
-        // Stats panel
-        JPanel stats = new JPanel(new FlowLayout(FlowLayout.RIGHT, 32, 0));
-        stats.setOpaque(false);
-        
-        JPanel friendsStat = new JPanel(new GridLayout(2, 1, 0, 4));
-        friendsStat.setOpaque(false);
-        JLabel friendsCount = new JLabel("0", SwingConstants.CENTER);
-        friendsCount.setFont(new Font(FONT_FAMILY, Font.BOLD, 32));
-        friendsCount.setForeground(BRAND);
-        JLabel friendsLabel = new JLabel("Friends", SwingConstants.CENTER);
-        friendsLabel.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
-        friendsLabel.setForeground(TEXT_SUB);
-        friendsStat.add(friendsCount);
-        friendsStat.add(friendsLabel);
-        
-        JPanel postsStat = new JPanel(new GridLayout(2, 1, 0, 4));
-        postsStat.setOpaque(false);
-        JLabel postsCount = new JLabel("0", SwingConstants.CENTER);
-        postsCount.setFont(new Font(FONT_FAMILY, Font.BOLD, 32));
-        postsCount.setForeground(BRAND);
-        JLabel postsLabel = new JLabel("Posts", SwingConstants.CENTER);
-        postsLabel.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
-        postsLabel.setForeground(TEXT_SUB);
-        postsStat.add(postsCount);
-        postsStat.add(postsLabel);
-        
-        stats.add(friendsStat);
-        stats.add(postsStat);
-        header.add(stats, BorderLayout.EAST);
-        
-        p.add(header, BorderLayout.NORTH);
-        
-        // Empty state message in center
+
+        momentsRightCards = new CardLayout();
+        momentsRightPanel = new JPanel(momentsRightCards);
+        momentsRightPanel.setBackground(CANVAS);
+        momentsRightPanel.setOpaque(true);
+
         JPanel emptyInner = new JPanel(new GridBagLayout());
         emptyInner.setBackground(CANVAS);
         emptyInner.setOpaque(true);
-        
-        JLabel hintText = new JLabel("No posts yet. Share a moment from the Posts tab.");
+
+        JLabel hintText = new JLabel("Select a post");
         hintText.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
         hintText.setForeground(TEXT_SUB);
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0;
         gbc.weightx = 1; gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(-75, -30, 0, 0);
         emptyInner.add(hintText, gbc);
-        
-        p.add(emptyInner, BorderLayout.CENTER);
-        
+
+        momentsRightPanel.add(emptyInner, "EMPTY");
+        momentsRightPanel.add(buildPostDetailView(), "DETAIL");
+        p.add(momentsRightPanel, BorderLayout.CENTER);
+
         return p;
     }
     // ======== MOMENTS MIDDLE — exact match to HTML panel-left ========
+
+    private JPanel buildPostDetailView() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CANVAS);
+        panel.setOpaque(true);
+        panel.setBorder(new EmptyBorder(24, 32, 16, 32));
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(false);
+        content.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
+
+        JPanel header = new JPanel(new BorderLayout(16, 0));
+        header.setOpaque(false);
+        header.setMaximumSize(new Dimension(520, 84));
+
+        postDetailAvatar = new AvatarLabel(72, null);
+        header.add(postDetailAvatar, BorderLayout.WEST);
+
+        JPanel headText = new JPanel();
+        headText.setLayout(new BoxLayout(headText, BoxLayout.Y_AXIS));
+        headText.setOpaque(false);
+
+        postDetailAuthor = new JLabel("");
+        postDetailAuthor.setFont(new Font(FONT_FAMILY, Font.BOLD, 24));
+        postDetailAuthor.setForeground(TEXT_MAIN);
+        headText.add(postDetailAuthor);
+        headText.add(Box.createVerticalStrut(6));
+
+        postDetailTime = new JLabel("");
+        postDetailTime.setFont(YH);
+        postDetailTime.setForeground(TEXT_SUB);
+        headText.add(postDetailTime);
+        header.add(headText, BorderLayout.CENTER);
+        content.add(header);
+        content.add(Box.createVerticalStrut(22));
+        content.add(detailDivider());
+        content.add(Box.createVerticalStrut(18));
+
+        content.add(sectionLabel("Post"));
+        content.add(Box.createVerticalStrut(10));
+
+        postDetailContent = new JTextArea(5, 36);
+        postDetailContent.setEditable(false);
+        postDetailContent.setFocusable(false);
+        postDetailContent.setOpaque(false);
+        postDetailContent.setLineWrap(true);
+        postDetailContent.setWrapStyleWord(true);
+        postDetailContent.setFont(YH);
+        postDetailContent.setForeground(TEXT_MAIN);
+        postDetailContent.setBorder(null);
+        postDetailContent.setMaximumSize(new Dimension(520, 180));
+        content.add(postDetailContent);
+        content.add(Box.createVerticalStrut(18));
+
+        postDetailEngagement = new JLabel("");
+        postDetailEngagement.setFont(YH);
+        postDetailEngagement.setForeground(TEXT_SUB);
+        postDetailEngagement.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(postDetailEngagement);
+        content.add(Box.createVerticalStrut(18));
+
+        postDetailActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        postDetailActionPanel.setOpaque(false);
+        postDetailActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        content.add(postDetailActionPanel);
+        content.add(Box.createVerticalStrut(18));
+        content.add(detailDivider());
+        content.add(Box.createVerticalStrut(14));
+
+        postDetailCommentsSlot = new JPanel(new BorderLayout());
+        postDetailCommentsSlot.setOpaque(false);
+        postDetailCommentsSlot.setAlignmentX(Component.LEFT_ALIGNMENT);
+        postDetailCommentsSlot.setMaximumSize(new Dimension(520, 360));
+        content.add(postDetailCommentsSlot);
+
+        panel.add(content, BorderLayout.CENTER);
+        return panel;
+    }
 
     /** Opens a modal dialog for creating a new post */
     private void showPostModal() {
@@ -1102,11 +1153,12 @@ public class MainContentPanel extends JPanel {
         post.addActionListener(e -> {
             String text = input.getText().trim();
             if (text.isEmpty()) { showStyledDialog("Write something first."); return; }
-            network.createPost(cur, text);
+            Post created = network.createPost(cur, text);
             mainGUI.saveNetworkNow();
             dialog.dispose();
-            refreshMoments();
+            refreshMoments(false);
             refreshProfile();
+            showPostDetail(created);
         });
         btns.add(cancel); btns.add(post);
         panel.add(btns);
@@ -1141,11 +1193,9 @@ public class MainContentPanel extends JPanel {
         topSection.add(Box.createVerticalStrut(12));
 
         // Filter chips row
-        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        filterRow.setOpaque(false);
-        filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        JPanel filterRow = createChipRow();
         sFilterChips.clear();
-        for (String filter : new String[]{"Mutual Friends", "Same Workplace"}) {
+        for (String filter : new String[]{"Mutual Friends", "Same Workplace", "Same Hometown"}) {
             FilterChip chip = new FilterChip(filter, filter.equals(sFilter));
             sFilterChips.add(chip);
             chip.addActionListener(e -> {
@@ -1154,9 +1204,9 @@ public class MainContentPanel extends JPanel {
                 refreshSearch();
                 if (sList != null) sList.clearSelection();
             });
-            filterRow.add(chip);
+            addChipToRow(filterRow, chip);
         }
-        topSection.add(filterRow);
+        topSection.add(createHorizontalChipScroll(filterRow));
         topSection.add(Box.createVerticalStrut(20));
 
         // Hairline divider
@@ -1268,9 +1318,7 @@ public class MainContentPanel extends JPanel {
                 sField.requestFocusInWindow();
             }
         });
-        sField.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { performSearch(); }
-        });
+        onTextChanged(sField, this::performSearch);
         searchWrap.add(sField);
         
         JButton goBtn = new JButton("Go") {
@@ -1536,7 +1584,7 @@ public class MainContentPanel extends JPanel {
         ((AvatarLabel) pAvatar).user = u;
         pAvatar.repaint();
         pName.setText(u.getName());
-        pId.setText("@" + u.getUserId());
+        pId.setText("ID: " + u.getUserId());
         pNameF.setText(u.getName());
         pSigArea.setText(u.getSignature());
         pWorkF.setText(u.getWorkplace());
@@ -1605,10 +1653,19 @@ public class MainContentPanel extends JPanel {
     }
 
     void refreshMoments() {
+        refreshMoments(true);
+    }
+
+    void refreshMoments(boolean preserveScroll) {
+        int scrollY = 0;
+        if (preserveScroll && mFeedScroll != null) {
+            scrollY = mFeedScroll.getVerticalScrollBar().getValue();
+        }
+
         mFeed.removeAll();
         User cur = network.getCurrentUser();
         if (cur == null) return;
-        List<Post> posts = getVisiblePostsFor(cur);
+        List<Post> posts = network.getAllPosts();
         if (posts.isEmpty()) {
             JLabel empty = new JLabel("No moments yet. Share something!");
             empty.setFont(YH); empty.setForeground(TEXT_HINT);
@@ -1622,15 +1679,16 @@ public class MainContentPanel extends JPanel {
             }
         }
         mFeed.revalidate(); mFeed.repaint();
-    }
 
-    private List<Post> getVisiblePostsFor(User user) {
-        List<Post> posts = new ArrayList<>(user.getPosts());
-        for (User friend : user.getFriends()) {
-            posts.addAll(friend.getPosts());
+        if (mFeedScroll != null) {
+            final int targetY = scrollY;
+            SwingUtilities.invokeLater(() -> {
+                JScrollBar bar = mFeedScroll.getVerticalScrollBar();
+                BoundedRangeModel model = bar.getModel();
+                int maxValue = Math.max(model.getMinimum(), model.getMaximum() - model.getExtent());
+                bar.setValue(preserveScroll ? Math.min(targetY, maxValue) : model.getMinimum());
+            });
         }
-        posts.sort((p1, p2) -> p2.getTimestamp().compareTo(p1.getTimestamp()));
-        return posts;
     }
 
     void refreshSearch() {
@@ -1736,7 +1794,7 @@ public class MainContentPanel extends JPanel {
         if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             User cur = network.getCurrentUser();
             if (cur != null) {
-                String relativePath = LoginPanel.copyAvatarToAssets(fc.getSelectedFile().getAbsolutePath());
+                String relativePath = LoginPanel.copyAvatarToImageFolder(fc.getSelectedFile().getAbsolutePath());
                 if (relativePath.isEmpty()) {
                     showStyledDialog("Could not import that avatar.");
                     return;
@@ -1813,8 +1871,17 @@ public class MainContentPanel extends JPanel {
 
     void showPostDetail(Post post) {
         detailPost = post;
-        // Update detail panel for post
+        if (post == null) return;
+        if (navIdx != 2) {
+            selectNav(2);
+        }
         updatePostDetailPanel(post);
+        if (momentsRightCards != null && momentsRightPanel != null) {
+            momentsRightCards.show(momentsRightPanel, "DETAIL");
+            momentsRightPanel.revalidate();
+            momentsRightPanel.repaint();
+        }
+        refreshMoments();
     }
 
     void showProfileRight() {
@@ -1823,6 +1890,15 @@ public class MainContentPanel extends JPanel {
             rFriends.setText(String.valueOf(cur.getFriends().size()));
             rPosts.setText(String.valueOf(cur.getPosts().size()));
             refreshProfilePosts();
+        }
+    }
+
+    void showMomentsRight() {
+        if (momentsRightCards == null || momentsRightPanel == null) return;
+        if (detailPost != null) {
+            showPostDetail(detailPost);
+        } else {
+            momentsRightCards.show(momentsRightPanel, "EMPTY");
         }
     }
 
@@ -1861,7 +1937,7 @@ public class MainContentPanel extends JPanel {
         String remark = cur != null ? cur.getFriendRemark(user.getUserId()) : "";
         String displayName = cur != null ? cur.getDisplayNameFor(user) : user.getName();
         rName.setText(displayName);
-        rId.setText(remark.isEmpty() ? "@" + user.getUserId() : "Name: " + user.getName() + "   @" + user.getUserId());
+        rId.setText(remark.isEmpty() ? "ID: " + user.getUserId() : "Name: " + user.getName() + "   ID: " + user.getUserId());
         setDetailValue(rRemark, remark.isEmpty() ? "Not set" : remark);
         setDetailValue(rWork, user.getWorkplace());
         setDetailValue(rHome, user.getHometown());
@@ -2073,32 +2149,29 @@ public class MainContentPanel extends JPanel {
     }
 
     private void updatePostDetailPanel(Post post) {
-        ((AvatarLabel) rAvatar).user = post.getAuthor();
-        rAvatar.repaint();
-        rName.setText(post.getAuthor().getName());
-        rId.setText(post.getTimestampString());
-        setDetailLabel(rRemark, "Type");
-        setDetailLabel(rWork, "Author");
-        setDetailLabel(rHome, "Time");
-        setDetailLabel(rSig, "Content");
-        setDetailLabel(rMutual, "Engagement");
-        setDetailValue(rRemark, "Post");
-        setDetailValue(rWork, post.getAuthor().getName());
-        setDetailValue(rHome, post.getTimestampString());
-        setDetailValue(rSig, post.getContent());
-        setDetailValue(rMutual, post.getLikeCount() + " like(s), " + post.getCommentCount() + " comment(s)");
+        if (post == null || postDetailAvatar == null) return;
+        postDetailAvatar.user = post.getAuthor();
+        postDetailAvatar.repaint();
+        postDetailAuthor.setText(post.getAuthor().getName());
+        postDetailTime.setText(post.getTimestampString());
+        postDetailContent.setText(softWrapLongWords(post.getContent(), 48));
+        postDetailContent.setCaretPosition(0);
+        postDetailEngagement.setText(post.getLikeCount() + " like(s), " + post.getCommentCount() + " comment(s)");
 
-        rActionPanel.removeAll();
+        postDetailActionPanel.removeAll();
         User cur = network.getCurrentUser();
         if (cur != null) {
             boolean liked = post.isLikedBy(cur);
             StyledButton likeBtn = new StyledButton(liked ? "Unlike" : "Like", liked);
             likeBtn.addActionListener(e -> { toggleLike(post); showPostDetail(post); });
-            rActionPanel.add(likeBtn);
+            postDetailActionPanel.add(likeBtn);
         }
-        rExtraPanel.removeAll();
-        rExtraPanel.add(buildPostCommentsPanel(post), BorderLayout.CENTER);
-        rExtraPanel.revalidate(); rExtraPanel.repaint();
+        postDetailCommentsSlot.removeAll();
+        postDetailCommentsSlot.add(buildPostCommentsPanel(post), BorderLayout.CENTER);
+        postDetailActionPanel.revalidate();
+        postDetailActionPanel.repaint();
+        postDetailCommentsSlot.revalidate();
+        postDetailCommentsSlot.repaint();
     }
 
     private void showFriendsDialog(User user) {
@@ -2201,7 +2274,7 @@ public class MainContentPanel extends JPanel {
 
         if (post.getLikeCount() > 0) {
             JLabel likers = new JLabel("<html><body style='width:390px'>Liked by: "
-                    + escapeHtml(post.getLikerIdsString().replace(",", ", ")) + "</body></html>");
+                    + escapeHtml(formatUserList(post.getLikes())) + "</body></html>");
             likers.setFont(YH); likers.setForeground(TEXT_SUB);
             likers.setAlignmentX(Component.LEFT_ALIGNMENT);
             top.add(likers);
@@ -2233,6 +2306,10 @@ public class MainContentPanel extends JPanel {
         StyledButton send = new StyledButton("Comment", true);
         send.setPreferredSize(new Dimension(120, 44));
         send.addActionListener(e -> addComment(post, input));
+        input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_DOWN_MASK), "submitComment");
+        input.getActionMap().put("submitComment", new AbstractAction() {
+            public void actionPerformed(ActionEvent e) { addComment(post, input); }
+        });
 
         JPanel inputRow = new JPanel(new BorderLayout(8, 0));
         inputRow.setOpaque(false);
@@ -2282,7 +2359,7 @@ public class MainContentPanel extends JPanel {
 
         JPanel meta = new JPanel(new BorderLayout());
         meta.setOpaque(false);
-        JLabel author = new JLabel(comment.getAuthor().getName());
+        JLabel author = new JLabel(formatUserIdentity(comment.getAuthor()));
         author.setFont(YHB);
         author.setForeground(TEXT_MAIN);
         meta.add(author, BorderLayout.WEST);
@@ -2345,17 +2422,57 @@ public class MainContentPanel extends JPanel {
         return area;
     }
 
+    private JButton makePostActionButton(String text) {
+        JButton btn = new JButton(text) {
+            private boolean hover, pressed;
+            {
+                setFont(YH_SM);
+                setForeground(BRAND);
+                setContentAreaFilled(false);
+                setBorderPainted(false);
+                setFocusPainted(false);
+                setOpaque(false);
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                addMouseListener(new MouseAdapter() {
+                    public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
+                    public void mouseExited(MouseEvent e) { hover = false; pressed = false; repaint(); }
+                    public void mousePressed(MouseEvent e) { pressed = true; repaint(); }
+                    public void mouseReleased(MouseEvent e) { pressed = false; repaint(); }
+                });
+            }
+
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (hover || pressed) {
+                    g2.setColor(new Color(0, 102, 204, pressed ? 22 : 12));
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                }
+                g2.setColor(hover ? BRAND : HAIRLINE);
+                g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        int width = text.startsWith("Comment") ? 104 : 68;
+        btn.setPreferredSize(new Dimension(width, 28));
+        btn.setMaximumSize(new Dimension(width, 28));
+        return btn;
+    }
+
     private JPanel createPostCard(Post post, User cur, int contentWidth, int maxWidth, int maxHeight) {
         int cardWidth = maxWidth == Integer.MAX_VALUE
                 ? contentWidth + 42
                 : Math.max(contentWidth + 42, maxWidth);
+        boolean selected = navIdx == 2 && isSamePost(post, detailPost);
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(true);
-        card.setBackground(CANVAS);
+        card.setBackground(selected ? POST_SELECTED_BG : CANVAS);
         // Apple utility card: 1px hairline border, 18px radius (rounded.lg)
         card.setBorder(new CompoundBorder(
-                BorderFactory.createLineBorder(HAIRLINE, 1),
+                BorderFactory.createLineBorder(selected ? POST_SELECTED_BORDER : HAIRLINE, 1),
                 new EmptyBorder(14, 14, 14, 14)));
         card.setMaximumSize(new Dimension(cardWidth, maxHeight + 150));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -2406,24 +2523,15 @@ public class MainContentPanel extends JPanel {
         likeCount.setAlignmentY(Component.CENTER_ALIGNMENT);
         bottom.add(likeCount);
 
-        JLabel commentBtn = new JLabel("\uD83D\uDCAC " + post.getCommentCount());
-        commentBtn.setFont(YH_SM);
-        commentBtn.setForeground(TEXT_HINT);
-        commentBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        JButton commentBtn = makePostActionButton("Comment " + post.getCommentCount());
         commentBtn.setAlignmentY(Component.CENTER_ALIGNMENT);
-        commentBtn.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { showPostDetail(post); }
-        });
+        commentBtn.addActionListener(e -> showPostDetail(post));
         bottom.add(commentBtn);
 
-        JLabel viewLabel = new JLabel("View \u203A");
-        viewLabel.setFont(YH); viewLabel.setForeground(BRAND);
-        viewLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        viewLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
-        viewLabel.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) { showPostDetail(post); }
-        });
-        bottom.add(viewLabel);
+        JButton viewBtn = makePostActionButton("View");
+        viewBtn.setAlignmentY(Component.CENTER_ALIGNMENT);
+        viewBtn.addActionListener(e -> showPostDetail(post));
+        bottom.add(viewBtn);
         card.add(bottom);
 
         // Inline comments (show first 3)
@@ -2445,7 +2553,7 @@ public class MainContentPanel extends JPanel {
                 cAv.setMinimumSize(new Dimension(20, 20));
                 cItem.add(cAv, BorderLayout.WEST);
                 JLabel cText = new JLabel("<html><body style='width:" + (contentWidth - 30) + "px'><b>"
-                        + escapeHtml(cmt.getAuthor().getName()) + "</b> "
+                        + escapeHtml(formatUserIdentity(cmt.getAuthor())) + "</b> "
                         + escapeHtml(softWrapLongWords(cmt.getContent(), 24)) + "</body></html>");
                 cText.setFont(YH_SM);
                 cText.setForeground(TEXT_MAIN);
@@ -2468,8 +2576,8 @@ public class MainContentPanel extends JPanel {
 
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         card.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) { card.setBackground(HOVER_BG); }
-            public void mouseExited(MouseEvent e) { card.setBackground(CANVAS); }
+            public void mouseEntered(MouseEvent e) { card.setBackground(selected ? POST_SELECTED_HOVER_BG : HOVER_BG); }
+            public void mouseExited(MouseEvent e) { card.setBackground(selected ? POST_SELECTED_BG : CANVAS); }
             public void mouseClicked(MouseEvent e) { showPostDetail(post); }
         });
         return card;
@@ -2492,6 +2600,28 @@ public class MainContentPanel extends JPanel {
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;");
+    }
+
+    private String formatUserIdentity(User user) {
+        if (user == null) return "Unknown";
+        return user.getName() + " - ID: " + user.getUserId();
+    }
+
+    private String formatUserList(List<User> users) {
+        if (users == null || users.isEmpty()) return "";
+        StringBuilder out = new StringBuilder();
+        for (User user : users) {
+            if (user == null) continue;
+            if (out.length() > 0) out.append(", ");
+            out.append(formatUserIdentity(user));
+        }
+        return out.toString();
+    }
+
+    private boolean isSamePost(Post first, Post second) {
+        if (first == second) return true;
+        if (first == null || second == null) return false;
+        return Objects.equals(first.getPostId(), second.getPostId());
     }
 
     static String softWrapLongWords(String value, int maxRun) {

@@ -51,7 +51,7 @@ README.md                 Project overview
 
 ## IntelliJ IDEA Run Instructions
 
-1. Open `D:\slayers_project` in IntelliJ IDEA.
+1. Open this `slayers_project` folder in IntelliJ IDEA.
 2. Mark `src` as Sources Root if IntelliJ does not do this automatically.
 3. Open `src/SocialMediaApp.java`.
 4. Run the `main` method.
