@@ -48,6 +48,9 @@ public class MainContentPanel extends JPanel {
     private int navIdx = 0;
     private CardLayout midCards, rightCards;
     private JPanel midPanel, rightPanel;
+    // Friends right panel card layout
+    private CardLayout friendsRightCards;
+    private JPanel friendsRightPanel;
     private User detailUser;
     private Post detailPost;
 
@@ -100,6 +103,15 @@ public class MainContentPanel extends JPanel {
         midPanel = new JPanel(midCards);
         midPanel.setOpaque(false);
         
+        // Right panel card layout for detail views (must be built BEFORE friends view
+        // so that buildFriendDetailView() overwrites the shared field references)
+        rightCards = new CardLayout();
+        rightPanel = new JPanel(rightCards);
+        rightPanel.setBackground(CANVAS);
+        rightPanel.setOpaque(true);
+        rightPanel.add(buildEmptyRight(), "EMPTY");
+        rightPanel.add(buildDetailRight(), "DETAIL");
+        
         // Profile view - 40/60 split
         Component profileView = buildProfileView();
         midPanel.add(profileView, "PROFILE");
@@ -115,14 +127,6 @@ public class MainContentPanel extends JPanel {
         // Search view
         Component searchView = buildSearchView();
         midPanel.add(searchView, "SEARCH");
-        
-        // Right panel card layout for detail views (not added to visible layout)
-        rightCards = new CardLayout();
-        rightPanel = new JPanel(rightCards);
-        rightPanel.setBackground(CANVAS);
-        rightPanel.setOpaque(true);
-        rightPanel.add(buildEmptyRight(), "EMPTY");
-        rightPanel.add(buildDetailRight(), "DETAIL");
 
         // Add center area
         JPanel centerAll = new JPanel(new BorderLayout());
@@ -714,9 +718,19 @@ public class MainContentPanel extends JPanel {
 
     // ======== FRIENDS RIGHT PANEL — friend detail display ========
     private JPanel buildFriendsRight() {
-        JPanel p = new JPanel(new GridBagLayout());
+        JPanel p = new JPanel(new BorderLayout());
         p.setBackground(CANVAS);
         p.setOpaque(true);
+        
+        // Use CardLayout to switch between empty state and detail view
+        friendsRightCards = new CardLayout();
+        friendsRightPanel = new JPanel(friendsRightCards);
+        friendsRightPanel.setBackground(CANVAS);
+        
+        // Empty state - shows "Select a friend"
+        JPanel emptyState = new JPanel(new GridBagLayout());
+        emptyState.setBackground(CANVAS);
+        emptyState.setOpaque(true);
         
         JLabel hint = new JLabel("Select a friend");
         hint.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
@@ -729,10 +743,93 @@ public class MainContentPanel extends JPanel {
         gbc.weightx = 1;
         gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.insets = new Insets(-38, -30, 0, 0); // Same position as left panel but moved down 1cm
-        p.add(hint, gbc);
+        gbc.insets = new Insets(-38, -30, 0, 0);
+        emptyState.add(hint, gbc);
         
+        friendsRightPanel.add(emptyState, "EMPTY");
+        
+        // Detail view - reuse the same detail panel structure as Search/Profile
+        // Build the detail panel inline here
+        JPanel detailView = buildFriendDetailView();
+        friendsRightPanel.add(detailView, "DETAIL");
+        
+        p.add(friendsRightPanel, BorderLayout.CENTER);
         return p;
+    }
+    
+    /** Build the friend detail view panel (similar to search/profile detail) */
+    private JPanel buildFriendDetailView() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(CANVAS);
+        panel.setOpaque(true);
+        panel.setBorder(new EmptyBorder(24, 32, 16, 32));
+        
+        // Header with avatar and basic info
+        JPanel header = new JPanel(new BorderLayout(16, 0));
+        header.setOpaque(false);
+        
+        rAvatar = new AvatarLabel(72, null);
+        header.add(rAvatar, BorderLayout.WEST);
+        
+        JPanel headText = new JPanel();
+        headText.setLayout(new BoxLayout(headText, BoxLayout.Y_AXIS));
+        headText.setOpaque(false);
+        
+        rName = new JLabel("");
+        rName.setFont(new Font(FONT_FAMILY, Font.BOLD, 24));
+        rName.setForeground(TEXT_MAIN);
+        headText.add(rName);
+        
+        rId = new JLabel("");
+        rId.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
+        rId.setForeground(TEXT_SUB);
+        headText.add(rId);
+        
+        header.add(headText, BorderLayout.CENTER);
+        panel.add(header, BorderLayout.NORTH);
+        
+        // Info rows - use detailRow which creates JLabel + JLabel structure
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setOpaque(false);
+        infoPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
+        
+        rRemark = detailRow("Remark", "Not set");
+        rWork = detailRow("Workplace", "Not set");
+        rHome = detailRow("Hometown", "Not set");
+        rSig = detailRow("Signature", "No signature");
+        rMutual = detailRow("Mutual Friends", "0 person(s)");
+        
+        infoPanel.add(rRemark);
+        infoPanel.add(rWork);
+        infoPanel.add(rHome);
+        infoPanel.add(rSig);
+        infoPanel.add(rMutual);
+        
+        panel.add(infoPanel, BorderLayout.CENTER);
+        
+        // Action buttons
+        rActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        rActionPanel.setOpaque(false);
+        rActionPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
+        
+        // Extra panel for showing friend lists, etc.
+        rExtraPanel = new JPanel(new BorderLayout());
+        rExtraPanel.setOpaque(false);
+        rExtraPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rExtraPanel.setMaximumSize(new Dimension(430, 360));
+        
+        // Combine action panel and extra panel in a vertical layout
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        bottomPanel.setOpaque(false);
+        bottomPanel.add(rActionPanel);
+        bottomPanel.add(Box.createVerticalStrut(8));
+        bottomPanel.add(rExtraPanel);
+        
+        panel.add(bottomPanel, BorderLayout.SOUTH);
+        
+        return panel;
     }
 
     // ======== MOMENTS LEFT PANEL — post creation area ========
@@ -1100,8 +1197,12 @@ public class MainContentPanel extends JPanel {
         sList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         sList.setBackground(HOVER_BG); // Match left panel background
         sList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && sList.getSelectedValue() != null)
-                showSearchUserDetail(sList.getSelectedValue());
+            if (!e.getValueIsAdjusting() && sList.getSelectedValue() != null) {
+                User selected = sList.getSelectedValue();
+                showAddFriendDialog(selected);
+                // Clear selection so it can be triggered again
+                sList.clearSelection();
+            }
         });
         JScrollPane sp = new JScrollPane(sList);
         sp.setBorder(null); sp.setOpaque(false);
@@ -1160,22 +1261,15 @@ public class MainContentPanel extends JPanel {
         sField.setEditable(true);
         
         // Add action listener for Enter key
-        sField.addActionListener(e -> {
-            System.out.println("[DEBUG] Action triggered on sField");
-            performSearch();
-        });
+        sField.addActionListener(e -> performSearch());
         
         sField.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
-                System.out.println("[DEBUG] Mouse clicked on sField");
                 sField.requestFocusInWindow();
             }
         });
         sField.addKeyListener(new KeyAdapter() {
-            public void keyReleased(KeyEvent e) { 
-                System.out.println("[DEBUG] Key released: " + e.getKeyChar());
-                performSearch(); 
-            }
+            public void keyReleased(KeyEvent e) { performSearch(); }
         });
         searchWrap.add(sField);
         
@@ -1219,7 +1313,6 @@ public class MainContentPanel extends JPanel {
         searchResultList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && searchResultList.getSelectedValue() != null) {
                 User selected = searchResultList.getSelectedValue();
-                System.out.println("[DEBUG] Search result clicked: " + selected.getName() + " / " + selected.getUserId());
                 // Show add friend confirmation dialog immediately
                 showAddFriendDialog(selected);
                 // Clear selection so it can be triggered again
@@ -1672,49 +1765,32 @@ public class MainContentPanel extends JPanel {
         searchResultModel.clear();
         String q = sField.getText().trim().toLowerCase();
         
-        System.out.println("[DEBUG] Search query: '" + q + "'");
-        System.out.println("[DEBUG] sField object: " + sField);
-        System.out.println("[DEBUG] sField.getText(): '" + sField.getText() + "'");
-        System.out.println("[DEBUG] sField.hasFocus(): " + sField.hasFocus());
-        System.out.println("[DEBUG] searchResultsContainer: " + searchResultsContainer);
-        
         if (q.isEmpty()) {
             if (searchResultsContainer != null) {
                 CardLayout cl = (CardLayout) searchResultsContainer.getLayout();
                 cl.show(searchResultsContainer, "EMPTY");
-                System.out.println("[DEBUG] Showing EMPTY state");
             }
             return;
         }
         
         User cur = network.getCurrentUser();
-        System.out.println("[DEBUG] Current user: " + (cur != null ? cur.getUserId() : "null"));
-        System.out.println("[DEBUG] Total users in network: " + network.getAllUsers().size());
         
         for (User u : network.getAllUsers()) {
             if (u.equals(cur)) continue;
             boolean matchesName = u.getName().toLowerCase().contains(q);
             boolean matchesId = u.getUserId().toLowerCase().contains(q);
-            System.out.println("[DEBUG] Checking user: " + u.getUserId() + " / " + u.getName() + " -> nameMatch=" + matchesName + ", idMatch=" + matchesId);
             if (matchesName || matchesId) {
                 searchResultModel.addElement(u);
-                System.out.println("[DEBUG] Added to results");
             }
         }
-        
-        System.out.println("[DEBUG] Total results: " + searchResultModel.getSize());
         
         if (searchResultsContainer != null) {
             CardLayout cl = (CardLayout) searchResultsContainer.getLayout();
             if (searchResultModel.getSize() > 0) {
                 cl.show(searchResultsContainer, "RESULTS");
-                System.out.println("[DEBUG] Showing RESULTS state");
             } else {
                 cl.show(searchResultsContainer, "EMPTY");
-                System.out.println("[DEBUG] Showing EMPTY state (no results)");
             }
-        } else {
-            System.out.println("[DEBUG] ERROR: searchResultsContainer is null!");
         }
     }
 
@@ -1722,6 +1798,11 @@ public class MainContentPanel extends JPanel {
     void showFriendDetail(User friend) {
         detailUser = friend;
         updateDetailPanel(friend, true);
+        if (friendsRightCards != null && friendsRightPanel != null) {
+            friendsRightCards.show(friendsRightPanel, "DETAIL");
+            friendsRightPanel.revalidate();
+            friendsRightPanel.repaint();
+        }
     }
 
     void showSearchUserDetail(User user) {
@@ -1746,6 +1827,10 @@ public class MainContentPanel extends JPanel {
     }
 
     void showEmptyRight() {
+        // Show EMPTY card in friends right panel when on Friends tab
+        if (friendsRightCards != null && friendsRightPanel != null) {
+            friendsRightCards.show(friendsRightPanel, "EMPTY");
+        }
     }
 
     void showSearchRight() {
@@ -1789,18 +1874,11 @@ public class MainContentPanel extends JPanel {
             StyledButton remarkBtn = new StyledButton("Edit Remark", false);
             remarkBtn.addActionListener(e -> showRemarkDialog(user));
             rActionPanel.add(remarkBtn);
-            StyledButton viewFriends = new StyledButton("View Their Friends", false);
-            viewFriends.addActionListener(e -> showFriendsOfFriend(user));
+            StyledButton viewFriends = new StyledButton("View Friends", false);
+            viewFriends.addActionListener(e -> showFriendsDialog(user));
             rActionPanel.add(viewFriends);
             StyledButton removeBtn = new StyledButton("Remove Friend", false);
-            removeBtn.addActionListener(e -> {
-                if (cur != null && showStyledConfirm("Remove " + user.getName() + " from friends?", "Remove")) {
-                    cur.removeFriend(user);
-                    mainGUI.saveNetworkNow();
-                    refreshFriends();
-                    showEmptyRight();
-                }
-            });
+            removeBtn.addActionListener(e -> showRemoveFriendDialog(user));
             rActionPanel.add(removeBtn);
         } else {
             if (cur != null && !cur.isFriendWith(user) && !user.equals(cur)) {
@@ -1819,8 +1897,90 @@ public class MainContentPanel extends JPanel {
             }
         }
         rExtraPanel.removeAll();
-        rExtraPanel.revalidate(); rExtraPanel.repaint();
-        rightCards.show(rightPanel, "DETAIL");
+        rActionPanel.revalidate();
+        rActionPanel.repaint();
+        rExtraPanel.revalidate(); 
+        rExtraPanel.repaint();
+    }
+
+    private void showRemoveFriendDialog(User user) {
+        User cur = network.getCurrentUser();
+        if (cur == null || user == null) return;
+
+        // Create custom styled dialog for remove friend confirmation
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Remove Friend", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE),
+                new EmptyBorder(24, 28, 20, 28)));
+
+        JLabel title = new JLabel("Do you want to remove this friend?");
+        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+        buttonPanel.setOpaque(false);
+        buttonPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        JButton cancelBtn = new JButton("Cancel") {
+            { setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+              setForeground(BRAND); setContentAreaFilled(false);
+              setBorderPainted(false); setFocusPainted(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)); }
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(0,102,204,12));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(BRAND); g2.setStroke(new BasicStroke(1f));
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+                g2.dispose(); super.paintComponent(g);
+            }
+        };
+        cancelBtn.addActionListener(e -> dialog.dispose());
+
+        JButton removeBtn = new JButton("Remove") {
+            private boolean hov;
+            { setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
+              setForeground(Color.WHITE); setContentAreaFilled(false);
+              setBorderPainted(false); setFocusPainted(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+              addMouseListener(new MouseAdapter() {
+                  public void mouseEntered(MouseEvent e) { hov=true; repaint(); }
+                  public void mouseExited(MouseEvent e) { hov=false; repaint(); }
+              }); }
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(hov ? new Color(0,90,185) : BRAND);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.dispose(); super.paintComponent(g);
+            }
+        };
+        removeBtn.addActionListener(e -> {
+            cur.removeFriend(user);
+            mainGUI.saveNetworkNow();
+            refreshFriends();
+            showEmptyRight();
+            dialog.dispose();
+        });
+
+        cancelBtn.setPreferredSize(new Dimension(100, 36));
+        removeBtn.setPreferredSize(new Dimension(100, 36));
+
+        buttonPanel.add(cancelBtn);
+        buttonPanel.add(removeBtn);
+
+        panel.add(title);
+        panel.add(buttonPanel);
+
+        dialog.add(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
+        dialog.setVisible(true);
     }
 
     /** Show add friend confirmation dialog when clicking search result */
@@ -1941,35 +2101,87 @@ public class MainContentPanel extends JPanel {
         rExtraPanel.revalidate(); rExtraPanel.repaint();
     }
 
-    private void showFriendsOfFriend(User user) {
+    private void showFriendsDialog(User user) {
         User cur = network.getCurrentUser();
-        rExtraPanel.removeAll();
-        JLabel title = new JLabel(user.getName() + "'s Friends");
-        title.setFont(YHB); title.setForeground(TEXT_MAIN);
-        rExtraPanel.add(title, BorderLayout.NORTH);
+        if (cur == null || user == null) return;
 
+        // Create custom styled dialog for viewing friends
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), user.getName() + "'s Friends", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+        
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE),
+                new EmptyBorder(24, 28, 20, 28)));
+
+        JLabel title = new JLabel(user.getName() + "'s Friends");
+        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        // Create friends list
         DefaultListModel<User> model = new DefaultListModel<>();
         for (User f : user.getFriends()) model.addElement(f);
         JList<User> list = new JList<>(model);
         list.setCellRenderer(new FriendCellRenderer());
         list.setFixedCellHeight(50);
-        list.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && list.getSelectedValue() != null)
-                showSearchUserDetail(list.getSelectedValue());
+        list.setPreferredSize(new Dimension(300, 250));
+        
+        // Add click listener to show add friend dialog for non-friends
+        list.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 1) {
+                    int index = list.locationToIndex(e.getPoint());
+                    if (index >= 0 && index < model.getSize()) {
+                        User selectedFriend = model.getElementAt(index);
+                        // Check if current user is already friends with this person
+                        boolean isAlreadyFriend = cur.getFriends().contains(selectedFriend);
+                        if (!isAlreadyFriend) {
+                            // Show add friend dialog
+                            showAddFriendDialog(selectedFriend);
+                        } else {
+                            // Show message that you're already friends
+                            JOptionPane.showMessageDialog(dialog,
+                                "You are already friends with " + selectedFriend.getName() + ".",
+                                "Already Friends",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    }
+                }
+            }
         });
-        JScrollPane sp = new JScrollPane(list);
-        sp.setBorder(null); sp.setOpaque(false); sp.getViewport().setOpaque(false);
-        sp.setPreferredSize(new Dimension(250, 200));
-        rExtraPanel.add(sp, BorderLayout.CENTER);
-        rExtraPanel.revalidate(); rExtraPanel.repaint();
+
+        JScrollPane scrollPane = new JScrollPane(list);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
+        scrollPane.setPreferredSize(new Dimension(300, 250));
+
+        JPanel closeButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        closeButtonPanel.setOpaque(false);
+        StyledButton closeBtn = new StyledButton("Close", false);
+        closeBtn.addActionListener(e -> dialog.dispose());
+        closeButtonPanel.add(closeBtn);
+
+        panel.add(title);
+        panel.add(Box.createVerticalStrut(16));
+        panel.add(scrollPane);
+        panel.add(closeButtonPanel);
+
+        dialog.setContentPane(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(SwingUtilities.getWindowAncestor(this));
+        dialog.setVisible(true);
     }
 
     private void setDetailValue(JPanel row, String val) {
-        if (row.getComponentCount() >= 2) {
-            JLabel label = (JLabel) row.getComponent(1);
-            label.setText("<html><body style='width:260px'>"
-                    + escapeHtml(softWrapLongWords(val, 28))
-                    + "</body></html>");
+        if (row != null && row.getComponentCount() >= 2) {
+            Component comp = row.getComponent(1);
+            if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                label.setText("<html><body style='width:260px'>" + escapeHtml(softWrapLongWords(val, 28)) + "</body></html>");
+            }
         }
     }
 

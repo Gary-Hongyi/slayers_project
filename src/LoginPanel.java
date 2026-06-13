@@ -658,7 +658,7 @@ public class LoginPanel extends JPanel {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 g2.setColor(hov ? BRAND_DARK : BRAND);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 9999, 9999);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
                 g2.dispose(); super.paintComponent(g);
             }
         };
