@@ -40,6 +40,8 @@ public class MainContentPanel extends JPanel {
     static final Color POST_SELECTED_BG = new Color(232, 244, 255);
     static final Color POST_SELECTED_HOVER_BG = new Color(222, 238, 255);
     static final Color POST_SELECTED_BORDER = new Color(86, 142, 214);
+    private static final java.util.regex.Pattern SETTINGS_PASSWORD_PATTERN =
+            java.util.regex.Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
 
     /** Resolves relative avatar paths against the working directory. */
     static String resolveAvatarPath(String path) {
@@ -64,6 +66,9 @@ public class MainContentPanel extends JPanel {
     private JTextField pNameF, pWorkF, pHomeF;
     private PlaceholderTextArea pSigArea;
     private JPanel profilePostFeed;
+    private JScrollPane profileRightScroll;
+    private JScrollPane profilePostScroll;
+    private MouseWheelListener profilePostWheel;
     // Friends
     private DefaultListModel<User> fModel;
     private JList<User> fList;
@@ -196,12 +201,62 @@ public class MainContentPanel extends JPanel {
         viewport.setOpaque(false);
         viewport.setView(row);
         viewport.setViewPosition(new Point(0, 0));
+        JPanel indicator = new JPanel() {
+            {
+                setOpaque(false);
+                setPreferredSize(new Dimension(0, 8));
+                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+                MouseAdapter dragger = new MouseAdapter() {
+                    private void moveTo(MouseEvent e) {
+                        int contentWidth = row.getPreferredSize().width;
+                        int visibleWidth = viewport.getExtentSize().width;
+                        int maxX = Math.max(0, contentWidth - visibleWidth);
+                        if (maxX <= 0) return;
+                        int trackWidth = Math.max(1, getWidth());
+                        int thumbWidth = Math.max(36, Math.min(trackWidth, visibleWidth * trackWidth / Math.max(visibleWidth, contentWidth)));
+                        int nextX = (int) Math.round((e.getX() - thumbWidth / 2.0) * maxX / Math.max(1, trackWidth - thumbWidth));
+                        nextX = Math.max(0, Math.min(maxX, nextX));
+                        viewport.setViewPosition(new Point(nextX, 0));
+                        repaint();
+                    }
+
+                    public void mousePressed(MouseEvent e) { moveTo(e); }
+                    public void mouseDragged(MouseEvent e) { moveTo(e); }
+                };
+                addMouseListener(dragger);
+                addMouseMotionListener(dragger);
+            }
+
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int trackY = getHeight() / 2 - 2;
+                int trackWidth = getWidth();
+                g2.setColor(new Color(224, 224, 224));
+                g2.fillRoundRect(0, trackY, trackWidth, 4, 4, 4);
+
+                int contentWidth = row.getPreferredSize().width;
+                int visibleWidth = viewport.getExtentSize().width;
+                int maxX = Math.max(0, contentWidth - visibleWidth);
+                int thumbWidth = maxX > 0
+                        ? Math.max(36, Math.min(trackWidth, visibleWidth * trackWidth / Math.max(visibleWidth, contentWidth)))
+                        : trackWidth;
+                int thumbX = maxX > 0
+                        ? viewport.getViewPosition().x * Math.max(0, trackWidth - thumbWidth) / maxX
+                        : 0;
+                g2.setColor(new Color(0, 102, 204, maxX > 0 ? 160 : 70));
+                g2.fillRoundRect(thumbX, trackY, thumbWidth, 4, 4, 4);
+                g2.dispose();
+            }
+        };
         MouseWheelListener wheel = e -> {
             int maxX = Math.max(0, row.getPreferredSize().width - viewport.getExtentSize().width);
             if (maxX > 0) {
                 Point position = viewport.getViewPosition();
                 int nextX = Math.max(0, Math.min(maxX, position.x + e.getWheelRotation() * 56));
                 viewport.setViewPosition(new Point(nextX, 0));
+                indicator.repaint();
                 e.consume();
             }
         };
@@ -214,14 +269,48 @@ public class MainContentPanel extends JPanel {
         JPanel wrap = new JPanel(new BorderLayout());
         wrap.setOpaque(false);
         wrap.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrap.setPreferredSize(new Dimension(320, 44));
-        wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
+        wrap.setPreferredSize(new Dimension(320, 52));
+        wrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 52));
         wrap.add(viewport, BorderLayout.CENTER);
+        wrap.add(indicator, BorderLayout.SOUTH);
+        viewport.addChangeListener(e -> indicator.repaint());
         SwingUtilities.invokeLater(() -> {
             row.setSize(row.getPreferredSize());
             viewport.setViewPosition(new Point(0, 0));
+            indicator.repaint();
         });
         return wrap;
+    }
+
+    private void scrollProfilePosts(MouseWheelEvent e) {
+        JScrollPane targetScroll = profileRightScroll != null ? profileRightScroll : profilePostScroll;
+        if (targetScroll == null) return;
+        JScrollBar bar = targetScroll.getVerticalScrollBar();
+        BoundedRangeModel model = bar.getModel();
+        int maxValue = Math.max(model.getMinimum(), model.getMaximum() - model.getExtent());
+        if (maxValue <= model.getMinimum()) return;
+        int next = bar.getValue() + e.getWheelRotation() * Math.max(24, bar.getUnitIncrement(1) * 3);
+        bar.setValue(Math.max(model.getMinimum(), Math.min(maxValue, next)));
+        e.consume();
+    }
+
+    private void attachProfilePostWheel(Component component) {
+        if (profilePostWheel == null || component == null) return;
+        boolean alreadyAttached = false;
+        for (MouseWheelListener listener : component.getMouseWheelListeners()) {
+            if (listener == profilePostWheel) {
+                alreadyAttached = true;
+                break;
+            }
+        }
+        if (!alreadyAttached) {
+            component.addMouseWheelListener(profilePostWheel);
+        }
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                attachProfilePostWheel(child);
+            }
+        }
     }
 
     // ======== LEFT NAV — exact match to HTML sidebar ========
@@ -261,6 +350,14 @@ public class MainContentPanel extends JPanel {
             ni.setBounds(0, 16 + i * 52, 64, 44);
             nav.add(ni);
         }
+        SettingsIcon settings = new SettingsIcon();
+        settings.setBounds(0, 0, 64, 44);
+        nav.add(settings);
+        nav.addComponentListener(new java.awt.event.ComponentAdapter() {
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                settings.setBounds(0, Math.max(16, nav.getHeight() - 64), 64, 44);
+            }
+        });
         return nav;
     }
 
@@ -346,6 +443,8 @@ public class MainContentPanel extends JPanel {
         pSigArea.setOpaque(false);
         pSigArea.setBorder(new EmptyBorder(12, 16, 12, 16));
         pSigArea.setCaretColor(BRAND);
+        pSigArea.setEditable(false);
+        pSigArea.setFocusable(false);
         // Wrap in a panel with border instead of JScrollPane
         JPanel sigWrapper = new JPanel(new BorderLayout()) {
             @Override
@@ -369,36 +468,6 @@ public class MainContentPanel extends JPanel {
         content.add(buildInfoRow("Name", "Name"));
         content.add(buildInfoRow("Workplace", "Workplace"));
         content.add(buildInfoRow("Hometown", "Hometown"));
-        content.add(Box.createVerticalStrut(28));
-
-        // Save Changes — pill-shaped button, not full width
-        JButton saveBtn = new JButton("Save Changes") {
-            private boolean hover, pressed;
-            { setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
-              setForeground(Color.WHITE);
-              setContentAreaFilled(false); setBorderPainted(false); setFocusPainted(false);
-              setOpaque(false); setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-              addMouseListener(new MouseAdapter() {
-                  public void mouseEntered(MouseEvent e) { hover=true; repaint(); }
-                  public void mouseExited(MouseEvent e) { hover=false; pressed=false; repaint(); }
-                  public void mousePressed(MouseEvent e) { pressed=true; repaint(); }
-                  public void mouseReleased(MouseEvent e) { pressed=false; repaint(); }
-              });
-              addActionListener(e -> saveProfile());
-            }
-            @Override protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(pressed ? BRAND_DARK : BRAND);
-                int arc = 12; // More rounded pill shape
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
-                g2.dispose(); super.paintComponent(g);
-            }
-        };
-        saveBtn.setPreferredSize(new Dimension(Integer.MAX_VALUE, 42)); // Full width
-        saveBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        saveBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(saveBtn);
 
         p.add(content, BorderLayout.CENTER);
         return p;
@@ -433,6 +502,8 @@ public class MainContentPanel extends JPanel {
         tf.setOpaque(false);
         tf.setBorder(BorderFactory.createEmptyBorder(0, 4, 0, 0));
         tf.setCaretColor(BRAND);
+        tf.setEditable(false);
+        tf.setFocusable(false);
         if ("Name".equals(fieldKey)) pNameF = tf;
         else if ("Workplace".equals(fieldKey)) pWorkF = tf;
         else if ("Hometown".equals(fieldKey)) pHomeF = tf;
@@ -502,13 +573,18 @@ public class MainContentPanel extends JPanel {
         
         profilePostFeed.add(emptyState);
         
-        JScrollPane postScroll = new JScrollPane(profilePostFeed);
-        postScroll.setBorder(null);
-        postScroll.setOpaque(false);
-        postScroll.getViewport().setOpaque(false);
-        postScroll.getVerticalScrollBar().setUnitIncrement(16);
-        postScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        p.add(postScroll, BorderLayout.CENTER);
+        profilePostScroll = new JScrollPane(profilePostFeed);
+        profilePostScroll.setBorder(null);
+        profilePostScroll.setOpaque(false);
+        profilePostScroll.getViewport().setOpaque(false);
+        profilePostScroll.getVerticalScrollBar().setUnitIncrement(16);
+        profilePostScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        profilePostScroll.setWheelScrollingEnabled(false);
+        profilePostWheel = this::scrollProfilePosts;
+        profilePostScroll.addMouseWheelListener(profilePostWheel);
+        profilePostScroll.getViewport().addMouseWheelListener(profilePostWheel);
+        profilePostFeed.addMouseWheelListener(profilePostWheel);
+        p.add(profilePostScroll, BorderLayout.CENTER);
 
         // Bottom: Logout button — ghost style, 16px from bottom and right edges
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
@@ -572,12 +648,19 @@ public class MainContentPanel extends JPanel {
         
         // Right side - Posts area (60%)
         JPanel rightProfile = buildProfileRight();
-        JScrollPane rightScroll = new JScrollPane(rightProfile);
-        rightScroll.setBorder(null);
-        rightScroll.setOpaque(false);
-        rightScroll.getViewport().setOpaque(false);
-        rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        split.setRightComponent(rightScroll);
+        profileRightScroll = new JScrollPane(rightProfile);
+        profileRightScroll.setBorder(null);
+        profileRightScroll.setOpaque(false);
+        profileRightScroll.getViewport().setOpaque(false);
+        profileRightScroll.getVerticalScrollBar().setUnitIncrement(18);
+        profileRightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        profileRightScroll.setWheelScrollingEnabled(false);
+        if (profilePostWheel != null) {
+            profileRightScroll.addMouseWheelListener(profilePostWheel);
+            profileRightScroll.getViewport().addMouseWheelListener(profilePostWheel);
+            attachProfilePostWheel(rightProfile);
+        }
+        split.setRightComponent(profileRightScroll);
         
         // Set divider location after component is realized
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
@@ -630,11 +713,13 @@ public class MainContentPanel extends JPanel {
         split.setContinuousLayout(true);
         split.setBorder(null);
         
-        // Left side - Post creation area (fixed width ~350px)
+        // Left side - expanded poster list
         JPanel leftMoments = buildMomentsLeft();
+        leftMoments.setMinimumSize(new Dimension(520, 0));
+        leftMoments.setPreferredSize(new Dimension(660, 0));
         split.setLeftComponent(leftMoments);
         
-        // Right side - Posts feed display (adaptive width)
+        // Right side - post detail, roughly two thirds of the content area
         JPanel rightMoments = buildMomentsRight();
         JScrollPane rightScroll = new JScrollPane(rightMoments);
         rightScroll.setBorder(null);
@@ -642,15 +727,18 @@ public class MainContentPanel extends JPanel {
         rightScroll.getViewport().setOpaque(false);
         rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         split.setRightComponent(rightScroll);
+        split.setResizeWeight(0.42);
         
+        Runnable applyMomentsDivider = () ->
+                split.setDividerLocation(Math.max(520, (int) (split.getWidth() * 0.42)));
+
         // Set divider location after component is realized
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
-                if (split.getDividerLocation() <= 0) {
-                    split.setDividerLocation(350);
-                }
+                applyMomentsDivider.run();
             }
         });
+        SwingUtilities.invokeLater(applyMomentsDivider);
         
         return split;
     }
@@ -1040,11 +1128,11 @@ public class MainContentPanel extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
-        content.setMaximumSize(new Dimension(520, Integer.MAX_VALUE));
+        content.setMaximumSize(new Dimension(480, Integer.MAX_VALUE));
 
         JPanel header = new JPanel(new BorderLayout(16, 0));
         header.setOpaque(false);
-        header.setMaximumSize(new Dimension(520, 84));
+        header.setMaximumSize(new Dimension(480, 84));
 
         postDetailAvatar = new AvatarLabel(72, null);
         header.add(postDetailAvatar, BorderLayout.WEST);
@@ -1081,7 +1169,7 @@ public class MainContentPanel extends JPanel {
         postDetailContent.setFont(YH);
         postDetailContent.setForeground(TEXT_MAIN);
         postDetailContent.setBorder(null);
-        postDetailContent.setMaximumSize(new Dimension(520, 180));
+        postDetailContent.setMaximumSize(new Dimension(480, 180));
         content.add(postDetailContent);
         content.add(Box.createVerticalStrut(18));
 
@@ -1103,7 +1191,7 @@ public class MainContentPanel extends JPanel {
         postDetailCommentsSlot = new JPanel(new BorderLayout());
         postDetailCommentsSlot.setOpaque(false);
         postDetailCommentsSlot.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailCommentsSlot.setMaximumSize(new Dimension(520, 360));
+        postDetailCommentsSlot.setMaximumSize(new Dimension(480, 360));
         content.add(postDetailCommentsSlot);
 
         panel.add(content, BorderLayout.CENTER);
@@ -1610,11 +1698,14 @@ public class MainContentPanel extends JPanel {
             label.setFont(YH);
             label.setForeground(TEXT_HINT);
             empty.add(label);
+            attachProfilePostWheel(empty);
             profilePostFeed.add(empty);
         } else {
             profilePostFeed.add(Box.createVerticalStrut(20));
             for (Post post : ownPosts) {
-                profilePostFeed.add(createWidePostCard(post, cur));
+                JPanel card = createWidePostCard(post, cur);
+                attachProfilePostWheel(card);
+                profilePostFeed.add(card);
                 profilePostFeed.add(Box.createVerticalStrut(10));
             }
         }
@@ -1786,6 +1877,161 @@ public class MainContentPanel extends JPanel {
         LoginPanel.rewriteUsersFile(network);
         mainGUI.saveNetworkNow();
         showStyledDialog("Profile updated successfully!");
+    }
+
+    private void showSettingsDialog() {
+        User cur = network.getCurrentUser();
+        if (cur == null) return;
+
+        JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Settings", Dialog.ModalityType.APPLICATION_MODAL);
+        dialog.setUndecorated(true);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(24, 24, 20, 24)));
+
+        JLabel title = new JLabel("Settings");
+        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 24));
+        title.setForeground(TEXT_MAIN);
+        title.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(title);
+        panel.add(Box.createVerticalStrut(6));
+
+        JLabel hint = new JLabel("Update your account details. Leave password blank to keep it.");
+        hint.setFont(YH_SM);
+        hint.setForeground(TEXT_HINT);
+        hint.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(hint);
+        panel.add(Box.createVerticalStrut(18));
+
+        JTextField nameField = createSettingsField(cur.getName());
+        JTextField workField = createSettingsField(cur.getWorkplace());
+        JTextField homeField = createSettingsField(cur.getHometown());
+        JPasswordField passwordField = createSettingsPasswordField();
+        JPasswordField confirmField = createSettingsPasswordField();
+
+        panel.add(settingsFieldBlock("Name", nameField));
+        panel.add(settingsFieldBlock("Workplace", workField));
+        panel.add(settingsFieldBlock("Hometown", homeField));
+        panel.add(settingsFieldBlock("New Password", passwordField));
+        panel.add(settingsFieldBlock("Confirm Password", confirmField));
+        panel.add(Box.createVerticalStrut(18));
+
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        buttons.setOpaque(false);
+        buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        StyledButton cancel = new StyledButton("Cancel", false);
+        cancel.addActionListener(e -> dialog.dispose());
+        StyledButton save = new StyledButton("Save", true);
+        save.addActionListener(e -> saveSettings(dialog, nameField, workField, homeField, passwordField, confirmField));
+        buttons.add(cancel);
+        buttons.add(save);
+        panel.add(buttons);
+
+        dialog.setContentPane(panel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.getRootPane().setDefaultButton(save);
+        SwingUtilities.invokeLater(nameField::requestFocusInWindow);
+        dialog.setVisible(true);
+    }
+
+    private JPanel settingsFieldBlock(String labelText, JTextField field) {
+        JPanel block = new JPanel();
+        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+        block.setOpaque(false);
+        block.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.setMaximumSize(new Dimension(360, 72));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(YH_SM);
+        label.setForeground(TEXT_SUB);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.add(label);
+        block.add(Box.createVerticalStrut(6));
+        block.add(field);
+        block.add(Box.createVerticalStrut(10));
+        return block;
+    }
+
+    private JTextField createSettingsField(String value) {
+        JTextField field = new JTextField(value != null ? value : "");
+        styleSettingsField(field);
+        return field;
+    }
+
+    private JPasswordField createSettingsPasswordField() {
+        JPasswordField field = new JPasswordField();
+        field.setEchoChar('\u25CF');
+        styleSettingsField(field);
+        return field;
+    }
+
+    private void styleSettingsField(JTextField field) {
+        field.setFont(YH);
+        field.setForeground(TEXT_MAIN);
+        field.setCaretColor(BRAND);
+        field.setBackground(Color.WHITE);
+        field.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(9, 12, 9, 12)));
+        field.setPreferredSize(new Dimension(360, 40));
+        field.setMaximumSize(new Dimension(360, 40));
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+    }
+
+    private void saveSettings(JDialog dialog, JTextField nameField, JTextField workField, JTextField homeField,
+                              JPasswordField passwordField, JPasswordField confirmField) {
+        User cur = network.getCurrentUser();
+        if (cur == null) return;
+
+        String name = nameField.getText().trim();
+        String work = workField.getText().trim();
+        String home = homeField.getText().trim();
+        String password = new String(passwordField.getPassword());
+        String confirm = new String(confirmField.getPassword());
+
+        if (name.isEmpty()) {
+            showStyledDialog("Name cannot be empty.");
+            return;
+        }
+        if (hasUnsafeSettingsText(name) || hasUnsafeSettingsText(work) || hasUnsafeSettingsText(home)) {
+            showStyledDialog("Name, workplace, and hometown cannot contain commas or vertical bars.");
+            return;
+        }
+        if (!password.isEmpty() || !confirm.isEmpty()) {
+            if (!SETTINGS_PASSWORD_PATTERN.matcher(password).matches()) {
+                showStyledDialog("<html><div style='text-align:center; width:360px;'>"
+                        + "Use 6-20 chars with letters and numbers.<br>"
+                        + "Allowed symbols: ! @ # $ % ^ &amp; * . _ -"
+                        + "</div></html>");
+                return;
+            }
+            if (!password.equals(confirm)) {
+                showStyledDialog("The two passwords do not match.");
+                return;
+            }
+            cur.setPassword(password);
+        }
+
+        cur.setName(name);
+        cur.setWorkplace(work.isEmpty() ? "Unknown" : work);
+        cur.setHometown(home.isEmpty() ? "Unknown" : home);
+        LoginPanel.rewriteUsersFile(network);
+        mainGUI.saveNetworkNow();
+        refreshProfile();
+        refreshFriends();
+        refreshSearch();
+        dialog.dispose();
+        showStyledDialog("Settings updated successfully!");
+    }
+
+    private boolean hasUnsafeSettingsText(String value) {
+        return value != null && (value.contains(",") || value.contains("|"));
     }
 
     private void chooseAvatar() {
@@ -2397,7 +2643,7 @@ public class MainContentPanel extends JPanel {
 
     // ======== POST CARD ========
     private JPanel createPostCard(Post post, User cur) {
-        return createPostCard(post, cur, 220, 280, 150);
+        return createPostCard(post, cur, 480, 560, 180);
     }
 
     private JPanel createWidePostCard(Post post, User cur) {
@@ -2770,6 +3016,45 @@ public class MainContentPanel extends JPanel {
 
     // Nav icon images loaded from image/ folder
     private BufferedImage[] navIcons = new BufferedImage[4];
+
+    /** Bottom-left settings button */
+    class SettingsIcon extends JPanel {
+        private boolean hover;
+
+        SettingsIcon() {
+            setOpaque(false);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setToolTipText("Settings");
+            addMouseListener(new MouseAdapter() {
+                public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
+                public void mouseExited(MouseEvent e) { hover = false; repaint(); }
+                public void mouseClicked(MouseEvent e) { showSettingsDialog(); }
+            });
+        }
+
+        @Override protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            if (hover) {
+                g2.setColor(new Color(0, 102, 204, 10));
+                g2.fillRoundRect(14, 4, 36, 36, 8, 8);
+            }
+            g2.setColor(hover ? BRAND : TEXT_MAIN);
+            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            int cx = 32, cy = 22;
+            for (int i = 0; i < 8; i++) {
+                double angle = i * Math.PI / 4.0;
+                int x1 = cx + (int) Math.round(Math.cos(angle) * 10);
+                int y1 = cy + (int) Math.round(Math.sin(angle) * 10);
+                int x2 = cx + (int) Math.round(Math.cos(angle) * 14);
+                int y2 = cy + (int) Math.round(Math.sin(angle) * 14);
+                g2.drawLine(x1, y1, x2, y2);
+            }
+            g2.drawOval(cx - 10, cy - 10, 20, 20);
+            g2.drawOval(cx - 4, cy - 4, 8, 8);
+            g2.dispose();
+        }
+    }
 
     /** Nav icon — parchment sidebar: gray icons, blue active with left bar indicator */
     class NavIcon extends JPanel {
