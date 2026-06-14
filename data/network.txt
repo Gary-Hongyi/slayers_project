@@ -1,14 +1,16 @@
 [USERS]
 gary|wefw|ferf|erfw|123456||||
 12306|hongyi|vvserg|vsergf|wefacwc1||||
-123456|Zhanqi Wu|ChangSha|Jing|123|666||gary:NjY2|
+123456|Zhanqi Wu|ChangSha|Jing|123|666|image/avatars/1781450242071______2026-06-11_092837.png||
 12321a|12321|changsha|changsha|12321a||||
-12345|鸿毅@|12345|12345|123456ll||image/avatars/1781442841082_2.jpg||
+12345|鸿毅@|12345|12345|123456ll||image/avatars/1781442841082_2.jpg||Z2FyeQ
 10001|@@@@|vewr|wefr|10001ll|||123456:c29u|
 12212|12212|changsha|changsha|llllll1||||
+1234567|dad|Unknown|Unknown|123456a||||
 [FRIENDSHIPS]
-gary|123456
 gary|10001
+gary|123456
+gary|12345
 123456|10001
 123456|12345
 12345|10001

@@ -576,7 +576,8 @@ public class MainContentPanel extends JPanel {
         // Post feed with empty state
         profilePostFeed = new JPanel();
         profilePostFeed.setLayout(new BoxLayout(profilePostFeed, BoxLayout.Y_AXIS));
-        profilePostFeed.setOpaque(false);
+        profilePostFeed.setBackground(CANVAS);
+        profilePostFeed.setOpaque(true);
         
         // Empty state label — two lines, centered
         JPanel emptyState = new JPanel();
@@ -604,7 +605,9 @@ public class MainContentPanel extends JPanel {
         profilePostScroll = new JScrollPane(profilePostFeed);
         profilePostScroll.setBorder(null);
         profilePostScroll.setOpaque(false);
-        profilePostScroll.getViewport().setOpaque(false);
+        profilePostScroll.getViewport().setBackground(CANVAS);
+        profilePostScroll.getViewport().setOpaque(true);
+        profilePostScroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
         profilePostScroll.getVerticalScrollBar().setUnitIncrement(16);
         profilePostScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         profilePostScroll.setWheelScrollingEnabled(false);
@@ -1099,16 +1102,20 @@ public class MainContentPanel extends JPanel {
         // Card layout to switch between feed and empty state
         mFeed = new JPanel();
         mFeed.setLayout(new BoxLayout(mFeed, BoxLayout.Y_AXIS));
-        mFeed.setOpaque(false);
+        mFeed.setBackground(HOVER_BG);
+        mFeed.setOpaque(true);
         
         JPanel feedContainer = new JPanel(new CardLayout());
         feedContainer.setBackground(HOVER_BG);
+        feedContainer.setOpaque(true);
         feedContainer.add(mFeed, "FEED");
         feedContainer.add(emptyState, "EMPTY");
         
         mFeedScroll = new JScrollPane(feedContainer);
         mFeedScroll.setBorder(null); mFeedScroll.setOpaque(false);
-        mFeedScroll.getViewport().setOpaque(false);
+        mFeedScroll.getViewport().setBackground(HOVER_BG);
+        mFeedScroll.getViewport().setOpaque(true);
+        mFeedScroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
         mFeedScroll.getVerticalScrollBar().setUnitIncrement(16);
         mFeedScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         p.add(mFeedScroll, BorderLayout.CENTER);
@@ -1950,7 +1957,37 @@ public class MainContentPanel extends JPanel {
         JTextField homeField = createSettingsField(cur.getHometown());
         JPasswordField passwordField = createSettingsPasswordField();
         JPasswordField confirmField = createSettingsPasswordField();
+        String[] selectedAvatarPath = {cur.getAvatarPath()};
+        User avatarPreviewUser = new User(cur.getUserId(), cur.getName(), cur.getWorkplace(), cur.getHometown(), cur.getPassword());
+        avatarPreviewUser.setAvatarPath(cur.getAvatarPath());
 
+        JPanel avatarBlock = new JPanel(new BorderLayout(14, 0));
+        avatarBlock.setOpaque(false);
+        avatarBlock.setAlignmentX(Component.LEFT_ALIGNMENT);
+        avatarBlock.setMaximumSize(new Dimension(360, 72));
+        AvatarLabel avatarPreview = new AvatarLabel(56, avatarPreviewUser);
+        avatarBlock.add(avatarPreview, BorderLayout.WEST);
+        JPanel avatarActions = new JPanel();
+        avatarActions.setLayout(new BoxLayout(avatarActions, BoxLayout.Y_AXIS));
+        avatarActions.setOpaque(false);
+        JLabel avatarLabel = new JLabel("Profile picture");
+        avatarLabel.setFont(YH_SM);
+        avatarLabel.setForeground(TEXT_SUB);
+        avatarActions.add(avatarLabel);
+        avatarActions.add(Box.createVerticalStrut(8));
+        StyledButton choosePicture = new StyledButton("Choose Image", false);
+        choosePicture.setPreferredSize(new Dimension(150, 36));
+        choosePicture.addActionListener(e -> {
+            String importedPath = chooseAvatarForSettings();
+            if (importedPath.isEmpty()) return;
+            selectedAvatarPath[0] = importedPath;
+            avatarPreviewUser.setAvatarPath(importedPath);
+            avatarPreview.repaint();
+        });
+        avatarActions.add(choosePicture);
+        avatarBlock.add(avatarActions, BorderLayout.CENTER);
+        panel.add(avatarBlock);
+        panel.add(Box.createVerticalStrut(16));
         panel.add(settingsFieldBlock("Name", nameField));
         panel.add(settingsFieldBlock("Workplace", workField));
         panel.add(settingsFieldBlock("Hometown", homeField));
@@ -1965,7 +2002,8 @@ public class MainContentPanel extends JPanel {
         StyledButton cancel = new StyledButton("Cancel", false);
         cancel.addActionListener(e -> dialog.dispose());
         StyledButton save = new StyledButton("Save", true);
-        save.addActionListener(e -> saveSettings(dialog, nameField, workField, homeField, passwordField, confirmField));
+        save.addActionListener(e -> saveSettings(dialog, nameField, workField, homeField,
+                passwordField, confirmField, selectedAvatarPath[0]));
         buttons.add(cancel);
         buttons.add(save);
         panel.add(buttons);
@@ -2023,7 +2061,7 @@ public class MainContentPanel extends JPanel {
     }
 
     private void saveSettings(JDialog dialog, JTextField nameField, JTextField workField, JTextField homeField,
-                              JPasswordField passwordField, JPasswordField confirmField) {
+                              JPasswordField passwordField, JPasswordField confirmField, String avatarPath) {
         User cur = network.getCurrentUser();
         if (cur == null) return;
 
@@ -2056,17 +2094,107 @@ public class MainContentPanel extends JPanel {
         cur.setName(name);
         cur.setWorkplace(work.isEmpty() ? "Unknown" : work);
         cur.setHometown(home.isEmpty() ? "Unknown" : home);
+        cur.setAvatarPath(avatarPath != null ? avatarPath : "");
+        syncCurrentUserProfileReferences(cur);
         LoginPanel.rewriteUsersFile(network);
         mainGUI.saveNetworkNow();
-        refreshProfile();
-        refreshFriends();
-        refreshSearch();
         dialog.dispose();
+        refreshAvatarViewsImmediately();
         showStyledDialog("Settings updated successfully!");
     }
 
     private boolean hasUnsafeSettingsText(String value) {
         return value != null && (value.contains(",") || value.contains("|"));
+    }
+
+    private void refreshAvatarViewsImmediately() {
+        refreshProfile();
+        refreshProfilePosts();
+        refreshMoments(true);
+        if (detailPost != null && postDetailAvatar != null) {
+            updatePostDetailPanel(detailPost);
+        }
+        refreshFriends();
+        refreshSearch();
+        repaintAvatarLabelsInOpenWindows();
+        repaintRootImmediately();
+    }
+
+    private void syncCurrentUserProfileReferences(User source) {
+        if (source == null) return;
+        for (User user : network.getAllUsers()) {
+            syncUserProfileIfSame(source, user);
+            for (User friend : user.getFriends()) {
+                syncUserProfileIfSame(source, friend);
+            }
+            for (Post post : user.getPosts()) {
+                syncUserProfileIfSame(source, post.getAuthor());
+                for (User liker : post.getLikes()) {
+                    syncUserProfileIfSame(source, liker);
+                }
+                for (Comment comment : post.getComments()) {
+                    syncUserProfileIfSame(source, comment.getAuthor());
+                }
+            }
+        }
+    }
+
+    private void syncUserProfileIfSame(User source, User target) {
+        if (source == null || target == null) return;
+        if (!source.getUserId().equals(target.getUserId())) return;
+        target.setName(source.getName());
+        target.setWorkplace(source.getWorkplace());
+        target.setHometown(source.getHometown());
+        target.setPassword(source.getPassword());
+        target.setSignature(source.getSignature());
+        target.setAvatarPath(source.getAvatarPath());
+    }
+
+    private void repaintAvatarLabelsInOpenWindows() {
+        Window rootWindow = SwingUtilities.getWindowAncestor(this);
+        if (rootWindow != null) {
+            repaintAvatarLabels(rootWindow);
+        }
+        for (Window window : Window.getWindows()) {
+            if (window != null && window != rootWindow) {
+                repaintAvatarLabels(window);
+            }
+        }
+    }
+
+    private void repaintAvatarLabels(Component component) {
+        if (component == null) return;
+        if (component instanceof AvatarLabel) {
+            component.revalidate();
+            component.repaint();
+        }
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                repaintAvatarLabels(child);
+            }
+        }
+    }
+
+    private void repaintRootImmediately() {
+        revalidate();
+        repaint();
+        JRootPane rootPane = SwingUtilities.getRootPane(this);
+        if (rootPane != null) {
+            rootPane.revalidate();
+            rootPane.repaint();
+            rootPane.paintImmediately(0, 0, rootPane.getWidth(), rootPane.getHeight());
+        }
+    }
+
+    private String chooseAvatarForSettings() {
+        JFileChooser fc = new JFileChooser();
+        fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "png", "gif"));
+        if (fc.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return "";
+        String relativePath = LoginPanel.copyAvatarToImageFolder(fc.getSelectedFile().getAbsolutePath());
+        if (relativePath.isEmpty()) {
+            showStyledDialog("Could not import that avatar.");
+        }
+        return relativePath;
     }
 
     private void chooseAvatar() {
@@ -2925,8 +3053,16 @@ public class MainContentPanel extends JPanel {
         String resolved = resolveAvatarPath(path);
         if (resolved == null) resolved = path;
         try {
-            Image img = ImageIO.read(new File(resolved));
-            return img.getScaledInstance(size, size, Image.SCALE_SMOOTH);
+            BufferedImage source = ImageIO.read(new File(resolved));
+            if (source == null) return null;
+            BufferedImage scaled = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2 = scaled.createGraphics();
+            g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.drawImage(source, 0, 0, size, size, null);
+            g2.dispose();
+            return scaled;
         } catch (Exception e) { return null; }
     }
 
@@ -3061,9 +3197,11 @@ public class MainContentPanel extends JPanel {
             this.size = size; this.user = user;
             setPreferredSize(new Dimension(size, size));
             setMinimumSize(new Dimension(size, size));
+            setOpaque(false);
         }
         @Override
         protected void paintComponent(Graphics g) {
+            clearAvatarBounds(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
@@ -3118,6 +3256,25 @@ public class MainContentPanel extends JPanel {
             g2.setStroke(new BasicStroke(1.2f));
             g2.draw(clip);
             g2.dispose();
+        }
+
+        private void clearAvatarBounds(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setComposite(AlphaComposite.Src);
+            g2.setColor(resolveAvatarBackground());
+            g2.fillRect(0, 0, getWidth(), getHeight());
+            g2.dispose();
+        }
+
+        private Color resolveAvatarBackground() {
+            Component component = getParent();
+            while (component != null) {
+                if (component instanceof JComponent && ((JComponent) component).isOpaque()) {
+                    return component.getBackground();
+                }
+                component = component.getParent();
+            }
+            return CANVAS;
         }
     }
 
