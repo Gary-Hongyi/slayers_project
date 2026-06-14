@@ -89,7 +89,10 @@ classDiagram
         -List~User~ friends
         -List~Post~ posts
         -Map~String, String~ friendRemarks
+        -List~String~ friendNotifications
         +addFriend(User friend) void
+        +addFriendNotification(String fromUserId) void
+        +clearFriendNotifications() void
         +removeFriend(User friend) void
         +isFriendWith(User other) boolean
         +getMutualFriends(User other) List~User~
@@ -169,7 +172,7 @@ flowchart TD
 | Sign up | Create a user, validate ID/password, choose avatar | `User`, `users.txt` |
 | Reset password | Verify profile fields and update password | `User.password` |
 | Profile | Edit current user's profile and show own posts | `currentUser`, `currentUser.posts` |
-| Friends | Show friends, filters, details, remarks, add/remove friend | `User.friends`, `friendRemarks` |
+| Friends | Show friends, filters, details, remarks, add/remove friend, remind added users | `User.friends`, `friendRemarks`, `friendNotifications` |
 | Posts | Create and view current user's and friends' posts | `Post`, `likes`, `comments` |
 | Search | Recommend friends and fuzzy search by ID/name | `SocialNetwork.users`, graph queries |
 
@@ -212,7 +215,7 @@ Posts from unrelated users are hidden from this page. The Profile page separatel
 `users.txt` stores account and profile information for login:
 
 ```text
-userId,password,name,workplace,hometown,signature,avatarPath,friendId:encodedRemark;...
+userId,password,name,workplace,hometown,signature,avatarPath,friendId:encodedRemark;...,encodedFriendNotification;...
 ```
 
 ### Full network file
@@ -221,7 +224,7 @@ The full network save/load feature uses sections:
 
 ```text
 [USERS]
-userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...
+userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...|encodedFriendNotification;...
 
 [FRIENDSHIPS]
 userId1|userId2

@@ -255,6 +255,7 @@ public class MainGUI extends JFrame {
     public void showMainContent() {
         contentPanel.refreshProfile();
         cardLayout.show(mainPanel, MAIN_CARD);
+        SwingUtilities.invokeLater(() -> contentPanel.showPendingFriendNotifications());
     }
 
     public SocialNetwork getNetwork() { return network; }
@@ -291,6 +292,9 @@ public class MainGUI extends JFrame {
                         existing.setAvatarPath(u.getAvatarPath());
                     }
                     for (Post p : u.getPosts()) existing.addPost(p);
+                    for (String notification : u.getFriendNotifications()) {
+                        existing.addFriendNotification(notification);
+                    }
                     for (User f : u.getFriends()) {
                         if (!existing.isFriendWith(f) && network.getUser(f.getUserId()) != null) {
                             existing.addFriend(network.getUser(f.getUserId()));
@@ -307,6 +311,9 @@ public class MainGUI extends JFrame {
                         if (friendInNetwork != null && !existing.isFriendWith(friendInNetwork)) {
                             existing.addFriend(friendInNetwork);
                         }
+                    }
+                    for (String notification : u.getFriendNotifications()) {
+                        existing.addFriendNotification(notification);
                     }
                 }
             }

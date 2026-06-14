@@ -155,10 +155,10 @@ public class SocialNetwork {
                 if (fof.equals(user) || friendsSet.contains(fof)) continue;
 
                 String reason = "";
-                if (fof.getHometown().equalsIgnoreCase(user.getHometown())) {
+                if (profileValueMatches(fof.getHometown(), user.getHometown())) {
                     reason += "Same hometown (" + user.getHometown() + ")";
                 }
-                if (fof.getWorkplace().equalsIgnoreCase(user.getWorkplace())) {
+                if (profileValueMatches(fof.getWorkplace(), user.getWorkplace())) {
                     if (!reason.isEmpty()) reason += "; ";
                     reason += "Same workplace (" + user.getWorkplace() + ")";
                 }
@@ -177,6 +177,15 @@ public class SocialNetwork {
             }
         }
         return recommendations;
+    }
+
+    private boolean profileValueMatches(String left, String right) {
+        if (left == null || right == null) return false;
+        String leftClean = left.trim();
+        String rightClean = right.trim();
+        if (leftClean.isEmpty() || rightClean.isEmpty()) return false;
+        if ("Unknown".equalsIgnoreCase(leftClean) || "Unknown".equalsIgnoreCase(rightClean)) return false;
+        return leftClean.equalsIgnoreCase(rightClean);
     }
 
     // ---- Post Management ----

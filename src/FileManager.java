@@ -12,7 +12,7 @@ import java.util.Map;
  *
  * File format:
  *   [USERS]
- *   userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...
+ *   userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...|encodedFriendNotification;...
  *   ...
  *   [FRIENDSHIPS]
  *   userId1|userId2
@@ -51,7 +51,8 @@ public class FileManager {
                         + escape(user.getPassword()) + "|"
                         + escape(user.getSignature()) + "|"
                         + escape(user.getAvatarPath()) + "|"
-                        + escape(serializeRemarks(user)));
+                        + escape(serializeRemarks(user)) + "|"
+                        + escape(serializeFriendNotifications(user)));
                 writer.newLine();
             }
 
@@ -178,6 +179,7 @@ public class FileManager {
             if (parts.length >= 6) user.setSignature(unescape(parts[5]));
             if (parts.length >= 7) user.setAvatarPath(unescape(parts[6]));
             if (parts.length >= 8) parseRemarks(unescape(parts[7]), user);
+            if (parts.length >= 9) parseFriendNotifications(unescape(parts[8]), user);
             network.addUser(user);
         }
     }
@@ -270,6 +272,25 @@ public class FileManager {
             String friendId = entry.substring(0, sep);
             String remark = decode(entry.substring(sep + 1));
             user.setFriendRemark(friendId, remark);
+        }
+    }
+
+    private static String serializeFriendNotifications(User user) {
+        StringBuilder sb = new StringBuilder();
+        for (String userId : user.getFriendNotifications()) {
+            if (userId == null || userId.trim().isEmpty()) continue;
+            if (sb.length() > 0) sb.append(";");
+            sb.append(encode(userId.trim()));
+        }
+        return sb.toString();
+    }
+
+    private static void parseFriendNotifications(String data, User user) {
+        if (data == null || data.trim().isEmpty() || user == null) return;
+        String[] entries = data.split(";");
+        for (String entry : entries) {
+            String userId = decode(entry);
+            if (!userId.isEmpty()) user.addFriendNotification(userId);
         }
     }
 

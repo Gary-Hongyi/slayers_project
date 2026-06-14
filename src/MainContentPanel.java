@@ -196,8 +196,36 @@ public class MainContentPanel extends JPanel {
         row.add(chip);
     }
 
+    private JPanel createFixedFriendFilterRow() {
+        JPanel row = new JPanel(null);
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setPreferredSize(new Dimension(390, 86));
+        row.setMinimumSize(new Dimension(390, 86));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 86));
+        return row;
+    }
+
+    private void addFixedFriendFilterChip(JPanel row, FilterChip chip, int index) {
+        chip.setFont(new Font(FONT_FAMILY, Font.PLAIN, 13));
+        chip.setMargin(new Insets(5, 8, 5, 8));
+        int x = index == 0 ? 0 : (index == 1 ? 0 : 188);
+        int y = index == 0 ? 0 : 46;
+        int width = index == 0 ? 84 : 180;
+        Dimension size = new Dimension(width, 38);
+        chip.setPreferredSize(size);
+        chip.setMinimumSize(size);
+        chip.setMaximumSize(size);
+        chip.setBounds(x, y, width, 38);
+        row.add(chip);
+    }
+
     private JComponent createHorizontalChipScroll(JPanel row) {
         JViewport viewport = new JViewport();
+        return createHorizontalChipScroll(row, viewport);
+    }
+
+    private JComponent createHorizontalChipScroll(JPanel row, JViewport viewport) {
         viewport.setOpaque(false);
         viewport.setView(row);
         viewport.setViewPosition(new Point(0, 0));
@@ -681,8 +709,10 @@ public class MainContentPanel extends JPanel {
         split.setContinuousLayout(true);
         split.setBorder(null);
         
-        // Left side - Friend list area (fixed width ~350px)
+        // Left side - friend list area with enough room for the three fixed filters
         JPanel leftFriends = buildFriendsLeft();
+        leftFriends.setMinimumSize(new Dimension(430, 0));
+        leftFriends.setPreferredSize(new Dimension(430, 0));
         split.setLeftComponent(leftFriends);
         
         // Right side - Friend detail display (adaptive width)
@@ -698,7 +728,7 @@ public class MainContentPanel extends JPanel {
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 if (split.getDividerLocation() <= 0) {
-                    split.setDividerLocation(350);
+                    split.setDividerLocation(430);
                 }
             }
         });
@@ -807,22 +837,23 @@ public class MainContentPanel extends JPanel {
         topWrap.add(searchWrapper);
         topWrap.add(Box.createVerticalStrut(12));
 
-        // Filter chips row
-        JPanel filterRow = createChipRow();
+        // Fixed filter buttons row
+        JPanel filterRow = createFixedFriendFilterRow();
         fFilterChips.clear();
-        for (String f : new String[]{"All", "Same Workplace", "Same Hometown"}) {
+        int chipIndex = 0;
+        for (String f : new String[]{"All", "Same Hometown", "Same Workplace"}) {
             FilterChip chip = new FilterChip(f, f.equals(fFilter));
             fFilterChips.add(chip);
             chip.addActionListener(e -> {
                 fFilter = f;
                 updateFriendFilterChips();
-                refreshFriends();
+                refreshFriendList();
                 if (fList != null) fList.clearSelection();
                 showEmptyRight();
             });
-            addChipToRow(filterRow, chip);
+            addFixedFriendFilterChip(filterRow, chip, chipIndex++);
         }
-        topWrap.add(createHorizontalChipScroll(filterRow));
+        topWrap.add(filterRow);
         topWrap.add(Box.createVerticalStrut(12)); // Add spacing after filter row
         p.add(topWrap, BorderLayout.NORTH);
 
@@ -1820,9 +1851,16 @@ public class MainContentPanel extends JPanel {
     private List<User> buildSearchRecommendations(User cur) {
         List<User> candidates = new ArrayList<>();
         Set<User> existingFriends = new HashSet<>(cur.getFriends());
+        Set<User> friendsOfFriends = new LinkedHashSet<>();
 
-        for (User user : network.getAllUsers()) {
-            if (user.equals(cur) || existingFriends.contains(user)) continue;
+        for (User friend : cur.getFriends()) {
+            for (User candidate : friend.getFriends()) {
+                if (candidate == null || candidate.equals(cur) || existingFriends.contains(candidate)) continue;
+                friendsOfFriends.add(candidate);
+            }
+        }
+
+        for (User user : friendsOfFriends) {
             int mutualCount = cur.getMutualFriends(user).size();
             boolean sameWorkplace = sameMeaningfulText(cur.getWorkplace(), user.getWorkplace());
             boolean sameHometown = sameMeaningfulText(cur.getHometown(), user.getHometown());
@@ -1868,7 +1906,7 @@ public class MainContentPanel extends JPanel {
         User cur = network.getCurrentUser();
         if (cur == null) return;
         String name = pNameF.getText().trim();
-        if (name.isEmpty()) { showStyledDialog("Name cannot be empty."); return; }
+        if (name.isEmpty()) { showStyledDialog("Please enter your name."); return; }
         cur.setName(name);
         cur.setSignature(pSigArea.getText().trim());
         cur.setWorkplace(pWorkF.getText().trim().isEmpty() ? "Unknown" : pWorkF.getText().trim());
@@ -1996,23 +2034,20 @@ public class MainContentPanel extends JPanel {
         String confirm = new String(confirmField.getPassword());
 
         if (name.isEmpty()) {
-            showStyledDialog("Name cannot be empty.");
+            showStyledDialog("Please enter your name.");
             return;
         }
         if (hasUnsafeSettingsText(name) || hasUnsafeSettingsText(work) || hasUnsafeSettingsText(home)) {
-            showStyledDialog("Name, workplace, and hometown cannot contain commas or vertical bars.");
+            showStyledDialog("Please remove commas or vertical bars from name, workplace, and hometown.");
             return;
         }
         if (!password.isEmpty() || !confirm.isEmpty()) {
             if (!SETTINGS_PASSWORD_PATTERN.matcher(password).matches()) {
-                showStyledDialog("<html><div style='text-align:center; width:360px;'>"
-                        + "Use 6-20 chars with letters and numbers.<br>"
-                        + "Allowed symbols: ! @ # $ % ^ &amp; * . _ -"
-                        + "</div></html>");
+                showStyledDialog(LoginPanel.passwordRuleMessage(password));
                 return;
             }
             if (!password.equals(confirm)) {
-                showStyledDialog("The two passwords do not match.");
+                showStyledDialog("Please make sure the two passwords match.");
                 return;
             }
             cur.setPassword(password);
@@ -2189,7 +2224,7 @@ public class MainContentPanel extends JPanel {
         setDetailValue(rHome, user.getHometown());
         setDetailValue(rSig, user.getSignature().isEmpty() ? "No signature" : user.getSignature());
         List<User> mutual = cur != null ? cur.getMutualFriends(user) : new ArrayList<>();
-        setDetailValue(rMutual, mutual.size() + " person(s)");
+        setDetailValueHtml(rMutual, formatMutualFriendsHtml(mutual));
 
         rActionPanel.removeAll();
         if (isFriend) {
@@ -2209,10 +2244,10 @@ public class MainContentPanel extends JPanel {
                     // Show confirmation dialog before adding friend
                     String message = "Add <b>" + escapeHtml(user.getName()) + "</b> as your friend?\n<br><span style='color:#7a7a7a'>User ID: " + escapeHtml(user.getUserId()) + "</span>";
                     if (showStyledConfirm(message, "Add Friend")) {
-                        cur.addFriend(user);
-                        mainGUI.saveNetworkNow();
-                        showStyledDialog(user.getName() + " has been added as a friend!");
-                        refreshSearch();
+                        if (addFriendAndNotify(user)) {
+                            showStyledDialog(user.getName() + " has been added as a friend!");
+                            refreshSearch();
+                        }
                     }
                 });
                 rActionPanel.add(addBtn);
@@ -2320,11 +2355,51 @@ public class MainContentPanel extends JPanel {
                 "\n<br><span style='color:#7a7a7a'>User ID: " + escapeHtml(user.getUserId()) + "</span>";
         
         if (showStyledConfirm(message, "Add Friend")) {
-            cur.addFriend(user);
-            mainGUI.saveNetworkNow();
-            showStyledDialog(escapeHtml(user.getName()) + " has been added as a friend!");
-            refreshSearch();
+            if (addFriendAndNotify(user)) {
+                showStyledDialog(user.getName() + " has been added as a friend!");
+                refreshSearch();
+            }
         }
+    }
+
+    private boolean addFriendAndNotify(User user) {
+        User cur = network.getCurrentUser();
+        if (cur == null || user == null || user.equals(cur) || cur.isFriendWith(user)) return false;
+
+        cur.addFriend(user);
+        if (!cur.isFriendWith(user)) return false;
+
+        user.addFriendNotification(cur.getUserId());
+        mainGUI.saveNetworkNow();
+        refreshProfile();
+        return true;
+    }
+
+    void showPendingFriendNotifications() {
+        User cur = network.getCurrentUser();
+        if (cur == null || cur.getFriendNotifications().isEmpty()) return;
+
+        List<String> notificationIds = new ArrayList<>(cur.getFriendNotifications());
+        StringBuilder message = new StringBuilder();
+        if (notificationIds.size() == 1) {
+            message.append(formatFriendNotificationUser(notificationIds.get(0)))
+                    .append(" added you as a friend.");
+        } else {
+            message.append("These people added you as a friend:");
+            for (String userId : notificationIds) {
+                message.append("\n").append(formatFriendNotificationUser(userId));
+            }
+        }
+
+        cur.clearFriendNotifications();
+        mainGUI.saveNetworkNow();
+        showStyledDialog(message.toString());
+    }
+
+    private String formatFriendNotificationUser(String userId) {
+        User user = network.getUser(userId);
+        if (user == null) return "User ID: " + userId;
+        return user.getName() + " (ID: " + user.getUserId() + ")";
     }
 
     private void showRemarkDialog(User friend) {
@@ -2500,6 +2575,21 @@ public class MainContentPanel extends JPanel {
             if (comp instanceof JLabel) {
                 JLabel label = (JLabel) comp;
                 label.setText("<html><body style='width:260px'>" + escapeHtml(softWrapLongWords(val, 28)) + "</body></html>");
+                row.setMaximumSize(new Dimension(430, 76));
+                row.revalidate();
+            }
+        }
+    }
+
+    private void setDetailValueHtml(JPanel row, String htmlBody) {
+        if (row != null && row.getComponentCount() >= 2) {
+            Component comp = row.getComponent(1);
+            if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                label.setText("<html><body style='width:260px'>" + htmlBody + "</body></html>");
+                int rowHeight = Math.max(76, label.getPreferredSize().height + 12);
+                row.setMaximumSize(new Dimension(430, rowHeight));
+                row.revalidate();
             }
         }
     }
@@ -2860,6 +2950,23 @@ public class MainContentPanel extends JPanel {
             if (user == null) continue;
             if (out.length() > 0) out.append(", ");
             out.append(formatUserIdentity(user));
+        }
+        return out.toString();
+    }
+
+    private String formatMutualFriendsHtml(List<User> mutualFriends) {
+        if (mutualFriends == null || mutualFriends.isEmpty()) {
+            return "0 person(s)";
+        }
+
+        StringBuilder out = new StringBuilder();
+        out.append(mutualFriends.size()).append(" person(s)");
+        for (User friend : mutualFriends) {
+            if (friend == null) continue;
+            out.append("<br>")
+                    .append(escapeHtml(friend.getName()))
+                    .append(" - ID: ")
+                    .append(escapeHtml(friend.getUserId()));
         }
         return out.toString();
     }
@@ -3400,7 +3507,7 @@ public class MainContentPanel extends JPanel {
         panel.setOpaque(false);
         panel.setBorder(BorderFactory.createEmptyBorder(26, 32, 22, 32));
         JLabel msg = new JLabel("<html><div style='text-align:center;width:260px;'>" +
-                MainContentPanel.escapeHtml(message) + "</div></html>");
+                MainContentPanel.escapeHtml(message).replace("\n", "<br>") + "</div></html>");
         msg.setFont(new Font(FONT_FAMILY, Font.PLAIN, 14));
         msg.setForeground(TEXT_MAIN);
         msg.setAlignmentX(Component.CENTER_ALIGNMENT);

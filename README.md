@@ -1,6 +1,6 @@
 # DI12010 SnapTok Social Network Project
 
-SnapTok is a Java Swing social network application for the DI12010 data structures and algorithms team project. It models users and friendships as a social graph, supports file loading and saving, and includes profile editing, friend filtering, friend recommendations, posts, likes, comments, avatars, signatures, and per-user friend remarks.
+SnapTok is a Java Swing social network application for the DI12010 data structures and algorithms team project. It models users and friendships as a social graph, supports file loading and saving, and includes profile editing, friend filtering, friend recommendations, friend-add reminders, posts, likes, comments, avatars, signatures, and per-user friend remarks.
 
 See [DATA_STRUCTURE.md](DATA_STRUCTURE.md) for the data structures and flow diagrams.
 
@@ -18,14 +18,15 @@ See [DATA_STRUCTURE.md](DATA_STRUCTURE.md) for the data structures and flow diag
 10. Viewing a friend's friends.
 11. Adding a friend from search results or a friend's friend list.
 12. Removing a friend.
-13. Per-user friend remarks.
-14. Friend recommendations by mutual friends, same workplace, and same hometown.
-15. Creating posts.
-16. Viewing only the current user's and friends' posts in the Moments feed.
-17. Viewing the current user's own posts in the Profile page.
-18. Liking and unliking visible posts.
-19. Adding real comments to posts.
-20. Saving and loading the full network from a file.
+13. Login reminder when another user added this account as a friend.
+14. Per-user friend remarks.
+15. Friend recommendations by mutual friends, same workplace, and same hometown.
+16. Creating posts.
+17. Viewing only the current user's and friends' posts in the Moments feed.
+18. Viewing the current user's own posts in the Profile page.
+19. Liking and unliking visible posts.
+20. Adding real comments to posts.
+21. Saving and loading the full network from a file.
 
 ## Project Structure
 
@@ -83,7 +84,7 @@ java -jar slayers-social-network-gui.jar
 `users.txt` stores local login and profile data:
 
 ```text
-userId,password,name,workplace,hometown,signature,avatarPath,friendId:encodedRemark;...
+userId,password,name,workplace,hometown,signature,avatarPath,friendId:encodedRemark;...,encodedFriendNotification;...
 ```
 
 Fields are escaped when written so commas in profile text do not break the file format.
@@ -94,7 +95,7 @@ The full network file uses sections:
 
 ```text
 [USERS]
-userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...
+userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...|encodedFriendNotification;...
 
 [FRIENDSHIPS]
 userId1|userId2

@@ -41,6 +41,9 @@ public class User {
     /** Friend-specific display names set by this user */
     private Map<String, String> friendRemarks;
 
+    /** Unread reminders for users who added this account as a friend */
+    private List<String> friendNotifications;
+
     /**
      * Constructs a new User with the given profile details.
      *
@@ -71,6 +74,7 @@ public class User {
         this.friends = new ArrayList<>();
         this.posts = new ArrayList<>();
         this.friendRemarks = new HashMap<>();
+        this.friendNotifications = new ArrayList<>();
     }
 
     // ---- Getters and Setters ----
@@ -159,6 +163,21 @@ public class User {
         if (friend == null) return "";
         String remark = getFriendRemark(friend.getUserId());
         return remark.isEmpty() ? friend.getName() : remark;
+    }
+
+    public List<String> getFriendNotifications() {
+        return friendNotifications;
+    }
+
+    public void addFriendNotification(String fromUserId) {
+        if (fromUserId == null) return;
+        String clean = fromUserId.trim();
+        if (clean.isEmpty() || clean.equals(userId) || friendNotifications.contains(clean)) return;
+        friendNotifications.add(clean);
+    }
+
+    public void clearFriendNotifications() {
+        friendNotifications.clear();
     }
 
     // ---- Friend Management ----

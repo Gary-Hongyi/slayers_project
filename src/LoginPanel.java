@@ -57,6 +57,10 @@ public class LoginPanel extends JPanel {
     private static final Pattern USER_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_]{3,16}$");
     private static final Pattern PASSWORD_PATTERN =
             Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
+    private static final Pattern PASSWORD_LETTER_PATTERN = Pattern.compile(".*[A-Za-z].*");
+    private static final Pattern PASSWORD_NUMBER_PATTERN = Pattern.compile(".*\\d.*");
+    private static final Pattern PASSWORD_ALLOWED_CHARS_PATTERN =
+            Pattern.compile("[A-Za-z\\d!@#$%^&*._-]*");
     static final String USERS_FILE;
     static {
         USERS_FILE = new File(getProjectRoot(), "users.txt").getAbsolutePath();
@@ -412,11 +416,11 @@ public class LoginPanel extends JPanel {
             u = network.getUser(id);
         }
         if (u == null) {
-            showStyledDialog("Invalid User ID or Password");
+            showStyledDialog("Please check your User ID or password.");
             return;
         }
         if (!u.getPassword().equals(pw)) {
-            showStyledDialog("Invalid User ID or Password");
+            showStyledDialog("Please check your User ID or password.");
             loginPassField.setText("");
             return;
         }
@@ -434,9 +438,9 @@ public class LoginPanel extends JPanel {
         if (id.isEmpty()) { err("Please choose a User ID."); return; }
         if (!isValidUserId(id)) { err(userIdRuleMessage()); return; }
         if (pw.isEmpty()) { err("Please create a password."); return; }
-        if (!isValidPassword(pw)) { showStyledDialog(passwordRuleMessage()); return; }
+        if (!isValidPassword(pw)) { showStyledDialog(passwordRuleMessage(pw)); return; }
         if (hasUnsafeUserFileChars(name) || hasUnsafeUserFileChars(work) || hasUnsafeUserFileChars(home)) {
-            err("Name, workplace, and hometown cannot contain commas or vertical bars.");
+            err("Please remove commas or vertical bars from name, workplace, and hometown.");
             return;
         }
 
@@ -483,13 +487,13 @@ public class LoginPanel extends JPanel {
             user = network.getUser(id);
         }
         if (user == null) {
-            err("No account was found for that User ID.");
+            err("Please check the User ID. No account was found.");
             return;
         }
         if (!sameText(user.getName(), name)
                 || !sameText(user.getWorkplace(), work)
                 || !sameText(user.getHometown(), home)) {
-            err("The profile details do not match this account.");
+            err("Please check the profile details. They do not match this account.");
             return;
         }
 
@@ -514,8 +518,8 @@ public class LoginPanel extends JPanel {
             err("Please enter and confirm your new password.");
             return;
         }
-        if (!isValidPassword(newPassword)) { showStyledDialog(passwordRuleMessage()); return; }
-        if (!newPassword.equals(confirmPassword)) { err("The two passwords do not match."); return; }
+        if (!isValidPassword(newPassword)) { showStyledDialog(passwordRuleMessage(newPassword)); return; }
+        if (!newPassword.equals(confirmPassword)) { err("Please make sure the two passwords match."); return; }
 
         resetVerifiedUser.setPassword(newPassword);
         rewriteUsersFile(network);
@@ -588,14 +592,27 @@ public class LoginPanel extends JPanel {
     }
 
     private static String userIdRuleMessage() {
-        return "User ID must be 3-16 characters and may contain letters, numbers, and underscores only.";
+        return "Please choose a User ID with 3-16 characters. Use only letters, numbers, and underscores.";
     }
 
-    private static String passwordRuleMessage() {
-        return "<html><div style='text-align:center; width:360px;'>"
-                + "Use 6-20 chars with letters and numbers.<br>"
-                + "Allowed symbols: ! @ # $ % ^ &amp; * . _ -"
-                + "</div></html>";
+    static String passwordRuleMessage(String password) {
+        StringBuilder message = new StringBuilder("Your password does not meet the requirements yet.\n");
+
+        if (password == null || password.length() < 6 || password.length() > 20) {
+            message.append("Please use 6-20 characters for your password.\n");
+        }
+        if (password == null || !PASSWORD_LETTER_PATTERN.matcher(password).matches()) {
+            message.append("Please include at least one letter in your password.\n");
+        }
+        if (password == null || !PASSWORD_NUMBER_PATTERN.matcher(password).matches()) {
+            message.append("Please include at least one number in your password.\n");
+        }
+        if (password == null || !PASSWORD_ALLOWED_CHARS_PATTERN.matcher(password).matches()) {
+            message.append("Please use only the allowed password symbols.\n");
+        }
+
+        message.append("Allowed symbols: ! @ # $ % ^ & * . _ -");
+        return message.toString();
     }
 
     /** Styled message dialog — Apple design, replaces JOptionPane */
@@ -752,9 +769,12 @@ public class LoginPanel extends JPanel {
                         if (parts.length >= 6) newUser.setSignature(unescapeUserField(parts[5]).trim());
                         newUser.setAvatarPath(avatarPath);
                         if (parts.length >= 8) parseRemarks(unescapeUserField(parts[7]), newUser);
+                        if (parts.length >= 9) parseFriendNotifications(unescapeUserField(parts[8]), newUser);
                         network.addUser(newUser);
-                    } else if (!avatarPath.isEmpty()) {
-                        network.getUser(uid).setAvatarPath(avatarPath);
+                    } else {
+                        User existing = network.getUser(uid);
+                        if (!avatarPath.isEmpty()) existing.setAvatarPath(avatarPath);
+                        if (parts.length >= 9) parseFriendNotifications(unescapeUserField(parts[8]), existing);
                     }
                 }
             }
@@ -782,7 +802,8 @@ public class LoginPanel extends JPanel {
                         + escapeUserField(u.getHometown()) + ","
                         + escapeUserField(u.getSignature()) + ","
                         + escapeUserField(u.getAvatarPath()) + ","
-                        + escapeUserField(serializeRemarks(u)));
+                        + escapeUserField(serializeRemarks(u)) + ","
+                        + escapeUserField(serializeFriendNotifications(u)));
             }
         } catch (IOException e) {
             /* silently ignore write errors */
@@ -853,6 +874,25 @@ public class LoginPanel extends JPanel {
             int sep = entry.indexOf(':');
             if (sep <= 0 || sep >= entry.length() - 1) continue;
             user.setFriendRemark(entry.substring(0, sep), decode(entry.substring(sep + 1)));
+        }
+    }
+
+    private static String serializeFriendNotifications(User user) {
+        StringBuilder sb = new StringBuilder();
+        for (String userId : user.getFriendNotifications()) {
+            if (userId == null || userId.trim().isEmpty()) continue;
+            if (sb.length() > 0) sb.append(";");
+            sb.append(encode(userId.trim()));
+        }
+        return sb.toString();
+    }
+
+    private static void parseFriendNotifications(String data, User user) {
+        if (data == null || data.trim().isEmpty() || user == null) return;
+        String[] entries = data.split(";");
+        for (String entry : entries) {
+            String userId = decode(entry);
+            if (!userId.isEmpty()) user.addFriendNotification(userId);
         }
     }
 
@@ -991,13 +1031,14 @@ public class LoginPanel extends JPanel {
         private JLabel label;
         private boolean focused, hasText, isPassword;
         private boolean passVisible;
+        private static final int INPUT_H = 58;
 
         FloatInput(String labelText, boolean password) {
             this.isPassword = password;
             setLayout(null);
             setOpaque(false);
-            setPreferredSize(new Dimension(FIELD_W, 50));
-            setMaximumSize(new Dimension(FIELD_W, 50));
+            setPreferredSize(new Dimension(FIELD_W, INPUT_H));
+            setMaximumSize(new Dimension(FIELD_W, INPUT_H));
             setAlignmentX(Component.CENTER_ALIGNMENT);
 
             if (password) {
@@ -1012,15 +1053,15 @@ public class LoginPanel extends JPanel {
             field.setForeground(TEXT_MAIN);
             field.setCaretColor(BRAND);
             field.setOpaque(false);
-            field.setBorder(BorderFactory.createEmptyBorder(18, 16, 6, password ? 44 : 16));
-            field.setBounds(0, 0, FIELD_W, 50);
+            field.setBorder(BorderFactory.createEmptyBorder(26, 16, 6, password ? 44 : 16));
+            field.setBounds(0, 0, FIELD_W, INPUT_H);
             field.setBackground(INPUT_BG);
 
             // Overlay label
             label = new JLabel(labelText);
             label.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
             label.setForeground(TEXT_HINT);
-            label.setBounds(16, 14, FIELD_W - 60, 22);
+            label.setBounds(16, 18, FIELD_W - 60, 22);
 
             field.addFocusListener(new FocusAdapter() {
                 public void focusGained(FocusEvent e) {
@@ -1067,7 +1108,7 @@ public class LoginPanel extends JPanel {
                     @Override
                     public Dimension getPreferredSize() { return new Dimension(28, 28); }
                 };
-                eye.setBounds(FIELD_W - 40, 11, 28, 28);
+                eye.setBounds(FIELD_W - 40, 15, 28, 28);
                 eye.setOpaque(false);
                 eye.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 eye.addMouseListener(new MouseAdapter() {
@@ -1093,18 +1134,18 @@ public class LoginPanel extends JPanel {
 
             // White background — matches HTML mockup input-field
             g2.setColor(INPUT_BG); // #ffffff
-            g2.fillRoundRect(0, 0, getWidth(), 50, 10, 10);
+            g2.fillRoundRect(0, 0, getWidth(), INPUT_H, 10, 10);
 
             // Subtle gray border like HTML - 1px #d1d1d6
             g2.setColor(new Color(209, 209, 214));
             g2.setStroke(new BasicStroke(1f));
-            g2.drawRoundRect(0, 0, getWidth() - 1, 49, 10, 10);
+            g2.drawRoundRect(0, 0, getWidth() - 1, INPUT_H - 1, 10, 10);
 
             // Focus: soft blue glow ring (3px, 25% opacity)
             if (focused) {
                 g2.setColor(new Color(0, 102, 204, 64)); // rgba(0,102,204,0.25)
                 g2.setStroke(new BasicStroke(3f));
-                g2.drawRoundRect(1, 1, getWidth() - 2, 48, 10, 10);
+                g2.drawRoundRect(1, 1, getWidth() - 2, INPUT_H - 2, 10, 10);
             }
             g2.dispose();
             super.paintComponent(g);
@@ -1114,7 +1155,7 @@ public class LoginPanel extends JPanel {
             Timer timer = new Timer(10, null);
             final int[] step = {0};
             final int startY = label.getY();
-            final int targetY = up ? 4 : 14;
+            final int targetY = up ? 6 : 18;
             timer.addActionListener(e -> {
                 step[0]++;
                 float p = Math.min(step[0] / 12f, 1f);
@@ -1134,7 +1175,18 @@ public class LoginPanel extends JPanel {
             return field.getText();
         }
 
-        public void setText(String t) { field.setText(t); }
+        public void setText(String t) {
+            field.setText(t);
+            hasText = !getText().isEmpty();
+            setLabelFloating(focused || hasText);
+            repaint();
+        }
+
+        private void setLabelFloating(boolean up) {
+            label.setLocation(label.getX(), up ? 6 : 18);
+            label.setFont(new Font(FONT_FAMILY, Font.PLAIN, up ? 13 : 17));
+            label.setForeground(up ? BRAND : TEXT_HINT);
+        }
 
         @Override
         public void setEnabled(boolean enabled) {
