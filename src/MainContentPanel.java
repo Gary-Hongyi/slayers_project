@@ -47,7 +47,14 @@ public class MainContentPanel extends JPanel {
     private static final int POST_DETAIL_TEXT_WIDTH = 780;
     private static final int POST_DETAIL_HTML_WIDTH = 740;
     private static final Dimension POST_DETAIL_LIKE_BUTTON_SIZE = new Dimension(220, 60);
-    private static final Dimension POST_DETAIL_COMMENT_BUTTON_SIZE = new Dimension(170, 104);
+    private static final Dimension POST_DETAIL_COMMENT_BUTTON_SIZE = new Dimension(124, 68);
+    private static final Dimension POST_DETAIL_COMMENT_INPUT_SIZE = new Dimension(520, 68);
+    private static final int POST_DETAIL_COMMENTS_HEIGHT = 430;
+    private static final int POST_DETAIL_COMMENTS_SCROLL_HEIGHT = 292;
+    private static final Dimension POST_DETAIL_CONTENT_SCROLL_SIZE = new Dimension(744, 96);
+    private static final Dimension POST_DETAIL_LIKERS_SCROLL_SIZE = new Dimension(POST_DETAIL_TEXT_WIDTH, 38);
+    private static final Dimension POST_DETAIL_COMMENT_CONTENT_SIZE = new Dimension(700, 72);
+    private static final int POST_DETAIL_COMMENT_ITEM_HEIGHT = 154;
     private static final Map<String, Image> AVATAR_IMAGE_CACHE = new HashMap<>();
     private static final java.util.regex.Pattern SETTINGS_PASSWORD_PATTERN =
             java.util.regex.Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
@@ -782,14 +789,9 @@ public class MainContentPanel extends JPanel {
         leftMoments.setPreferredSize(new Dimension(660, 0));
         split.setLeftComponent(leftMoments);
         
-        // Right side - post detail, roughly two thirds of the content area
+        // Right side - fixed post detail surface; internal sections handle their own scrolling
         JPanel rightMoments = buildMomentsRight();
-        JScrollPane rightScroll = new JScrollPane(rightMoments);
-        rightScroll.setBorder(null);
-        rightScroll.setOpaque(false);
-        rightScroll.getViewport().setOpaque(false);
-        rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        split.setRightComponent(rightScroll);
+        split.setRightComponent(rightMoments);
         split.setResizeWeight(0.42);
         
         Runnable applyMomentsDivider = () ->
@@ -987,11 +989,18 @@ public class MainContentPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(CANVAS);
         panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(22, 32, 16, 32));
+        panel.setBorder(new EmptyBorder(26, 36, 18, 36));
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(false);
+        content.setAlignmentX(Component.LEFT_ALIGNMENT);
         
         // Header with avatar and basic info
         JPanel header = new JPanel(new BorderLayout(16, 0));
         header.setOpaque(false);
+        header.setAlignmentX(Component.LEFT_ALIGNMENT);
+        header.setMaximumSize(new Dimension(820, 88));
         
         rAvatar = new AvatarLabel(72, null);
         header.add(rAvatar, BorderLayout.WEST);
@@ -1011,13 +1020,14 @@ public class MainContentPanel extends JPanel {
         headText.add(rId);
         
         header.add(headText, BorderLayout.CENTER);
-        panel.add(header, BorderLayout.NORTH);
+        content.add(header);
+        content.add(Box.createVerticalStrut(22));
         
-        // Info rows - use detailRow which creates JLabel + JLabel structure
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setOpaque(false);
-        infoPanel.setBorder(new EmptyBorder(20, 0, 20, 0));
+        infoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        infoPanel.setMaximumSize(new Dimension(820, 340));
         
         rRemark = detailRow("Remark", "Not set");
         rWork = detailRow("Workplace", "Not set");
@@ -1025,34 +1035,30 @@ public class MainContentPanel extends JPanel {
         rSig = detailRow("Signature", "No signature");
         rMutual = detailRow("Mutual Friends", "0 person(s)");
         
-        infoPanel.add(rRemark);
-        infoPanel.add(rWork);
-        infoPanel.add(rHome);
-        infoPanel.add(rSig);
-        infoPanel.add(rMutual);
-        
-        panel.add(infoPanel, BorderLayout.CENTER);
+        addDetailInfoRow(infoPanel, rRemark);
+        addDetailInfoRow(infoPanel, rWork);
+        addDetailInfoRow(infoPanel, rHome);
+        addDetailInfoRow(infoPanel, rSig);
+        addDetailInfoRow(infoPanel, rMutual);
+        content.add(infoPanel);
+        content.add(Box.createVerticalStrut(18));
         
         // Action buttons
         rActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         rActionPanel.setOpaque(false);
-        rActionPanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
+        rActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        rActionPanel.setMaximumSize(new Dimension(820, 44));
+        content.add(rActionPanel);
+        content.add(Box.createVerticalStrut(14));
         
         // Extra panel for showing friend lists, etc.
         rExtraPanel = new JPanel(new BorderLayout());
         rExtraPanel.setOpaque(false);
         rExtraPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        rExtraPanel.setMaximumSize(new Dimension(430, 360));
-        
-        // Combine action panel and extra panel in a vertical layout
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
-        bottomPanel.setOpaque(false);
-        bottomPanel.add(rActionPanel);
-        bottomPanel.add(Box.createVerticalStrut(8));
-        bottomPanel.add(rExtraPanel);
-        
-        panel.add(bottomPanel, BorderLayout.SOUTH);
+        rExtraPanel.setMaximumSize(new Dimension(820, 320));
+        content.add(rExtraPanel);
+
+        panel.add(content, BorderLayout.NORTH);
         
         return panel;
     }
@@ -1202,7 +1208,7 @@ public class MainContentPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(CANVAS);
         panel.setOpaque(true);
-        panel.setBorder(new EmptyBorder(24, 32, 16, 32));
+        panel.setBorder(new EmptyBorder(30, 32, 18, 32));
 
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
@@ -1212,10 +1218,10 @@ public class MainContentPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(22, 0));
         header.setOpaque(false);
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 100));
-        header.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 100));
+        header.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 92));
+        header.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 92));
 
-        postDetailAvatar = new AvatarLabel(92, null);
+        postDetailAvatar = new AvatarLabel(84, null);
         header.add(postDetailAvatar, BorderLayout.WEST);
 
         JPanel headText = new JPanel();
@@ -1234,29 +1240,66 @@ public class MainContentPanel extends JPanel {
         postDetailTime.setForeground(TEXT_SUB);
         headText.add(postDetailTime);
         header.add(headText, BorderLayout.CENTER);
-        content.add(header);
-        content.add(Box.createVerticalStrut(22));
 
-        postDetailContent = new JTextArea(3, 54);
+        JPanel activityWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        activityWrap.setOpaque(false);
+        activityWrap.setPreferredSize(new Dimension(458, 92));
+        activityWrap.add(buildPostDetailActivityPanel());
+        header.add(activityWrap, BorderLayout.EAST);
+        content.add(header);
+        content.add(Box.createVerticalStrut(18));
+
+        JPanel postContentBlock = new JPanel();
+        postContentBlock.setLayout(new BoxLayout(postContentBlock, BoxLayout.Y_AXIS));
+        postContentBlock.setOpaque(false);
+        postContentBlock.setAlignmentX(Component.LEFT_ALIGNMENT);
+        postContentBlock.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 0, 0, BRAND),
+                new EmptyBorder(0, 12, 0, 0)));
+        postContentBlock.setPreferredSize(new Dimension(POST_DETAIL_TEXT_WIDTH, 132));
+        postContentBlock.setMaximumSize(new Dimension(POST_DETAIL_TEXT_WIDTH, 148));
+
+        JPanel contentLabelRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        contentLabelRow.setOpaque(false);
+        contentLabelRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        contentLabelRow.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_SCROLL_SIZE.width, 22));
+        contentLabelRow.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_SCROLL_SIZE.width, 22));
+
+        JLabel contentLabel = new JLabel("Post Content");
+        contentLabel.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+        contentLabel.setForeground(TEXT_MAIN);
+        contentLabelRow.add(contentLabel);
+        postContentBlock.add(contentLabelRow);
+        postContentBlock.add(Box.createVerticalStrut(8));
+
+        postDetailContent = new JTextArea(2, 54);
         postDetailContent.setEditable(false);
         postDetailContent.setFocusable(false);
         postDetailContent.setOpaque(false);
         postDetailContent.setLineWrap(true);
         postDetailContent.setWrapStyleWord(true);
-        postDetailContent.setFont(new Font(FONT_FAMILY, Font.BOLD, 20));
+        postDetailContent.setFont(new Font(FONT_FAMILY, Font.BOLD, 22));
         postDetailContent.setForeground(TEXT_MAIN);
-        postDetailContent.setBorder(null);
+        postDetailContent.setBorder(new EmptyBorder(8, 10, 8, 10));
         postDetailContent.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailContent.setMaximumSize(new Dimension(POST_DETAIL_TEXT_WIDTH, 132));
-        content.add(postDetailContent);
-        content.add(Box.createVerticalStrut(16));
+        postDetailContent.setSize(new Dimension(POST_DETAIL_CONTENT_SCROLL_SIZE.width - 22, Short.MAX_VALUE));
+
+        JScrollPane postContentScroll = new JScrollPane(postDetailContent);
+        postContentScroll.setBorder(BorderFactory.createLineBorder(HAIRLINE));
+        postContentScroll.setOpaque(false);
+        postContentScroll.getViewport().setOpaque(false);
+        postContentScroll.setPreferredSize(POST_DETAIL_CONTENT_SCROLL_SIZE);
+        postContentScroll.setMinimumSize(POST_DETAIL_CONTENT_SCROLL_SIZE);
+        postContentScroll.setMaximumSize(POST_DETAIL_CONTENT_SCROLL_SIZE);
+        postContentScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        postContentScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        postContentScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        postContentScroll.getVerticalScrollBar().setUnitIncrement(12);
+        postContentBlock.add(postContentScroll);
+        content.add(postContentBlock);
+        content.add(Box.createVerticalStrut(14));
 
         postDetailEngagement = new JLabel("");
-        postDetailEngagement.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
-        postDetailEngagement.setForeground(TEXT_SUB);
-        postDetailEngagement.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(postDetailEngagement);
-        content.add(Box.createVerticalStrut(14));
 
         postDetailActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         postDetailActionPanel.setOpaque(false);
@@ -1270,30 +1313,79 @@ public class MainContentPanel extends JPanel {
         postDetailLikeButton.addActionListener(e -> togglePostDetailLike());
         postDetailActionPanel.add(postDetailLikeButton);
         content.add(postDetailActionPanel);
-        content.add(Box.createVerticalStrut(20));
+        content.add(Box.createVerticalStrut(12));
 
         postDetailLikers = new JLabel();
         postDetailLikers.setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
         postDetailLikers.setForeground(TEXT_SUB);
         postDetailLikers.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailLikers.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 30));
-        postDetailLikers.setMinimumSize(new Dimension(0, 30));
-        postDetailLikers.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 30));
-        content.add(postDetailLikers);
-        content.add(Box.createVerticalStrut(16));
+        postDetailLikers.setBorder(new EmptyBorder(8, 0, 6, 0));
+
+        JScrollPane likersScroll = new JScrollPane(postDetailLikers);
+        likersScroll.setBorder(null);
+        likersScroll.setOpaque(false);
+        likersScroll.getViewport().setOpaque(false);
+        likersScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        likersScroll.setPreferredSize(POST_DETAIL_LIKERS_SCROLL_SIZE);
+        likersScroll.setMinimumSize(POST_DETAIL_LIKERS_SCROLL_SIZE);
+        likersScroll.setMaximumSize(POST_DETAIL_LIKERS_SCROLL_SIZE);
+        likersScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+        likersScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        likersScroll.getHorizontalScrollBar().setUnitIncrement(24);
+        content.add(likersScroll);
+        content.add(Box.createVerticalStrut(14));
+        content.add(buildPostDetailSectionDivider());
+        content.add(Box.createVerticalStrut(18));
 
         postDetailCommentsSlot = new JPanel(new BorderLayout());
         postDetailCommentsSlot.setOpaque(false);
         postDetailCommentsSlot.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailCommentsSlot.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 300));
-        postDetailCommentsSlot.setMinimumSize(new Dimension(0, 260));
-        postDetailCommentsSlot.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 330));
+        postDetailCommentsSlot.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENTS_HEIGHT));
+        postDetailCommentsSlot.setMinimumSize(new Dimension(0, 390));
+        postDetailCommentsSlot.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 480));
         content.add(postDetailCommentsSlot);
 
         panel.add(content, BorderLayout.NORTH);
         panel.add(buildPostDetailLogoPanel(), BorderLayout.CENTER);
-        panel.add(buildPostDetailActivitySlot(), BorderLayout.SOUTH);
         return panel;
+    }
+
+    private JComponent buildPostDetailSectionDivider() {
+        JPanel row = new JPanel(new GridBagLayout());
+        row.setOpaque(false);
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 12));
+        row.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 12));
+
+        JComponent line = new JComponent() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                int centerX = getWidth() / 2;
+                int centerY = getHeight() / 2;
+                drawSoftDividerSegment(g2, centerX, centerY, 760, 2, 40);
+                drawSoftDividerSegment(g2, centerX, centerY, 600, 4, 58);
+                drawSoftDividerSegment(g2, centerX, centerY, 420, 6, 78);
+                g2.dispose();
+            }
+        };
+        Dimension size = new Dimension(780, 14);
+        line.setPreferredSize(size);
+        line.setMinimumSize(size);
+        line.setMaximumSize(size);
+        row.add(line);
+        return row;
+    }
+
+    private void drawSoftDividerSegment(Graphics2D g2, int centerX, int centerY, int width, int height, int alpha) {
+        int x = centerX - width / 2;
+        int y = centerY - height / 2;
+        g2.setPaint(new GradientPaint(
+                x, centerY, new Color(232, 232, 234, 0),
+                centerX, centerY, new Color(224, 224, 226, alpha),
+                true));
+        g2.fillRoundRect(x, y, width, height, height, height);
     }
 
     private JPanel buildPostDetailLogoPanel() {
@@ -1306,9 +1398,9 @@ public class MainContentPanel extends JPanel {
                     boolean showLogo = availableHeight >= 76 && availableWidth >= 260;
                     postDetailLogo.setVisible(showLogo);
                     if (showLogo) {
-                        int sizeByHeight = Math.max(48, availableHeight - 30);
-                        int sizeByWidth = Math.max(48, availableWidth / 6);
-                        int logoSize = Math.min(90, Math.min(sizeByHeight, sizeByWidth));
+                        int sizeByHeight = Math.max(42, availableHeight - 40);
+                        int sizeByWidth = Math.max(42, availableWidth / 7);
+                        int logoSize = Math.min(72, Math.min(sizeByHeight, sizeByWidth));
                         postDetailLogo.setFont(new Font(FONT_FAMILY, Font.BOLD, logoSize));
                     }
                 }
@@ -1316,10 +1408,11 @@ public class MainContentPanel extends JPanel {
             }
         };
         logoPanel.setOpaque(false);
+        logoPanel.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 132));
 
         postDetailLogo = new JLabel("SnapTok", SwingConstants.CENTER);
         postDetailLogo.setForeground(BRAND);
-        postDetailLogo.setFont(new Font(FONT_FAMILY, Font.BOLD, 76));
+        postDetailLogo.setFont(new Font(FONT_FAMILY, Font.BOLD, 64));
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
@@ -1327,6 +1420,7 @@ public class MainContentPanel extends JPanel {
         gbc.weightx = 1;
         gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(0, 0, 22, 0);
         logoPanel.add(postDetailLogo, gbc);
         return logoPanel;
     }
@@ -1339,31 +1433,34 @@ public class MainContentPanel extends JPanel {
     }
 
     private JPanel buildPostDetailActivityPanel() {
-        JPanel panel = new JPanel(new BorderLayout(18, 0));
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
         panel.setOpaque(true);
         panel.setBackground(new Color(239, 247, 255));
         panel.setBorder(new CompoundBorder(
                 BorderFactory.createMatteBorder(0, 4, 0, 0, BRAND),
-                new EmptyBorder(12, 16, 12, 16)));
+                new EmptyBorder(12, 18, 12, 18)));
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.setMaximumSize(new Dimension(430, 74));
+        panel.setPreferredSize(new Dimension(442, 52));
+        panel.setMinimumSize(new Dimension(442, 52));
+        panel.setMaximumSize(new Dimension(442, 52));
 
         JLabel title = new JLabel("Activity summary");
-        title.setFont(YHB);
+        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
         title.setForeground(BRAND_DARK);
-        panel.add(title, BorderLayout.WEST);
+        panel.add(title);
+        panel.add(Box.createHorizontalStrut(26));
 
-        JPanel stats = new JPanel(new GridLayout(1, 2, 14, 0));
-        stats.setOpaque(false);
         postDetailActivityLikes = new JLabel("0 like(s)");
-        postDetailActivityLikes.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+        postDetailActivityLikes.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
         postDetailActivityLikes.setForeground(TEXT_MAIN);
+        panel.add(postDetailActivityLikes);
+        panel.add(Box.createHorizontalStrut(42));
+
         postDetailActivityComments = new JLabel("0 comment(s)");
-        postDetailActivityComments.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
+        postDetailActivityComments.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
         postDetailActivityComments.setForeground(TEXT_MAIN);
-        stats.add(postDetailActivityLikes);
-        stats.add(postDetailActivityComments);
-        panel.add(stats, BorderLayout.CENTER);
+        panel.add(postDetailActivityComments);
         return panel;
     }
 
@@ -1801,18 +1898,33 @@ public class MainContentPanel extends JPanel {
     }
 
     private JPanel detailRow(String label, String val) {
-        JPanel row = new JPanel(new BorderLayout(8, 0));
-        row.setOpaque(false);
-        row.setMaximumSize(new Dimension(430, 76));
+        JPanel row = new JPanel(new BorderLayout(26, 0));
+        row.setOpaque(true);
+        row.setBackground(new Color(239, 247, 255));
+        row.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 0, 0, BRAND),
+                new EmptyBorder(12, 18, 12, 18)));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setPreferredSize(new Dimension(760, 52));
+        row.setMinimumSize(new Dimension(0, 52));
+        row.setMaximumSize(new Dimension(820, 52));
         JLabel l = new JLabel(label);
-        l.setFont(YH); l.setForeground(TEXT_SUB);
-        l.setPreferredSize(new Dimension(120, 32));
+        l.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        l.setForeground(BRAND_DARK);
+        l.setPreferredSize(new Dimension(150, 24));
         JLabel v = new JLabel(val);
-        v.setFont(YH); v.setForeground(TEXT_MAIN);
+        v.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        v.setForeground(TEXT_MAIN);
         v.setName(label);
         row.add(l, BorderLayout.WEST);
         row.add(v, BorderLayout.CENTER);
         return row;
+    }
+
+    private void addDetailInfoRow(JPanel parent, JPanel row) {
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        parent.add(row);
+        parent.add(Box.createVerticalStrut(10));
     }
 
     private JPanel buildStatBox(JLabel num, String title) {
@@ -2502,13 +2614,21 @@ public class MainContentPanel extends JPanel {
 
         rActionPanel.removeAll();
         if (isFriend) {
+            Dimension friendActionSize = new Dimension(128, 38);
             StyledButton remarkBtn = new StyledButton("Edit Remark", false);
+            remarkBtn.setFixedSize(friendActionSize);
             remarkBtn.addActionListener(e -> showRemarkDialog(user));
             rActionPanel.add(remarkBtn);
             StyledButton viewFriends = new StyledButton("View Friends", false);
+            viewFriends.setFixedSize(friendActionSize);
             viewFriends.addActionListener(e -> showFriendsDialog(user));
             rActionPanel.add(viewFriends);
+            StyledButton viewPosts = new StyledButton("View Posts", false);
+            viewPosts.setFixedSize(friendActionSize);
+            viewPosts.addActionListener(e -> showFriendPosts(user));
+            rActionPanel.add(viewPosts);
             StyledButton removeBtn = new StyledButton("Remove Friend", false);
+            removeBtn.setFixedSize(friendActionSize);
             removeBtn.addActionListener(e -> showRemoveFriendDialog(user));
             rActionPanel.add(removeBtn);
         } else {
@@ -2777,9 +2897,14 @@ public class MainContentPanel extends JPanel {
 
     private void updatePostDetailLikers(Post post) {
         if (postDetailLikers == null || post == null) return;
-        String likers = post.getLikeCount() > 0 ? escapeHtml(formatUserList(post.getLikes())) : "&nbsp;";
-        postDetailLikers.setText("<html><body style='width:" + POST_DETAIL_HTML_WIDTH
-                + "px'>Liked by: " + likers + "</body></html>");
+        String likers = post.getLikeCount() > 0 ? formatLikerDisplayList(post.getLikes()) : "";
+        String text = likers.isEmpty() ? "Liked by:" : "Liked by: " + likers;
+        postDetailLikers.setText(text);
+        FontMetrics metrics = postDetailLikers.getFontMetrics(postDetailLikers.getFont());
+        int width = Math.max(POST_DETAIL_LIKERS_SCROLL_SIZE.width, metrics.stringWidth(text) + 28);
+        postDetailLikers.setPreferredSize(new Dimension(width, POST_DETAIL_LIKERS_SCROLL_SIZE.height));
+        postDetailLikers.setMinimumSize(new Dimension(width, POST_DETAIL_LIKERS_SCROLL_SIZE.height));
+        postDetailLikers.scrollRectToVisible(new Rectangle(0, 0, 1, 1));
         postDetailLikers.revalidate();
         postDetailLikers.repaint();
     }
@@ -2880,13 +3005,122 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    private void showFriendPosts(User user) {
+        if (user == null || rExtraPanel == null) return;
+        rExtraPanel.removeAll();
+        rExtraPanel.add(buildFriendPostsPanel(user), BorderLayout.CENTER);
+        rExtraPanel.revalidate();
+        rExtraPanel.repaint();
+    }
+
+    private JPanel buildFriendPostsPanel(User user) {
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setOpaque(false);
+        panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.setMaximumSize(new Dimension(820, 320));
+
+        JPanel summary = new JPanel();
+        summary.setLayout(new BoxLayout(summary, BoxLayout.X_AXIS));
+        summary.setOpaque(true);
+        summary.setBackground(new Color(239, 247, 255));
+        summary.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 0, 0, BRAND),
+                new EmptyBorder(10, 16, 10, 16)));
+        summary.setPreferredSize(new Dimension(760, 46));
+
+        JLabel title = new JLabel("Friend Posts");
+        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        title.setForeground(BRAND_DARK);
+        summary.add(title);
+        summary.add(Box.createHorizontalStrut(28));
+        JLabel count = new JLabel(user.getPosts().size() + " post(s)");
+        count.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        count.setForeground(TEXT_MAIN);
+        summary.add(count);
+        panel.add(summary, BorderLayout.NORTH);
+
+        JPanel list = new JPanel();
+        list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
+        list.setOpaque(true);
+        list.setBackground(CANVAS);
+        list.setBorder(new EmptyBorder(0, 0, 0, 10));
+
+        List<Post> posts = new ArrayList<>(user.getPosts());
+        posts.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
+        if (posts.isEmpty()) {
+            JLabel empty = new JLabel("No posts yet.");
+            empty.setFont(YH);
+            empty.setForeground(TEXT_HINT);
+            empty.setBorder(new EmptyBorder(22, 16, 22, 16));
+            list.add(empty);
+        } else {
+            for (Post post : posts) {
+                list.add(createFriendPostPreview(post));
+                list.add(Box.createVerticalStrut(8));
+            }
+        }
+
+        JScrollPane scroll = new JScrollPane(list);
+        scroll.setBorder(BorderFactory.createLineBorder(HAIRLINE));
+        scroll.setOpaque(true);
+        scroll.setBackground(CANVAS);
+        scroll.getViewport().setOpaque(true);
+        scroll.getViewport().setBackground(CANVAS);
+        scroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        scroll.setPreferredSize(new Dimension(760, 250));
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(14);
+        panel.add(scroll, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createFriendPostPreview(Post post) {
+        JPanel card = new JPanel();
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setOpaque(true);
+        card.setBackground(CANVAS);
+        card.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(HAIRLINE, 1),
+                new EmptyBorder(10, 12, 10, 12)));
+        card.setMaximumSize(new Dimension(740, 138));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JPanel meta = new JPanel(new BorderLayout());
+        meta.setOpaque(false);
+        JLabel time = new JLabel(post.getTimestampString());
+        time.setFont(YH_SM);
+        time.setForeground(TEXT_HINT);
+        meta.add(time, BorderLayout.WEST);
+        JLabel stats = new JLabel(post.getLikeCount() + " like(s)  |  " + post.getCommentCount() + " comment(s)");
+        stats.setFont(YH_SM);
+        stats.setForeground(TEXT_SUB);
+        meta.add(stats, BorderLayout.EAST);
+        card.add(meta);
+        card.add(Box.createVerticalStrut(8));
+
+        JTextArea text = createWrappedPostText(post.getContent(), 680, 54);
+        text.setFont(new Font(FONT_FAMILY, Font.BOLD, 14));
+        card.add(text);
+        card.add(Box.createVerticalStrut(8));
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        actions.setOpaque(false);
+        JButton view = makePostActionButton("View");
+        view.addActionListener(e -> showPostDetail(post));
+        actions.add(view);
+        card.add(actions);
+        return card;
+    }
+
     private void setDetailValue(JPanel row, String val) {
         if (row != null && row.getComponentCount() >= 2) {
             Component comp = row.getComponent(1);
             if (comp instanceof JLabel) {
                 JLabel label = (JLabel) comp;
-                label.setText("<html><body style='width:260px'>" + escapeHtml(softWrapLongWords(val, 28)) + "</body></html>");
-                row.setMaximumSize(new Dimension(430, 76));
+                label.setText("<html><body style='width:540px'>" + escapeHtml(softWrapLongWords(val, 48)) + "</body></html>");
+                int rowHeight = Math.max(52, Math.min(96, label.getPreferredSize().height + 24));
+                row.setPreferredSize(new Dimension(760, rowHeight));
+                row.setMaximumSize(new Dimension(820, rowHeight));
                 row.revalidate();
             }
         }
@@ -2897,9 +3131,10 @@ public class MainContentPanel extends JPanel {
             Component comp = row.getComponent(1);
             if (comp instanceof JLabel) {
                 JLabel label = (JLabel) comp;
-                label.setText("<html><body style='width:260px'>" + htmlBody + "</body></html>");
-                int rowHeight = Math.max(76, label.getPreferredSize().height + 12);
-                row.setMaximumSize(new Dimension(430, rowHeight));
+                label.setText("<html><body style='width:540px'>" + htmlBody + "</body></html>");
+                int rowHeight = Math.max(52, Math.min(118, label.getPreferredSize().height + 24));
+                row.setPreferredSize(new Dimension(760, rowHeight));
+                row.setMaximumSize(new Dimension(820, rowHeight));
                 row.revalidate();
             }
         }
@@ -2912,10 +3147,10 @@ public class MainContentPanel extends JPanel {
     }
 
     private JPanel buildPostCommentsPanel(Post post) {
-        JPanel wrap = new JPanel(new BorderLayout(0, 12));
+        JPanel wrap = new JPanel(new BorderLayout(0, 10));
         wrap.setOpaque(false);
-        wrap.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 300));
-        wrap.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 330));
+        wrap.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENTS_HEIGHT));
+        wrap.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 480));
 
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
@@ -2926,14 +3161,14 @@ public class MainContentPanel extends JPanel {
         title.setForeground(TEXT_MAIN);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         top.add(title);
-        top.add(Box.createVerticalStrut(12));
+        top.add(Box.createVerticalStrut(8));
 
-        JTextArea input = new JTextArea(3, 42);
-        input.setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
+        JTextArea input = new JTextArea(2, 36);
+        input.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
         input.setForeground(TEXT_MAIN);
         input.setLineWrap(true);
         input.setWrapStyleWord(true);
-        input.setBorder(new EmptyBorder(14, 14, 14, 14));
+        input.setBorder(new EmptyBorder(9, 11, 9, 11));
         input.setBackground(Color.WHITE);
         input.setCaretColor(BRAND);
 
@@ -2941,32 +3176,35 @@ public class MainContentPanel extends JPanel {
         inputScroll.setBorder(BorderFactory.createLineBorder(HAIRLINE));
         inputScroll.setOpaque(false);
         inputScroll.getViewport().setOpaque(false);
-        inputScroll.setPreferredSize(new Dimension(0, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
-        inputScroll.setMinimumSize(new Dimension(240, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
+        inputScroll.setPreferredSize(POST_DETAIL_COMMENT_INPUT_SIZE);
+        inputScroll.setMinimumSize(POST_DETAIL_COMMENT_INPUT_SIZE);
+        inputScroll.setMaximumSize(POST_DETAIL_COMMENT_INPUT_SIZE);
 
         StyledButton send = new StyledButton("Comment", true);
         send.setFixedSize(POST_DETAIL_COMMENT_BUTTON_SIZE);
-        send.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
+        send.setFont(new Font(FONT_FAMILY, Font.BOLD, 14));
         send.addActionListener(e -> addComment(post, input));
         input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_DOWN_MASK), "submitComment");
         input.getActionMap().put("submitComment", new AbstractAction() {
             public void actionPerformed(ActionEvent e) { addComment(post, input); }
         });
 
-        JPanel inputRow = new JPanel(new BorderLayout(12, 0));
+        JPanel inputRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         inputRow.setOpaque(false);
         inputRow.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
-        inputRow.setMinimumSize(new Dimension(POST_DETAIL_COMMENT_BUTTON_SIZE.width + 260, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
+        inputRow.setMinimumSize(new Dimension(POST_DETAIL_COMMENT_BUTTON_SIZE.width + POST_DETAIL_COMMENT_INPUT_SIZE.width + 10, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
         inputRow.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
         inputRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        inputRow.add(inputScroll, BorderLayout.CENTER);
-        inputRow.add(send, BorderLayout.EAST);
+        inputRow.add(inputScroll);
+        inputRow.add(send);
         top.add(inputRow);
         wrap.add(top, BorderLayout.NORTH);
 
         JPanel comments = new JPanel();
         comments.setLayout(new BoxLayout(comments, BoxLayout.Y_AXIS));
-        comments.setOpaque(false);
+        comments.setOpaque(true);
+        comments.setBackground(CANVAS);
+        comments.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (post.getComments().isEmpty()) {
             JLabel empty = new JLabel("No comments yet.");
             empty.setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
@@ -2981,9 +3219,14 @@ public class MainContentPanel extends JPanel {
         }
         JScrollPane commentsScroll = new JScrollPane(comments);
         commentsScroll.setBorder(null);
-        commentsScroll.setOpaque(false);
-        commentsScroll.getViewport().setOpaque(false);
-        commentsScroll.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 128));
+        commentsScroll.setOpaque(true);
+        commentsScroll.setBackground(CANVAS);
+        commentsScroll.getViewport().setOpaque(true);
+        commentsScroll.getViewport().setBackground(CANVAS);
+        commentsScroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        commentsScroll.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENTS_SCROLL_HEIGHT));
+        commentsScroll.setMinimumSize(new Dimension(0, 250));
+        commentsScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         commentsScroll.getVerticalScrollBar().setUnitIncrement(12);
         wrap.add(commentsScroll, BorderLayout.CENTER);
 
@@ -2992,32 +3235,87 @@ public class MainContentPanel extends JPanel {
 
     private JPanel createCommentItem(Comment comment) {
         JPanel item = new JPanel(new BorderLayout(12, 0));
-        item.setOpaque(false);
-        item.setBorder(new EmptyBorder(8, 0, 8, 0));
+        item.setOpaque(true);
+        item.setBackground(CANVAS);
+        item.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, DIVIDER),
+                new EmptyBorder(10, 0, 10, 0)));
+        item.setPreferredSize(new Dimension(POST_DETAIL_TEXT_WIDTH, POST_DETAIL_COMMENT_ITEM_HEIGHT));
+        item.setMinimumSize(new Dimension(0, POST_DETAIL_COMMENT_ITEM_HEIGHT));
+        item.setMaximumSize(new Dimension(POST_DETAIL_TEXT_WIDTH, POST_DETAIL_COMMENT_ITEM_HEIGHT));
+        item.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        item.add(new AvatarLabel(40, comment.getAuthor()), BorderLayout.WEST);
+        JPanel avatarSlot = new JPanel(new BorderLayout());
+        avatarSlot.setOpaque(true);
+        avatarSlot.setBackground(CANVAS);
+        avatarSlot.setPreferredSize(new Dimension(52, POST_DETAIL_COMMENT_ITEM_HEIGHT - 20));
+        avatarSlot.add(new AvatarLabel(40, comment.getAuthor()), BorderLayout.NORTH);
+        item.add(avatarSlot, BorderLayout.WEST);
 
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
-        body.setOpaque(false);
+        body.setOpaque(true);
+        body.setBackground(CANVAS);
+        body.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JPanel meta = new JPanel(new BorderLayout());
-        meta.setOpaque(false);
+        JPanel meta = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        meta.setOpaque(true);
+        meta.setBackground(CANVAS);
+        meta.setAlignmentX(Component.LEFT_ALIGNMENT);
+        meta.setPreferredSize(new Dimension(POST_DETAIL_COMMENT_CONTENT_SIZE.width, 26));
+        meta.setMaximumSize(new Dimension(POST_DETAIL_COMMENT_CONTENT_SIZE.width, 26));
         JLabel author = new JLabel(formatUserIdentity(comment.getAuthor()));
         author.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
         author.setForeground(TEXT_MAIN);
-        meta.add(author, BorderLayout.WEST);
+        meta.add(author);
         JLabel time = new JLabel(comment.getTimestampString());
-        time.setFont(new Font(FONT_FAMILY, Font.BOLD, 13));
-        time.setForeground(TEXT_HINT);
-        meta.add(time, BorderLayout.EAST);
+        time.setFont(new Font(FONT_FAMILY, Font.BOLD, 12));
+        time.setForeground(BRAND_DARK);
+        time.setOpaque(true);
+        time.setBackground(new Color(239, 247, 255));
+        time.setBorder(new EmptyBorder(3, 8, 3, 8));
+        meta.add(time);
         body.add(meta);
+        body.add(Box.createVerticalStrut(6));
 
-        JLabel text = new JLabel("<html><body style='width:640px'>"
-                + escapeHtml(comment.getContent()) + "</body></html>");
+        JLabel contentLabel = new JLabel("Comment Content:");
+        contentLabel.setFont(new Font(FONT_FAMILY, Font.BOLD, 12));
+        contentLabel.setForeground(TEXT_HINT);
+        contentLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        contentLabel.setPreferredSize(new Dimension(POST_DETAIL_COMMENT_CONTENT_SIZE.width, 18));
+        contentLabel.setMaximumSize(new Dimension(POST_DETAIL_COMMENT_CONTENT_SIZE.width, 18));
+        body.add(contentLabel);
+        body.add(Box.createVerticalStrut(3));
+
+        JTextArea text = new JTextArea(softWrapLongWords(comment.getContent(), 56));
+        text.setEditable(false);
+        text.setFocusable(false);
+        text.setOpaque(true);
+        text.setBackground(Color.WHITE);
+        text.setLineWrap(true);
+        text.setWrapStyleWord(true);
+        text.setBorder(null);
         text.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
         text.setForeground(TEXT_MAIN);
-        body.add(text);
+        text.setAlignmentX(Component.LEFT_ALIGNMENT);
+        text.setBorder(new EmptyBorder(8, 10, 8, 10));
+        text.setSize(new Dimension(POST_DETAIL_COMMENT_CONTENT_SIZE.width - 22, Short.MAX_VALUE));
+
+        JScrollPane textScroll = new JScrollPane(text);
+        textScroll.setBorder(BorderFactory.createLineBorder(HAIRLINE));
+        textScroll.setOpaque(true);
+        textScroll.setBackground(Color.WHITE);
+        textScroll.getViewport().setOpaque(true);
+        textScroll.getViewport().setBackground(Color.WHITE);
+        textScroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        textScroll.setPreferredSize(POST_DETAIL_COMMENT_CONTENT_SIZE);
+        textScroll.setMinimumSize(POST_DETAIL_COMMENT_CONTENT_SIZE);
+        textScroll.setMaximumSize(POST_DETAIL_COMMENT_CONTENT_SIZE);
+        textScroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        textScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        textScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        textScroll.getVerticalScrollBar().setUnitIncrement(12);
+        body.add(textScroll);
 
         item.add(body, BorderLayout.CENTER);
         return item;
@@ -3420,6 +3718,18 @@ public class MainContentPanel extends JPanel {
             if (user == null) continue;
             if (out.length() > 0) out.append(", ");
             out.append(formatUserIdentity(user));
+        }
+        return out.toString();
+    }
+
+    private String formatLikerDisplayList(List<User> users) {
+        if (users == null || users.isEmpty()) return "";
+        User cur = network != null ? network.getCurrentUser() : null;
+        StringBuilder out = new StringBuilder();
+        for (User user : users) {
+            if (user == null) continue;
+            if (out.length() > 0) out.append(", ");
+            out.append(cur != null ? cur.getDisplayNameFor(user) : user.getName());
         }
         return out.toString();
     }
