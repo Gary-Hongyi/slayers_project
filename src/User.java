@@ -249,6 +249,13 @@ public class User {
         }
     }
 
+    public boolean removePost(Post post) {
+        if (post == null) return false;
+        String postId = post.getPostId();
+        return posts.removeIf(existing -> existing == post
+                || (existing != null && Objects.equals(existing.getPostId(), postId)));
+    }
+
     // ---- Display ----
 
     /**
