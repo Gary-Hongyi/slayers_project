@@ -43,7 +43,11 @@ public class MainContentPanel extends JPanel {
     private static final int FRIENDS_LEFT_WIDTH = 520;
     private static final int SEARCH_LEFT_WIDTH = 520;
     private static final int POST_CARD_BODY_INDENT = 48;
-    private static final Dimension POST_DETAIL_LIKE_BUTTON_SIZE = new Dimension(140, 44);
+    private static final int POST_DETAIL_CONTENT_WIDTH = 820;
+    private static final int POST_DETAIL_TEXT_WIDTH = 780;
+    private static final int POST_DETAIL_HTML_WIDTH = 740;
+    private static final Dimension POST_DETAIL_LIKE_BUTTON_SIZE = new Dimension(220, 60);
+    private static final Dimension POST_DETAIL_COMMENT_BUTTON_SIZE = new Dimension(170, 104);
     private static final Map<String, Image> AVATAR_IMAGE_CACHE = new HashMap<>();
     private static final java.util.regex.Pattern SETTINGS_PASSWORD_PATTERN =
             java.util.regex.Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
@@ -88,7 +92,7 @@ public class MainContentPanel extends JPanel {
     private JPanel momentsRightPanel;
     private AvatarLabel postDetailAvatar;
     private JLabel postDetailAuthor, postDetailTime, postDetailEngagement;
-    private JLabel postDetailLikers;
+    private JLabel postDetailLikers, postDetailLogo;
     private JLabel postDetailActivityLikes, postDetailActivityComments;
     private JTextArea postDetailContent;
     private StyledButton postDetailLikeButton;
@@ -1203,85 +1207,135 @@ public class MainContentPanel extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
-        content.setMaximumSize(new Dimension(500, Integer.MAX_VALUE));
+        content.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, Integer.MAX_VALUE));
 
-        JPanel header = new JPanel(new BorderLayout(16, 0));
+        JPanel header = new JPanel(new BorderLayout(22, 0));
         header.setOpaque(false);
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
-        header.setMaximumSize(new Dimension(480, 78));
+        header.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 100));
+        header.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 100));
 
-        postDetailAvatar = new AvatarLabel(72, null);
+        postDetailAvatar = new AvatarLabel(92, null);
         header.add(postDetailAvatar, BorderLayout.WEST);
 
         JPanel headText = new JPanel();
         headText.setLayout(new BoxLayout(headText, BoxLayout.Y_AXIS));
         headText.setOpaque(false);
+        headText.setBorder(new EmptyBorder(4, 0, 0, 0));
 
         postDetailAuthor = new JLabel("");
-        postDetailAuthor.setFont(new Font(FONT_FAMILY, Font.BOLD, 24));
+        postDetailAuthor.setFont(new Font(FONT_FAMILY, Font.BOLD, 34));
         postDetailAuthor.setForeground(TEXT_MAIN);
         headText.add(postDetailAuthor);
-        headText.add(Box.createVerticalStrut(4));
+        headText.add(Box.createVerticalStrut(8));
 
         postDetailTime = new JLabel("");
-        postDetailTime.setFont(YHB);
+        postDetailTime.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
         postDetailTime.setForeground(TEXT_SUB);
         headText.add(postDetailTime);
         header.add(headText, BorderLayout.CENTER);
         content.add(header);
-        content.add(Box.createVerticalStrut(16));
+        content.add(Box.createVerticalStrut(22));
 
-        postDetailContent = new JTextArea(5, 36);
+        postDetailContent = new JTextArea(3, 54);
         postDetailContent.setEditable(false);
         postDetailContent.setFocusable(false);
         postDetailContent.setOpaque(false);
         postDetailContent.setLineWrap(true);
         postDetailContent.setWrapStyleWord(true);
-        postDetailContent.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        postDetailContent.setFont(new Font(FONT_FAMILY, Font.BOLD, 20));
         postDetailContent.setForeground(TEXT_MAIN);
         postDetailContent.setBorder(null);
         postDetailContent.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailContent.setMaximumSize(new Dimension(430, 122));
+        postDetailContent.setMaximumSize(new Dimension(POST_DETAIL_TEXT_WIDTH, 132));
         content.add(postDetailContent);
-        content.add(Box.createVerticalStrut(12));
+        content.add(Box.createVerticalStrut(16));
 
         postDetailEngagement = new JLabel("");
-        postDetailEngagement.setFont(YHB);
+        postDetailEngagement.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
         postDetailEngagement.setForeground(TEXT_SUB);
         postDetailEngagement.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(postDetailEngagement);
-        content.add(Box.createVerticalStrut(10));
+        content.add(Box.createVerticalStrut(14));
 
         postDetailActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         postDetailActionPanel.setOpaque(false);
         postDetailActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        postDetailActionPanel.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_LIKE_BUTTON_SIZE.height));
+        postDetailActionPanel.setMinimumSize(new Dimension(POST_DETAIL_LIKE_BUTTON_SIZE.width, POST_DETAIL_LIKE_BUTTON_SIZE.height));
+        postDetailActionPanel.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_LIKE_BUTTON_SIZE.height));
         postDetailLikeButton = new StyledButton("Like", false);
         postDetailLikeButton.setFixedSize(POST_DETAIL_LIKE_BUTTON_SIZE);
+        postDetailLikeButton.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
         postDetailLikeButton.addActionListener(e -> togglePostDetailLike());
         postDetailActionPanel.add(postDetailLikeButton);
         content.add(postDetailActionPanel);
-        content.add(Box.createVerticalStrut(8));
+        content.add(Box.createVerticalStrut(20));
 
         postDetailLikers = new JLabel();
-        postDetailLikers.setFont(YHB);
+        postDetailLikers.setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
         postDetailLikers.setForeground(TEXT_SUB);
         postDetailLikers.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailLikers.setPreferredSize(new Dimension(430, 24));
-        postDetailLikers.setMinimumSize(new Dimension(430, 24));
-        postDetailLikers.setMaximumSize(new Dimension(430, 24));
+        postDetailLikers.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 30));
+        postDetailLikers.setMinimumSize(new Dimension(0, 30));
+        postDetailLikers.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 30));
         content.add(postDetailLikers);
-        content.add(Box.createVerticalStrut(14));
+        content.add(Box.createVerticalStrut(16));
 
         postDetailCommentsSlot = new JPanel(new BorderLayout());
         postDetailCommentsSlot.setOpaque(false);
         postDetailCommentsSlot.setAlignmentX(Component.LEFT_ALIGNMENT);
-        postDetailCommentsSlot.setMaximumSize(new Dimension(480, 320));
+        postDetailCommentsSlot.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 300));
+        postDetailCommentsSlot.setMinimumSize(new Dimension(0, 260));
+        postDetailCommentsSlot.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 330));
         content.add(postDetailCommentsSlot);
-        content.add(Box.createVerticalStrut(14));
-        content.add(buildPostDetailActivityPanel());
 
-        panel.add(content, BorderLayout.CENTER);
+        panel.add(content, BorderLayout.NORTH);
+        panel.add(buildPostDetailLogoPanel(), BorderLayout.CENTER);
+        panel.add(buildPostDetailActivitySlot(), BorderLayout.SOUTH);
         return panel;
+    }
+
+    private JPanel buildPostDetailLogoPanel() {
+        JPanel logoPanel = new JPanel(new GridBagLayout()) {
+            @Override
+            public void doLayout() {
+                if (postDetailLogo != null) {
+                    int availableHeight = getHeight();
+                    int availableWidth = getWidth();
+                    boolean showLogo = availableHeight >= 76 && availableWidth >= 260;
+                    postDetailLogo.setVisible(showLogo);
+                    if (showLogo) {
+                        int sizeByHeight = Math.max(48, availableHeight - 30);
+                        int sizeByWidth = Math.max(48, availableWidth / 6);
+                        int logoSize = Math.min(90, Math.min(sizeByHeight, sizeByWidth));
+                        postDetailLogo.setFont(new Font(FONT_FAMILY, Font.BOLD, logoSize));
+                    }
+                }
+                super.doLayout();
+            }
+        };
+        logoPanel.setOpaque(false);
+
+        postDetailLogo = new JLabel("SnapTok", SwingConstants.CENTER);
+        postDetailLogo.setForeground(BRAND);
+        postDetailLogo.setFont(new Font(FONT_FAMILY, Font.BOLD, 76));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 1;
+        gbc.weighty = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
+        logoPanel.add(postDetailLogo, gbc);
+        return logoPanel;
+    }
+
+    private JPanel buildPostDetailActivitySlot() {
+        JPanel slot = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        slot.setOpaque(false);
+        slot.add(buildPostDetailActivityPanel());
+        return slot;
     }
 
     private JPanel buildPostDetailActivityPanel() {
@@ -2695,7 +2749,7 @@ public class MainContentPanel extends JPanel {
         postDetailAvatar.repaint();
         postDetailAuthor.setText(post.getAuthor().getName());
         postDetailTime.setText(post.getTimestampString());
-        postDetailContent.setText(softWrapLongWords(post.getContent(), 48));
+        postDetailContent.setText(softWrapLongWords(post.getContent(), 72));
         postDetailContent.setCaretPosition(0);
         updatePostDetailLikeState(post);
         postDetailCommentsSlot.removeAll();
@@ -2715,6 +2769,7 @@ public class MainContentPanel extends JPanel {
             postDetailLikeButton.setText(liked ? "Unlike" : "Like");
             postDetailLikeButton.setPrimary(liked);
             postDetailLikeButton.setFixedSize(POST_DETAIL_LIKE_BUTTON_SIZE);
+            postDetailLikeButton.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
         }
         updatePostDetailLikers(post);
         updatePostDetailActivitySummary(post);
@@ -2723,7 +2778,8 @@ public class MainContentPanel extends JPanel {
     private void updatePostDetailLikers(Post post) {
         if (postDetailLikers == null || post == null) return;
         String likers = post.getLikeCount() > 0 ? escapeHtml(formatUserList(post.getLikes())) : "&nbsp;";
-        postDetailLikers.setText("<html><body style='width:390px'>Liked by: " + likers + "</body></html>");
+        postDetailLikers.setText("<html><body style='width:" + POST_DETAIL_HTML_WIDTH
+                + "px'>Liked by: " + likers + "</body></html>");
         postDetailLikers.revalidate();
         postDetailLikers.repaint();
     }
@@ -2858,24 +2914,26 @@ public class MainContentPanel extends JPanel {
     private JPanel buildPostCommentsPanel(Post post) {
         JPanel wrap = new JPanel(new BorderLayout(0, 12));
         wrap.setOpaque(false);
+        wrap.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 300));
+        wrap.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 330));
 
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
         top.setOpaque(false);
 
         JLabel title = new JLabel("Comments");
-        title.setFont(YHB);
+        title.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
         title.setForeground(TEXT_MAIN);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         top.add(title);
-        top.add(Box.createVerticalStrut(10));
+        top.add(Box.createVerticalStrut(12));
 
-        JTextArea input = new JTextArea(2, 20);
-        input.setFont(YHB);
+        JTextArea input = new JTextArea(3, 42);
+        input.setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
         input.setForeground(TEXT_MAIN);
         input.setLineWrap(true);
         input.setWrapStyleWord(true);
-        input.setBorder(new EmptyBorder(10, 10, 10, 10));
+        input.setBorder(new EmptyBorder(14, 14, 14, 14));
         input.setBackground(Color.WHITE);
         input.setCaretColor(BRAND);
 
@@ -2883,21 +2941,23 @@ public class MainContentPanel extends JPanel {
         inputScroll.setBorder(BorderFactory.createLineBorder(HAIRLINE));
         inputScroll.setOpaque(false);
         inputScroll.getViewport().setOpaque(false);
-        inputScroll.setPreferredSize(new Dimension(0, 72));
-        inputScroll.setMinimumSize(new Dimension(0, 72));
+        inputScroll.setPreferredSize(new Dimension(0, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
+        inputScroll.setMinimumSize(new Dimension(240, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
 
         StyledButton send = new StyledButton("Comment", true);
-        send.setFixedSize(new Dimension(132, 72));
+        send.setFixedSize(POST_DETAIL_COMMENT_BUTTON_SIZE);
+        send.setFont(new Font(FONT_FAMILY, Font.BOLD, 18));
         send.addActionListener(e -> addComment(post, input));
         input.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, KeyEvent.CTRL_DOWN_MASK), "submitComment");
         input.getActionMap().put("submitComment", new AbstractAction() {
             public void actionPerformed(ActionEvent e) { addComment(post, input); }
         });
 
-        JPanel inputRow = new JPanel(new BorderLayout(8, 0));
+        JPanel inputRow = new JPanel(new BorderLayout(12, 0));
         inputRow.setOpaque(false);
-        inputRow.setPreferredSize(new Dimension(430, 76));
-        inputRow.setMaximumSize(new Dimension(430, 76));
+        inputRow.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
+        inputRow.setMinimumSize(new Dimension(POST_DETAIL_COMMENT_BUTTON_SIZE.width + 260, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
+        inputRow.setMaximumSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, POST_DETAIL_COMMENT_BUTTON_SIZE.height));
         inputRow.setAlignmentX(Component.LEFT_ALIGNMENT);
         inputRow.add(inputScroll, BorderLayout.CENTER);
         inputRow.add(send, BorderLayout.EAST);
@@ -2909,9 +2969,9 @@ public class MainContentPanel extends JPanel {
         comments.setOpaque(false);
         if (post.getComments().isEmpty()) {
             JLabel empty = new JLabel("No comments yet.");
-            empty.setFont(YHB);
+            empty.setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
             empty.setForeground(TEXT_HINT);
-            empty.setBorder(new EmptyBorder(12, 0, 12, 0));
+            empty.setBorder(new EmptyBorder(14, 0, 14, 0));
             comments.add(empty);
         } else {
             for (Comment comment : post.getComments()) {
@@ -2923,7 +2983,7 @@ public class MainContentPanel extends JPanel {
         commentsScroll.setBorder(null);
         commentsScroll.setOpaque(false);
         commentsScroll.getViewport().setOpaque(false);
-        commentsScroll.setPreferredSize(new Dimension(420, 168));
+        commentsScroll.setPreferredSize(new Dimension(POST_DETAIL_CONTENT_WIDTH, 128));
         commentsScroll.getVerticalScrollBar().setUnitIncrement(12);
         wrap.add(commentsScroll, BorderLayout.CENTER);
 
@@ -2931,11 +2991,11 @@ public class MainContentPanel extends JPanel {
     }
 
     private JPanel createCommentItem(Comment comment) {
-        JPanel item = new JPanel(new BorderLayout(8, 0));
+        JPanel item = new JPanel(new BorderLayout(12, 0));
         item.setOpaque(false);
-        item.setBorder(new EmptyBorder(6, 0, 6, 0));
+        item.setBorder(new EmptyBorder(8, 0, 8, 0));
 
-        item.add(new AvatarLabel(32, comment.getAuthor()), BorderLayout.WEST);
+        item.add(new AvatarLabel(40, comment.getAuthor()), BorderLayout.WEST);
 
         JPanel body = new JPanel();
         body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
@@ -2944,18 +3004,18 @@ public class MainContentPanel extends JPanel {
         JPanel meta = new JPanel(new BorderLayout());
         meta.setOpaque(false);
         JLabel author = new JLabel(formatUserIdentity(comment.getAuthor()));
-        author.setFont(YHB);
+        author.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
         author.setForeground(TEXT_MAIN);
         meta.add(author, BorderLayout.WEST);
         JLabel time = new JLabel(comment.getTimestampString());
-        time.setFont(new Font(FONT_FAMILY, Font.BOLD, 11));
+        time.setFont(new Font(FONT_FAMILY, Font.BOLD, 13));
         time.setForeground(TEXT_HINT);
         meta.add(time, BorderLayout.EAST);
         body.add(meta);
 
-        JLabel text = new JLabel("<html><body style='width:340px'>"
+        JLabel text = new JLabel("<html><body style='width:640px'>"
                 + escapeHtml(comment.getContent()) + "</body></html>");
-        text.setFont(YHB);
+        text.setFont(new Font(FONT_FAMILY, Font.BOLD, 16));
         text.setForeground(TEXT_MAIN);
         body.add(text);
 
