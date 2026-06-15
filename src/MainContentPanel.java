@@ -40,6 +40,7 @@ public class MainContentPanel extends JPanel {
     static final Color POST_SELECTED_BG = new Color(232, 244, 255);
     static final Color POST_SELECTED_HOVER_BG = new Color(222, 238, 255);
     static final Color POST_SELECTED_BORDER = new Color(86, 142, 214);
+    private static final Map<String, Image> AVATAR_IMAGE_CACHE = new HashMap<>();
     private static final java.util.regex.Pattern SETTINGS_PASSWORD_PATTERN =
             java.util.regex.Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
 
@@ -342,6 +343,21 @@ public class MainContentPanel extends JPanel {
     }
 
     // ======== LEFT NAV — exact match to HTML sidebar ========
+    private void stabilizeScrollPane(JScrollPane scrollPane, Color background) {
+        scrollPane.setBackground(background);
+        scrollPane.setOpaque(true);
+        scrollPane.setViewportBorder(null);
+        JViewport viewport = scrollPane.getViewport();
+        viewport.setBackground(background);
+        viewport.setOpaque(true);
+        viewport.setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        viewport.addChangeListener(e -> viewport.repaint());
+        scrollPane.getVerticalScrollBar().getModel().addChangeListener(e -> {
+            viewport.repaint();
+            scrollPane.repaint();
+        });
+    }
+
     private JPanel buildNav() {
         // Load nav icon images from the project's image/ folder
         String[] iconFiles = {"icon_profile.png", "icon_friends.png", "icon_memory.png", "icon_search.png"};
@@ -604,10 +620,7 @@ public class MainContentPanel extends JPanel {
         
         profilePostScroll = new JScrollPane(profilePostFeed);
         profilePostScroll.setBorder(null);
-        profilePostScroll.setOpaque(false);
-        profilePostScroll.getViewport().setBackground(CANVAS);
-        profilePostScroll.getViewport().setOpaque(true);
-        profilePostScroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        stabilizeScrollPane(profilePostScroll, CANVAS);
         profilePostScroll.getVerticalScrollBar().setUnitIncrement(16);
         profilePostScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         profilePostScroll.setWheelScrollingEnabled(false);
@@ -1104,18 +1117,18 @@ public class MainContentPanel extends JPanel {
         mFeed.setLayout(new BoxLayout(mFeed, BoxLayout.Y_AXIS));
         mFeed.setBackground(HOVER_BG);
         mFeed.setOpaque(true);
+        mFeed.setDoubleBuffered(true);
         
         JPanel feedContainer = new JPanel(new CardLayout());
         feedContainer.setBackground(HOVER_BG);
         feedContainer.setOpaque(true);
+        feedContainer.setDoubleBuffered(true);
         feedContainer.add(mFeed, "FEED");
         feedContainer.add(emptyState, "EMPTY");
         
         mFeedScroll = new JScrollPane(feedContainer);
-        mFeedScroll.setBorder(null); mFeedScroll.setOpaque(false);
-        mFeedScroll.getViewport().setBackground(HOVER_BG);
-        mFeedScroll.getViewport().setOpaque(true);
-        mFeedScroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        mFeedScroll.setBorder(null);
+        stabilizeScrollPane(mFeedScroll, HOVER_BG);
         mFeedScroll.getVerticalScrollBar().setUnitIncrement(16);
         mFeedScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         p.add(mFeedScroll, BorderLayout.CENTER);
@@ -1808,6 +1821,10 @@ public class MainContentPanel extends JPanel {
             }
         }
         mFeed.revalidate(); mFeed.repaint();
+        if (mFeedScroll != null) {
+            mFeedScroll.getViewport().repaint();
+            mFeedScroll.repaint();
+        }
 
         if (mFeedScroll != null) {
             final int targetY = scrollY;
@@ -3053,7 +3070,11 @@ public class MainContentPanel extends JPanel {
         String resolved = resolveAvatarPath(path);
         if (resolved == null) resolved = path;
         try {
-            BufferedImage source = ImageIO.read(new File(resolved));
+            File file = new File(resolved);
+            String cacheKey = file.getAbsolutePath() + "|" + size + "|" + file.lastModified();
+            Image cached = AVATAR_IMAGE_CACHE.get(cacheKey);
+            if (cached != null) return cached;
+            BufferedImage source = ImageIO.read(file);
             if (source == null) return null;
             BufferedImage scaled = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g2 = scaled.createGraphics();
@@ -3062,6 +3083,7 @@ public class MainContentPanel extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.drawImage(source, 0, 0, size, size, null);
             g2.dispose();
+            AVATAR_IMAGE_CACHE.put(cacheKey, scaled);
             return scaled;
         } catch (Exception e) { return null; }
     }
@@ -3197,7 +3219,8 @@ public class MainContentPanel extends JPanel {
             this.size = size; this.user = user;
             setPreferredSize(new Dimension(size, size));
             setMinimumSize(new Dimension(size, size));
-            setOpaque(false);
+            setOpaque(true);
+            setBackground(CANVAS);
         }
         @Override
         protected void paintComponent(Graphics g) {
@@ -3260,7 +3283,6 @@ public class MainContentPanel extends JPanel {
 
         private void clearAvatarBounds(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
-            g2.setComposite(AlphaComposite.Src);
             g2.setColor(resolveAvatarBackground());
             g2.fillRect(0, 0, getWidth(), getHeight());
             g2.dispose();
