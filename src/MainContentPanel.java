@@ -119,6 +119,8 @@ public class MainContentPanel extends JPanel {
     private JPanel rRemark, rWork, rHome, rSig, rMutual;
     private JLabel rFriends, rPosts;
     private JPanel rActionPanel, rExtraPanel;
+    private User visibleFriendPostsUser;
+    private StyledButton friendPostsToggleButton;
 
     public MainContentPanel(MainGUI mainGUI, SocialNetwork network) {
         this.mainGUI = mainGUI;
@@ -1027,13 +1029,13 @@ public class MainContentPanel extends JPanel {
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setOpaque(false);
         infoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        infoPanel.setMaximumSize(new Dimension(820, 340));
+        infoPanel.setMaximumSize(new Dimension(820, 430));
         
         rRemark = detailRow("Remark", "Not set");
         rWork = detailRow("Workplace", "Not set");
         rHome = detailRow("Hometown", "Not set");
         rSig = detailRow("Signature", "No signature");
-        rMutual = detailRow("Mutual Friends", "0 person(s)");
+        rMutual = scrollableDetailRow("Mutual Friends", "0 person(s)");
         
         addDetailInfoRow(infoPanel, rRemark);
         addDetailInfoRow(infoPanel, rWork);
@@ -1044,10 +1046,10 @@ public class MainContentPanel extends JPanel {
         content.add(Box.createVerticalStrut(18));
         
         // Action buttons
-        rActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
+        rActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         rActionPanel.setOpaque(false);
         rActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        rActionPanel.setMaximumSize(new Dimension(820, 44));
+        rActionPanel.setMaximumSize(new Dimension(820, 96));
         content.add(rActionPanel);
         content.add(Box.createVerticalStrut(14));
         
@@ -1921,6 +1923,43 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
+    private JPanel scrollableDetailRow(String label, String val) {
+        JPanel row = new JPanel(new BorderLayout(26, 0));
+        row.setOpaque(true);
+        row.setBackground(new Color(239, 247, 255));
+        row.setBorder(new CompoundBorder(
+                BorderFactory.createMatteBorder(0, 4, 0, 0, BRAND),
+                new EmptyBorder(12, 18, 12, 18)));
+        row.setAlignmentX(Component.LEFT_ALIGNMENT);
+        row.setPreferredSize(new Dimension(760, 118));
+        row.setMinimumSize(new Dimension(0, 92));
+        row.setMaximumSize(new Dimension(820, 118));
+
+        JLabel l = new JLabel(label);
+        l.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        l.setForeground(BRAND_DARK);
+        l.setPreferredSize(new Dimension(150, 24));
+
+        JLabel v = new JLabel(val);
+        v.setFont(new Font(FONT_FAMILY, Font.BOLD, 15));
+        v.setForeground(TEXT_MAIN);
+        v.setVerticalAlignment(SwingConstants.TOP);
+        v.setName(label);
+
+        JScrollPane scroll = new JScrollPane(v);
+        scroll.setBorder(BorderFactory.createEmptyBorder());
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getViewport().setScrollMode(JViewport.SIMPLE_SCROLL_MODE);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.getVerticalScrollBar().setUnitIncrement(12);
+
+        row.add(l, BorderLayout.WEST);
+        row.add(scroll, BorderLayout.CENTER);
+        return row;
+    }
+
     private void addDetailInfoRow(JPanel parent, JPanel row) {
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         parent.add(row);
@@ -2613,22 +2652,25 @@ public class MainContentPanel extends JPanel {
         setDetailValueHtml(rMutual, formatMutualFriendsHtml(mutual));
 
         rActionPanel.removeAll();
+        rExtraPanel.removeAll();
+        visibleFriendPostsUser = null;
+        friendPostsToggleButton = null;
         if (isFriend) {
-            Dimension friendActionSize = new Dimension(128, 38);
             StyledButton remarkBtn = new StyledButton("Edit Remark", false);
-            remarkBtn.setFixedSize(friendActionSize);
+            sizeFriendActionButton(remarkBtn, 140, 176);
             remarkBtn.addActionListener(e -> showRemarkDialog(user));
             rActionPanel.add(remarkBtn);
-            StyledButton viewFriends = new StyledButton("View Friends", false);
-            viewFriends.setFixedSize(friendActionSize);
+            StyledButton viewFriends = new StyledButton("View Its Friends", false);
+            sizeFriendActionButton(viewFriends, 176, 220);
             viewFriends.addActionListener(e -> showFriendsDialog(user));
             rActionPanel.add(viewFriends);
-            StyledButton viewPosts = new StyledButton("View Posts", false);
-            viewPosts.setFixedSize(friendActionSize);
+            StyledButton viewPosts = new StyledButton("View Its Posts", false);
+            sizeFriendActionButton(viewPosts, 166, 210);
             viewPosts.addActionListener(e -> showFriendPosts(user));
+            friendPostsToggleButton = viewPosts;
             rActionPanel.add(viewPosts);
             StyledButton removeBtn = new StyledButton("Remove Friend", false);
-            removeBtn.setFixedSize(friendActionSize);
+            sizeFriendActionButton(removeBtn, 150, 190);
             removeBtn.addActionListener(e -> showRemoveFriendDialog(user));
             rActionPanel.add(removeBtn);
         } else {
@@ -2647,7 +2689,6 @@ public class MainContentPanel extends JPanel {
                 rActionPanel.add(addBtn);
             }
         }
-        rExtraPanel.removeAll();
         rActionPanel.revalidate();
         rActionPanel.repaint();
         rExtraPanel.revalidate(); 
@@ -3007,10 +3048,45 @@ public class MainContentPanel extends JPanel {
 
     private void showFriendPosts(User user) {
         if (user == null || rExtraPanel == null) return;
+
+        if (isFriendPostsVisibleFor(user)) {
+            rExtraPanel.removeAll();
+            visibleFriendPostsUser = null;
+            updateFriendPostsButtonText(user);
+            rExtraPanel.revalidate();
+            rExtraPanel.repaint();
+            return;
+        }
+
         rExtraPanel.removeAll();
         rExtraPanel.add(buildFriendPostsPanel(user), BorderLayout.CENTER);
+        visibleFriendPostsUser = user;
+        updateFriendPostsButtonText(user);
         rExtraPanel.revalidate();
         rExtraPanel.repaint();
+    }
+
+    private boolean isFriendPostsVisibleFor(User user) {
+        return user != null
+                && visibleFriendPostsUser != null
+                && Objects.equals(visibleFriendPostsUser.getUserId(), user.getUserId())
+                && rExtraPanel != null
+                && rExtraPanel.getComponentCount() > 0;
+    }
+
+    private void updateFriendPostsButtonText(User user) {
+        if (friendPostsToggleButton == null || user == null) return;
+        String action = isFriendPostsVisibleFor(user) ? "Close " : "View ";
+        friendPostsToggleButton.setText(action + "Its Posts");
+        sizeFriendActionButton(friendPostsToggleButton, 166, 210);
+        rActionPanel.revalidate();
+        rActionPanel.repaint();
+    }
+
+    private void sizeFriendActionButton(StyledButton button, int minWidth, int maxWidth) {
+        int textWidth = button.getFontMetrics(button.getFont()).stringWidth(button.getText());
+        int width = Math.max(minWidth, Math.min(maxWidth, textWidth + 34));
+        button.setFixedSize(new Dimension(width, 42));
     }
 
     private JPanel buildFriendPostsPanel(User user) {
@@ -3114,9 +3190,8 @@ public class MainContentPanel extends JPanel {
 
     private void setDetailValue(JPanel row, String val) {
         if (row != null && row.getComponentCount() >= 2) {
-            Component comp = row.getComponent(1);
-            if (comp instanceof JLabel) {
-                JLabel label = (JLabel) comp;
+            JLabel label = getDetailValueLabel(row.getComponent(1));
+            if (label != null) {
                 label.setText("<html><body style='width:540px'>" + escapeHtml(softWrapLongWords(val, 48)) + "</body></html>");
                 int rowHeight = Math.max(52, Math.min(96, label.getPreferredSize().height + 24));
                 row.setPreferredSize(new Dimension(760, rowHeight));
@@ -3129,15 +3204,33 @@ public class MainContentPanel extends JPanel {
     private void setDetailValueHtml(JPanel row, String htmlBody) {
         if (row != null && row.getComponentCount() >= 2) {
             Component comp = row.getComponent(1);
-            if (comp instanceof JLabel) {
-                JLabel label = (JLabel) comp;
+            JLabel label = getDetailValueLabel(comp);
+            if (label != null) {
                 label.setText("<html><body style='width:540px'>" + htmlBody + "</body></html>");
-                int rowHeight = Math.max(52, Math.min(118, label.getPreferredSize().height + 24));
-                row.setPreferredSize(new Dimension(760, rowHeight));
-                row.setMaximumSize(new Dimension(820, rowHeight));
+                if (comp instanceof JScrollPane) {
+                    row.setPreferredSize(new Dimension(760, 118));
+                    row.setMaximumSize(new Dimension(820, 118));
+                } else {
+                    int rowHeight = Math.max(52, Math.min(118, label.getPreferredSize().height + 24));
+                    row.setPreferredSize(new Dimension(760, rowHeight));
+                    row.setMaximumSize(new Dimension(820, rowHeight));
+                }
                 row.revalidate();
             }
         }
+    }
+
+    private JLabel getDetailValueLabel(Component comp) {
+        if (comp instanceof JLabel) {
+            return (JLabel) comp;
+        }
+        if (comp instanceof JScrollPane) {
+            Component view = ((JScrollPane) comp).getViewport().getView();
+            if (view instanceof JLabel) {
+                return (JLabel) view;
+            }
+        }
+        return null;
     }
 
     private void setDetailLabel(JPanel row, String label) {
