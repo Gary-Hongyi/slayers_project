@@ -4038,22 +4038,34 @@ public class MainContentPanel extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (hover) {
                 g2.setColor(new Color(0, 102, 204, 10));
-                g2.fillRoundRect(14, 4, 36, 36, 8, 8);
+                g2.fillRoundRect(10, 2, 44, 40, 10, 10);
             }
-            g2.setColor(hover ? BRAND : TEXT_MAIN);
-            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+
             int cx = 32, cy = 22;
-            for (int i = 0; i < 8; i++) {
-                double angle = i * Math.PI / 4.0;
-                int x1 = cx + (int) Math.round(Math.cos(angle) * 10);
-                int y1 = cy + (int) Math.round(Math.sin(angle) * 10);
-                int x2 = cx + (int) Math.round(Math.cos(angle) * 14);
-                int y2 = cy + (int) Math.round(Math.sin(angle) * 14);
-                g2.drawLine(x1, y1, x2, y2);
-            }
-            g2.drawOval(cx - 10, cy - 10, 20, 20);
-            g2.drawOval(cx - 4, cy - 4, 8, 8);
+            Shape shadow = createGearShape(cx, cy + 1);
+            g2.setColor(new Color(0, 0, 0, hover ? 18 : 10));
+            g2.fill(shadow);
+
+            Shape gear = createGearShape(cx, cy);
+            g2.setColor(hover ? BRAND : new Color(88, 88, 94));
+            g2.fill(gear);
+
+            g2.setColor(hover ? new Color(0, 89, 178) : new Color(70, 70, 76));
+            g2.setStroke(new BasicStroke(1.1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.draw(new Ellipse2D.Double(cx - 4.6, cy - 4.6, 9.2, 9.2));
             g2.dispose();
+        }
+
+        private Shape createGearShape(int cx, int cy) {
+            Area gear = new Area(new Ellipse2D.Double(cx - 10.5, cy - 10.5, 21, 21));
+            for (int i = 0; i < 8; i++) {
+                RoundRectangle2D.Double tooth =
+                        new RoundRectangle2D.Double(cx - 2.4, cy - 15.5, 4.8, 7.2, 1.8, 1.8);
+                AffineTransform rotate = AffineTransform.getRotateInstance(i * Math.PI / 4.0, cx, cy);
+                gear.add(new Area(rotate.createTransformedShape(tooth)));
+            }
+            gear.subtract(new Area(new Ellipse2D.Double(cx - 4.6, cy - 4.6, 9.2, 9.2)));
+            return gear;
         }
     }
 

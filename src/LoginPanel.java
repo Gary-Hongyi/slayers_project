@@ -177,18 +177,19 @@ public class LoginPanel extends JPanel {
         JPanel wrap = new JPanel(new GridBagLayout());
         wrap.setOpaque(false);
 
-        // Inner form — uses BoxLayout, no fixed max height so JScrollPane can scroll it
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        JPanel form = new JPanel(new GridBagLayout());
         form.setOpaque(false);
-        form.setBorder(BorderFactory.createEmptyBorder(36, 64, 40, 64));
 
-        form.add(centeredLabel("SnapTok",
+        JPanel intro = new JPanel();
+        intro.setLayout(new BoxLayout(intro, BoxLayout.Y_AXIS));
+        intro.setOpaque(false);
+
+        intro.add(centeredLabel("SnapTok",
                 new Font(FONT_FAMILY, Font.BOLD, 34), BRAND));
-        form.add(Box.createVerticalStrut(6));
-        form.add(centeredLabel("Create your account",
+        intro.add(Box.createVerticalStrut(6));
+        intro.add(centeredLabel("Create your account",
                 new Font(FONT_FAMILY, Font.PLAIN, 17), TEXT_HINT));
-        form.add(Box.createVerticalStrut(24));
+        intro.add(Box.createVerticalStrut(28));
 
         regAvatarPreview = new AvatarPreview(72);
         regAvatarPreview.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -196,65 +197,72 @@ public class LoginPanel extends JPanel {
         regAvatarPreview.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) { chooseRegisterAvatar(); }
         });
-        form.add(regAvatarPreview);
-        form.add(Box.createVerticalStrut(8));
+        intro.add(regAvatarPreview);
+        intro.add(Box.createVerticalStrut(8));
 
         JLabel avatarLink = linkLabel("Choose avatar", 14);
         avatarLink.setAlignmentX(Component.CENTER_ALIGNMENT);
         avatarLink.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) { chooseRegisterAvatar(); }
         });
-        form.add(avatarLink);
-        form.add(Box.createVerticalStrut(20));
+        intro.add(avatarLink);
+        intro.add(Box.createVerticalStrut(30));
+
+        JPanel fields = new JPanel();
+        fields.setLayout(new BoxLayout(fields, BoxLayout.Y_AXIS));
+        fields.setOpaque(false);
 
         regNameField = new FloatInput("Name", false);
-        form.add(regNameField);
-        form.add(Box.createVerticalStrut(10));
+        fields.add(regNameField);
+        fields.add(Box.createVerticalStrut(10));
 
         regIdField = new FloatInput("Choose a User ID", false);
-        form.add(regIdField);
-        form.add(Box.createVerticalStrut(10));
+        fields.add(regIdField);
+        fields.add(Box.createVerticalStrut(10));
 
         regPassField = new FloatInput("Password", true);
-        form.add(regPassField);
-        form.add(Box.createVerticalStrut(10));
+        fields.add(regPassField);
+        fields.add(Box.createVerticalStrut(10));
 
         regWorkField = new FloatInput("Workplace", false);
-        form.add(regWorkField);
-        form.add(Box.createVerticalStrut(10));
+        fields.add(regWorkField);
+        fields.add(Box.createVerticalStrut(10));
 
         regHomeField = new FloatInput("Hometown", false);
-        form.add(regHomeField);
-        form.add(Box.createVerticalStrut(20));
+        fields.add(regHomeField);
+        fields.add(Box.createVerticalStrut(18));
 
         PrimaryButton createBtn = new PrimaryButton("Create account");
         createBtn.addActionListener(e -> doRegister());
-        form.add(createBtn);
-        form.add(Box.createVerticalStrut(16));
+        fields.add(createBtn);
 
         JPanel backRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         backRow.setOpaque(false);
         JLabel already = new JLabel("Already have an account?  ");
-        already.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17)); already.setForeground(TEXT_SUB);
-        JLabel backLink = linkLabel("Sign in", 17);
+        already.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15)); already.setForeground(TEXT_SUB);
+        JLabel backLink = linkLabel("Sign in", 15);
         backLink.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 internalCards.show(internalPanel, LOGIN);
             }
         });
         backRow.add(already); backRow.add(backLink);
-        form.add(backRow);
-        form.add(Box.createVerticalStrut(8));
+        backRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+        intro.add(backRow);
 
-        // Scroll pane wraps the form so nothing gets clipped at any window height
-        JScrollPane scroll = new JScrollPane(form);
-        scroll.setBorder(null);
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.getVerticalScrollBar().setUnitIncrement(12);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.fill = GridBagConstraints.VERTICAL;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.weighty = 1.0;
+        gbc.gridx = 0;
+        gbc.insets = new Insets(0, 0, 0, 44);
+        form.add(intro, gbc);
 
-        // White card that fills the scroll pane
+        gbc.gridx = 1;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        form.add(fields, gbc);
+
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -273,8 +281,9 @@ public class LoginPanel extends JPanel {
         };
         card.setOpaque(false);
         card.setLayout(new BorderLayout());
-        card.setPreferredSize(new Dimension(FIELD_W + 128, 560));
-        card.add(scroll, BorderLayout.CENTER);
+        card.setBorder(BorderFactory.createEmptyBorder(40, 48, 40, 48));
+        card.setPreferredSize(new Dimension(FIELD_W + 380, 500));
+        card.add(form, BorderLayout.CENTER);
 
         wrap.add(card);
         return wrap;
