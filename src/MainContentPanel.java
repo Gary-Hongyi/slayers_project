@@ -2249,6 +2249,7 @@ public class MainContentPanel extends JPanel {
         JTextField nameField = createSettingsField(cur.getName());
         JTextField workField = createSettingsField(cur.getWorkplace());
         JTextField homeField = createSettingsField(cur.getHometown());
+        JTextArea signatureField = createSettingsTextArea(cur.getSignature());
         JPasswordField passwordField = createSettingsPasswordField();
         JPasswordField confirmField = createSettingsPasswordField();
         String[] selectedAvatarPath = {cur.getAvatarPath()};
@@ -2285,6 +2286,7 @@ public class MainContentPanel extends JPanel {
         panel.add(settingsFieldBlock("Name", nameField));
         panel.add(settingsFieldBlock("Workplace", workField));
         panel.add(settingsFieldBlock("Hometown", homeField));
+        panel.add(settingsTextAreaBlock("Signature", signatureField));
         panel.add(settingsFieldBlock("New Password", passwordField));
         panel.add(settingsFieldBlock("Confirm Password", confirmField));
         panel.add(Box.createVerticalStrut(18));
@@ -2296,14 +2298,26 @@ public class MainContentPanel extends JPanel {
         StyledButton cancel = new StyledButton("Cancel", false);
         cancel.addActionListener(e -> dialog.dispose());
         StyledButton save = new StyledButton("Save", true);
-        save.addActionListener(e -> saveSettings(dialog, nameField, workField, homeField,
+        save.addActionListener(e -> saveSettings(dialog, nameField, workField, homeField, signatureField,
                 passwordField, confirmField, selectedAvatarPath[0]));
         buttons.add(cancel);
         buttons.add(save);
         panel.add(buttons);
 
-        dialog.setContentPane(panel);
+        JScrollPane dialogScroll = new JScrollPane(panel);
+        dialogScroll.setBorder(null);
+        dialogScroll.getViewport().setBackground(Color.WHITE);
+        dialogScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        dialogScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        dialogScroll.getVerticalScrollBar().setUnitIncrement(16);
+        dialog.setContentPane(dialogScroll);
         dialog.pack();
+        Dimension preferred = dialog.getPreferredSize();
+        int maxHeight = Math.min(Toolkit.getDefaultToolkit().getScreenSize().height - 80,
+                Math.max(520, getHeight() - 60));
+        if (preferred.height > maxHeight) {
+            dialog.setSize(new Dimension(preferred.width + 18, maxHeight));
+        }
         dialog.setLocationRelativeTo(this);
         dialog.getRootPane().setDefaultButton(save);
         SwingUtilities.invokeLater(nameField::requestFocusInWindow);
@@ -2328,10 +2342,52 @@ public class MainContentPanel extends JPanel {
         return block;
     }
 
+    private JPanel settingsTextAreaBlock(String labelText, JTextArea area) {
+        JPanel block = new JPanel();
+        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
+        block.setOpaque(false);
+        block.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.setMaximumSize(new Dimension(360, 118));
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(YH_SM);
+        label.setForeground(TEXT_SUB);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.add(label);
+        block.add(Box.createVerticalStrut(6));
+
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setBorder(BorderFactory.createLineBorder(HAIRLINE, 1));
+        scroll.setBackground(Color.WHITE);
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.setPreferredSize(new Dimension(360, 78));
+        scroll.setMaximumSize(new Dimension(360, 78));
+        scroll.setAlignmentX(Component.LEFT_ALIGNMENT);
+        block.add(scroll);
+        block.add(Box.createVerticalStrut(10));
+        return block;
+    }
+
     private JTextField createSettingsField(String value) {
         JTextField field = new JTextField(value != null ? value : "");
         styleSettingsField(field);
         return field;
+    }
+
+    private JTextArea createSettingsTextArea(String value) {
+        JTextArea area = new PlaceholderTextArea("Write something about yourself...", 3, 20);
+        area.setText(value != null ? value : "");
+        area.setFont(YH);
+        area.setForeground(TEXT_MAIN);
+        area.setCaretColor(BRAND);
+        area.setBackground(Color.WHITE);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setBorder(new EmptyBorder(9, 12, 9, 12));
+        area.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return area;
     }
 
     private JPasswordField createSettingsPasswordField() {
@@ -2355,13 +2411,15 @@ public class MainContentPanel extends JPanel {
     }
 
     private void saveSettings(JDialog dialog, JTextField nameField, JTextField workField, JTextField homeField,
-                              JPasswordField passwordField, JPasswordField confirmField, String avatarPath) {
+                              JTextArea signatureField, JPasswordField passwordField,
+                              JPasswordField confirmField, String avatarPath) {
         User cur = network.getCurrentUser();
         if (cur == null) return;
 
         String name = nameField.getText().trim();
         String work = workField.getText().trim();
         String home = homeField.getText().trim();
+        String signature = normalizeSettingsSignature(signatureField.getText());
         String password = new String(passwordField.getPassword());
         String confirm = new String(confirmField.getPassword());
 
@@ -2388,6 +2446,7 @@ public class MainContentPanel extends JPanel {
         cur.setName(name);
         cur.setWorkplace(work.isEmpty() ? "Unknown" : work);
         cur.setHometown(home.isEmpty() ? "Unknown" : home);
+        cur.setSignature(signature);
         cur.setAvatarPath(avatarPath != null ? avatarPath : "");
         syncCurrentUserProfileReferences(cur);
         LoginPanel.rewriteUsersFile(network);
@@ -2399,6 +2458,11 @@ public class MainContentPanel extends JPanel {
 
     private boolean hasUnsafeSettingsText(String value) {
         return value != null && (value.contains(",") || value.contains("|"));
+    }
+
+    private String normalizeSettingsSignature(String value) {
+        if (value == null) return "";
+        return value.trim().replaceAll("\\R+", " ").replaceAll("[ \\t]{2,}", " ");
     }
 
     private void refreshAvatarViewsImmediately() {

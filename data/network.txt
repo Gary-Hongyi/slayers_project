@@ -1,30 +1,19 @@
 [USERS]
-gary|wefw|ferf|erfw|123456||||
-12306|hongyi|vvserg|vsergf|wefacwc1||||MTIzNDU2
-123456|Zhanqi Wu|ChangSha|Jing|123|666|image/avatars/1781499347870______2026-04-05_133035.png||
-12321a|12321|changsha|changsha|12321a||||
-12345|鸿毅@|12345|12345|123456ll||image/avatars/1781442841082_2.jpg||
-10001|@@@@|vewr|wefr|10001ll|||123456:c29u|
-12212|12212|changsha|changsha|llllll1||||
-1234567|dad|Unknown|Unknown|123456a||||MTIzNDU2
+Jack567|Jack|ChangSha|Dundee|5678Jack||image/avatars/1781708677088______20260617225717_569_2407.jpg||TGVvMTIz
+Bob234|Bob|CSU|ChangSha|23456Bob||image/avatars/1781708441304______20260617225715_567_2407.jpg||SmFjazU2Nw;TGVvMTIz
+Alice123|Alice|CSU|Dundee|123456w||image/avatars/1781708323210______20260617225715_566_2407.jpg||TGVvMTIz
+Leo123|Leo|CSU|Dundee|Leo123|Hello|image/avatars/1781709012255_Leo.jpg||
 [FRIENDSHIPS]
-gary|10001
-gary|123456
-gary|12345
-12306|123456
-123456|10001
-123456|12345
-123456|1234567
-12345|10001
+Jack567|Alice123
+Jack567|Bob234
+Jack567|Leo123
+Bob234|Alice123
+Alice123|Leo123
 [POSTS]
-P10|123456|Do you love me|2026-06-15 13:52:12|123456
-P12|123456|I love you babe|2026-06-15 13:52:44|123456
-P17|123456|I like this class and coding|2026-06-17 22:30:52|123456
-P8|12345|2222|2026-06-14 21:39:14|12345,123456
-P7|10001|hello Mr|2026-06-14 21:34:40|12345,123456
+P1|Alice123|Hello|2026-06-17 22:59:06|Leo123
 [COMMENTS]
-P8|12345|good|2026-06-14 21:39:48
-P7|10001|3|2026-06-14 21:34:57
+P1|Leo123|Hello|2026-06-17 23:59:25
+P1|Leo123|Nice to meet ypu|2026-06-17 23:59:42
 [COUNTER]
-17
+1
 [END]
