@@ -234,6 +234,38 @@ public class SocialNetwork {
     }
 
     /**
+     * Collects posts visible to the given viewer: their own posts and friends' posts.
+     *
+     * @param viewer the user viewing the feed
+     * @return visible posts sorted by timestamp (newest first)
+     */
+    public List<Post> getVisiblePostsFor(User viewer) {
+        List<Post> visiblePosts = new ArrayList<>();
+        if (viewer == null) return visiblePosts;
+
+        for (User user : users.values()) {
+            if (user.equals(viewer) || viewer.isFriendWith(user)) {
+                visiblePosts.addAll(user.getPosts());
+            }
+        }
+        visiblePosts.sort((p1, p2) -> p2.getTimestamp().compareTo(p1.getTimestamp()));
+        return visiblePosts;
+    }
+
+    /**
+     * Checks whether a viewer can open a post.
+     *
+     * @param viewer the user viewing the post
+     * @param post   the post to view
+     * @return true if the post belongs to the viewer or one of their friends
+     */
+    public boolean canViewPost(User viewer, Post post) {
+        if (viewer == null || post == null || post.getAuthor() == null) return false;
+        User author = post.getAuthor();
+        return author.equals(viewer) || viewer.isFriendWith(author);
+    }
+
+    /**
      * Finds a post by ID.
      *
      * @param postId the post ID

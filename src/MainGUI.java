@@ -253,9 +253,18 @@ public class MainGUI extends JFrame {
 
     /** Called after successful login to show the main 3-column content. */
     public void showMainContent() {
-        contentPanel.refreshProfile();
+        contentPanel.startUserSession();
         cardLayout.show(mainPanel, MAIN_CARD);
         SwingUtilities.invokeLater(() -> contentPanel.showPendingFriendNotifications());
+    }
+
+    /** Logs out the current user and clears user-specific UI state before returning to login. */
+    public void logoutCurrentUser() {
+        saveNetworkNow();
+        contentPanel.clearSessionState();
+        network.setCurrentUser(null);
+        loginPanel.clearForLogout();
+        cardLayout.show(mainPanel, LOGIN_CARD);
     }
 
     public SocialNetwork getNetwork() { return network; }

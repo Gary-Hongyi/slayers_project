@@ -558,9 +558,7 @@ public class MainContentPanel extends JPanel {
                     public void mouseExited(MouseEvent e) { hov = false; repaint(); }
                 });
                 addActionListener(e -> {
-                    mainGUI.saveNetworkNow();
-                    network.setCurrentUser(null);
-                    mainGUI.showCard(MainGUI.LOGIN_CARD);
+                    mainGUI.logoutCurrentUser();
                 });
             }
 
@@ -583,6 +581,108 @@ public class MainContentPanel extends JPanel {
             }
         };
         return logoutBtn;
+    }
+
+    void startUserSession() {
+        clearSessionState();
+        navIdx = 0;
+        refreshProfile();
+        if (midCards != null && midPanel != null) {
+            midCards.show(midPanel, "PROFILE");
+        }
+        showProfileRight();
+        repaint();
+    }
+
+    void clearSessionState() {
+        detailUser = null;
+        detailPost = null;
+        visibleFriendPostsUser = null;
+        friendPostsToggleButton = null;
+
+        clearTextComponents(this);
+        resetLabelsForLoggedOutState();
+
+        fFilter = "All";
+        sFilter = "Mutual Friends";
+        updateFriendFilterChips();
+        updateSearchFilterChips();
+
+        if (fModel != null) fModel.clear();
+        if (fList != null) fList.clearSelection();
+        if (sModel != null) sModel.clear();
+        if (sList != null) sList.clearSelection();
+        if (searchResultModel != null) searchResultModel.clear();
+        if (searchResultList != null) searchResultList.clearSelection();
+        sRecommendationReasons.clear();
+
+        clearPanel(profilePostFeed);
+        clearPanel(mFeed);
+        clearPanel(rActionPanel);
+        clearPanel(rExtraPanel);
+        clearPanel(postDetailCommentsSlot);
+
+        if (fListContainer != null) {
+            ((CardLayout) fListContainer.getLayout()).show(fListContainer, "EMPTY");
+        }
+        if (searchResultsContainer != null) {
+            ((CardLayout) searchResultsContainer.getLayout()).show(searchResultsContainer, "EMPTY");
+        }
+        if (friendsRightCards != null && friendsRightPanel != null) {
+            friendsRightCards.show(friendsRightPanel, "EMPTY");
+        }
+        if (momentsRightCards != null && momentsRightPanel != null) {
+            momentsRightCards.show(momentsRightPanel, "EMPTY");
+        }
+        if (midCards != null && midPanel != null) {
+            midCards.show(midPanel, "PROFILE");
+        }
+    }
+
+    private void clearTextComponents(Component component) {
+        if (component == null) return;
+        if (component instanceof javax.swing.text.JTextComponent) {
+            ((javax.swing.text.JTextComponent) component).setText("");
+        }
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                clearTextComponents(child);
+            }
+        }
+    }
+
+    private void resetLabelsForLoggedOutState() {
+        if (pAvatar instanceof AvatarLabel) {
+            ((AvatarLabel) pAvatar).user = null;
+            pAvatar.repaint();
+        }
+        if (pName != null) pName.setText("");
+        if (pId != null) pId.setText("");
+        if (rFriends != null) rFriends.setText("0");
+        if (rPosts != null) rPosts.setText("0");
+        if (rAvatar instanceof AvatarLabel) {
+            ((AvatarLabel) rAvatar).user = null;
+            rAvatar.repaint();
+        }
+        if (rName != null) rName.setText("");
+        if (rId != null) rId.setText("");
+        if (postDetailAvatar != null) {
+            postDetailAvatar.user = null;
+            postDetailAvatar.repaint();
+        }
+        if (postDetailAuthor != null) postDetailAuthor.setText("");
+        if (postDetailTime != null) postDetailTime.setText("");
+        if (postDetailEngagement != null) postDetailEngagement.setText("");
+        if (postDetailLikers != null) postDetailLikers.setText("");
+        if (postDetailActivityLikes != null) postDetailActivityLikes.setText("0 like(s)");
+        if (postDetailActivityComments != null) postDetailActivityComments.setText("0 comment(s)");
+    }
+
+    private void clearPanel(JPanel panel) {
+        if (panel == null) return;
+        panel.removeAll();
+        panel.revalidate();
+        panel.repaint();
     }
 
     /** HTML info-row: key label (88px, muted) + editable value field, bottom hairline */
@@ -2084,7 +2184,7 @@ public class MainContentPanel extends JPanel {
         mFeed.removeAll();
         User cur = network.getCurrentUser();
         if (cur == null) return;
-        List<Post> posts = network.getAllPosts();
+        List<Post> posts = network.getVisiblePostsFor(cur);
         if (posts.isEmpty()) {
             JLabel empty = new JLabel("No moments yet. Share something!");
             empty.setFont(YH); empty.setForeground(TEXT_HINT);
@@ -2640,8 +2740,19 @@ public class MainContentPanel extends JPanel {
     }
 
     void showPostDetail(Post post) {
-        detailPost = post;
         if (post == null) return;
+        User cur = network.getCurrentUser();
+        if (!network.canViewPost(cur, post)) {
+            detailPost = null;
+            if (momentsRightCards != null && momentsRightPanel != null) {
+                momentsRightCards.show(momentsRightPanel, "EMPTY");
+                momentsRightPanel.revalidate();
+                momentsRightPanel.repaint();
+            }
+            refreshMoments();
+            return;
+        }
+        detailPost = post;
         if (navIdx != 2) {
             selectNav(2);
         }
@@ -2746,7 +2857,6 @@ public class MainContentPanel extends JPanel {
                     if (showStyledConfirm(message, "Add Friend")) {
                         if (addFriendAndNotify(user)) {
                             showStyledDialog(user.getName() + " has been added as a friend!");
-                            refreshSearch();
                         }
                     }
                 });
@@ -2819,7 +2929,7 @@ public class MainContentPanel extends JPanel {
         removeBtn.addActionListener(e -> {
             cur.removeFriend(user);
             mainGUI.saveNetworkNow();
-            refreshFriends();
+            refreshAfterFriendshipChange(user);
             showEmptyRight();
             dialog.dispose();
         });
@@ -2843,6 +2953,11 @@ public class MainContentPanel extends JPanel {
     private void showAddFriendDialog(User user) {
         User cur = network.getCurrentUser();
         if (cur == null || user == null) return;
+
+        if (cur.equals(user)) {
+            showStyledDialog("This is you.");
+            return;
+        }
         
         // Check if already friends
         if (cur.isFriendWith(user)) {
@@ -2856,7 +2971,6 @@ public class MainContentPanel extends JPanel {
         if (showStyledConfirm(message, "Add Friend")) {
             if (addFriendAndNotify(user)) {
                 showStyledDialog(user.getName() + " has been added as a friend!");
-                refreshSearch();
             }
         }
     }
@@ -2870,8 +2984,21 @@ public class MainContentPanel extends JPanel {
 
         user.addFriendNotification(cur.getUserId());
         mainGUI.saveNetworkNow();
-        refreshProfile();
+        refreshAfterFriendshipChange(user);
         return true;
+    }
+
+    private void refreshAfterFriendshipChange(User changedUser) {
+        refreshProfile();
+        refreshFriends();
+        refreshSearch();
+        refreshMoments(true);
+
+        if (detailUser != null && changedUser != null
+                && Objects.equals(detailUser.getUserId(), changedUser.getUserId())) {
+            User cur = network.getCurrentUser();
+            updateDetailPanel(changedUser, cur != null && cur.isFriendWith(changedUser));
+        }
     }
 
     void showPendingFriendNotifications() {
@@ -2928,6 +3055,7 @@ public class MainContentPanel extends JPanel {
         panel.add(hint);
         panel.add(Box.createVerticalStrut(16));
 
+        int remarkContentWidth = 384;
         JTextField field = new JTextField(cur.getFriendRemark(friend.getUserId()));
         field.setFont(YH);
         field.setForeground(TEXT_MAIN);
@@ -2936,17 +3064,25 @@ public class MainContentPanel extends JPanel {
                 BorderFactory.createLineBorder(HAIRLINE, 1),
                 new EmptyBorder(9, 12, 9, 12)));
         field.setBackground(Color.WHITE);
-        field.setMaximumSize(new Dimension(320, 40));
+        field.setPreferredSize(new Dimension(remarkContentWidth, 40));
+        field.setMinimumSize(new Dimension(remarkContentWidth, 40));
+        field.setMaximumSize(new Dimension(remarkContentWidth, 40));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(field);
         panel.add(Box.createVerticalStrut(18));
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel buttons = new JPanel();
+        buttons.setLayout(new BoxLayout(buttons, BoxLayout.X_AXIS));
         buttons.setOpaque(false);
         buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        buttons.setPreferredSize(new Dimension(remarkContentWidth, 42));
+        buttons.setMinimumSize(new Dimension(remarkContentWidth, 42));
+        buttons.setMaximumSize(new Dimension(remarkContentWidth, 42));
         StyledButton cancel = new StyledButton("Cancel", false);
+        cancel.setFixedSize(new Dimension(168, 42));
         cancel.addActionListener(e -> dialog.dispose());
         StyledButton save = new StyledButton("Save", true);
+        save.setFixedSize(new Dimension(208, 42));
         save.addActionListener(e -> {
             String remark = field.getText().trim();
             cur.setFriendRemark(friend.getUserId(), remark);
@@ -2957,6 +3093,7 @@ public class MainContentPanel extends JPanel {
             dialog.dispose();
         });
         buttons.add(cancel);
+        buttons.add(Box.createHorizontalStrut(8));
         buttons.add(save);
         panel.add(buttons);
 
@@ -3028,6 +3165,10 @@ public class MainContentPanel extends JPanel {
         if (detailPost == null) return;
         User cur = network.getCurrentUser();
         if (cur == null) return;
+        if (!network.canViewPost(cur, detailPost)) {
+            showPostDetail(detailPost);
+            return;
+        }
         if (detailPost.isLikedBy(cur)) detailPost.removeLike(cur);
         else detailPost.addLike(cur);
         mainGUI.saveNetworkNow();
@@ -3112,6 +3253,8 @@ public class MainContentPanel extends JPanel {
 
     private void showFriendPosts(User user) {
         if (user == null || rExtraPanel == null) return;
+        User cur = network.getCurrentUser();
+        if (cur == null || !cur.isFriendWith(user)) return;
 
         if (isFriendPostsVisibleFor(user)) {
             rExtraPanel.removeAll();
@@ -3183,7 +3326,7 @@ public class MainContentPanel extends JPanel {
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setOpaque(true);
         list.setBackground(CANVAS);
-        list.setBorder(new EmptyBorder(0, 0, 0, 10));
+        list.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         List<Post> posts = new ArrayList<>(user.getPosts());
         posts.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
@@ -3222,7 +3365,9 @@ public class MainContentPanel extends JPanel {
         card.setBorder(new CompoundBorder(
                 BorderFactory.createLineBorder(HAIRLINE, 1),
                 new EmptyBorder(10, 12, 10, 12)));
-        card.setMaximumSize(new Dimension(740, 138));
+        card.setPreferredSize(new Dimension(760, 138));
+        card.setMinimumSize(new Dimension(0, 138));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 138));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel meta = new JPanel(new BorderLayout());
@@ -3481,6 +3626,10 @@ public class MainContentPanel extends JPanel {
     private void addComment(Post post, JTextArea input) {
         User cur = network.getCurrentUser();
         if (cur == null || post == null) return;
+        if (!network.canViewPost(cur, post)) {
+            showPostDetail(post);
+            return;
+        }
         String text = input.getText().trim();
         if (text.isEmpty()) {
             showStyledDialog("Write a comment first.");
