@@ -434,6 +434,7 @@ public class LoginPanel extends JPanel {
             return;
         }
         network.setCurrentUser(u);
+        loginPassField.setText("");
         mainGUI.showMainContent();
     }
 
@@ -554,6 +555,18 @@ public class LoginPanel extends JPanel {
         resetVerifiedUser = null;
         setResetIdentityEnabled(true);
         if (resetPasswordPanel != null) resetPasswordPanel.setVisible(false);
+    }
+
+    void clearForLogout() {
+        loginIdField.setText("");
+        loginPassField.setText("");
+        loginNoticeLabel.setText(" ");
+        clearReg();
+        clearReset();
+        if (successIdLabel != null) successIdLabel.setText("ID:");
+        if (successAvatarPreview != null) successAvatarPreview.setImagePath("");
+        internalCards.show(internalPanel, LOGIN);
+        SwingUtilities.invokeLater(loginIdField::requestFocusInWindow);
     }
 
     private void setResetIdentityEnabled(boolean enabled) {
