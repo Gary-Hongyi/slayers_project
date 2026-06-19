@@ -14,7 +14,10 @@ import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
 
 /**
- * Apple-style login panel with floating label inputs and clean layout.
+ * Provides the login, registration and password reset screens for SnapTok.
+ *
+ * @author Team Slayers
+ * @version 1.0
  */
 public class LoginPanel extends JPanel {
 
@@ -23,36 +26,34 @@ public class LoginPanel extends JPanel {
     private CardLayout internalCards;
     private JPanel internalPanel;
 
-    // Login
     private FloatInput loginIdField;
     private FloatInput loginPassField;
     private JLabel loginNoticeLabel;
-    // Register
+
     private FloatInput regNameField, regIdField, regPassField, regWorkField, regHomeField;
     private AvatarPreview regAvatarPreview;
     private String regAvatarPath = "";
-    // Reset password
+
     private FloatInput resetIdField, resetNameField, resetWorkField, resetHomeField;
     private FloatInput resetPassField, resetConfirmField;
     private JPanel resetPasswordPanel;
     private JLabel resetVerifiedLabel;
     private User resetVerifiedUser;
-    // Success
+
     private AvatarPreview successAvatarPreview;
     private JLabel successIdLabel;
 
     private static final String LOGIN = "LOGIN", REGISTER = "REGISTER";
     private static final String RESET = "RESET", SUCCESS = "SUCCESS";
 
-    // Apple Design System — clean, minimal, Action Blue accent
     private static final String FONT_FAMILY = "Segoe UI";
-    private static final Color BRAND = new Color(0, 102, 204);         // #0066cc Action Blue
-    private static final Color BRAND_DARK = new Color(0, 89, 178);     // press state
-    private static final Color TEXT_MAIN = new Color(29, 29, 31);      // #1d1d1f ink
-    private static final Color TEXT_SUB = new Color(122, 122, 122);    // #7a7a7a muted-48
-    private static final Color TEXT_HINT = new Color(122, 122, 122);   // #7a7a7a muted-48
-    private static final Color INPUT_BG = new Color(255, 255, 255);    // #ffffff white input background
-    private static final Color HAIRLINE = new Color(224, 224, 224);    // #e0e0e0 hairline
+    private static final Color BRAND = new Color(0, 102, 204);
+    private static final Color BRAND_DARK = new Color(0, 89, 178);
+    private static final Color TEXT_MAIN = new Color(29, 29, 31);
+    private static final Color TEXT_SUB = new Color(122, 122, 122);
+    private static final Color TEXT_HINT = new Color(122, 122, 122);
+    private static final Color INPUT_BG = new Color(255, 255, 255);
+    private static final Color HAIRLINE = new Color(224, 224, 224);
     private static final int FIELD_W = 352;
     private static final Pattern USER_ID_PATTERN = Pattern.compile("^[A-Za-z0-9_]{3,16}$");
     private static final Pattern PASSWORD_PATTERN =
@@ -66,6 +67,9 @@ public class LoginPanel extends JPanel {
         USERS_FILE = new File(getProjectRoot(), "users.txt").getAbsolutePath();
     }
 
+    /**
+     * Constructs a new LoginPanel object.
+     */
     public LoginPanel(MainGUI mainGUI, SocialNetwork network) {
         this.mainGUI = mainGUI;
         this.network = network;
@@ -81,13 +85,12 @@ public class LoginPanel extends JPanel {
         internalPanel.add(buildSuccess(), SUCCESS);
         add(internalPanel, BorderLayout.CENTER);
 
-        // Load persisted users on startup
         loadUsersFile();
     }
 
-    // ================================================================
-    //  LOGIN SCREEN
-    // ================================================================
+    /**
+     * Builds the login.
+     */
     private JPanel buildLogin() {
         JPanel wrap = new JPanel(new GridBagLayout());
         wrap.setOpaque(false);
@@ -96,13 +99,11 @@ public class LoginPanel extends JPanel {
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setOpaque(false);
 
-        // Title
         JLabel title = centeredLabel("SnapTok",
                 new Font(FONT_FAMILY, Font.BOLD, 34), BRAND);
         form.add(title);
         form.add(Box.createVerticalStrut(6));
 
-        // Subtitle
         form.add(centeredLabel("Sign in to your account",
                 new Font(FONT_FAMILY, Font.PLAIN, 17), TEXT_HINT));
         form.add(Box.createVerticalStrut(10));
@@ -111,17 +112,14 @@ public class LoginPanel extends JPanel {
         form.add(loginNoticeLabel);
         form.add(Box.createVerticalStrut(20));
 
-        // User ID
         loginIdField = new FloatInput("User ID", false);
         form.add(loginIdField);
         form.add(Box.createVerticalStrut(12));
 
-        // Password
         loginPassField = new FloatInput("Password", true);
         form.add(loginPassField);
         form.add(Box.createVerticalStrut(10));
 
-        // Forgot password
         JPanel forgotRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         forgotRow.setOpaque(false);
         forgotRow.setMaximumSize(new Dimension(FIELD_W, 20));
@@ -138,17 +136,14 @@ public class LoginPanel extends JPanel {
         form.add(forgotRow);
         form.add(Box.createVerticalStrut(20));
 
-        // Sign in button
         PrimaryButton signIn = new PrimaryButton("Sign in");
         signIn.addActionListener(e -> doLogin());
         form.add(signIn);
         form.add(Box.createVerticalStrut(16));
 
-        // Separator
         form.add(buildSeparator("OR"));
         form.add(Box.createVerticalStrut(16));
 
-        // Register link
         JPanel regRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
         regRow.setOpaque(false);
         JLabel noAcc = new JLabel("Don't have an account?  ");
@@ -170,9 +165,9 @@ public class LoginPanel extends JPanel {
         return wrap;
     }
 
-    // ================================================================
-    //  REGISTER SCREEN
-    // ================================================================
+    /**
+     * Builds the register.
+     */
     private JPanel buildRegister() {
         JPanel wrap = new JPanel(new GridBagLayout());
         wrap.setOpaque(false);
@@ -289,9 +284,9 @@ public class LoginPanel extends JPanel {
         return wrap;
     }
 
-    // ================================================================
-    //  RESET PASSWORD SCREEN
-    // ================================================================
+    /**
+     * Builds the reset password.
+     */
     private JPanel buildResetPassword() {
         JPanel wrap = new JPanel(new GridBagLayout());
         wrap.setOpaque(false);
@@ -333,7 +328,7 @@ public class LoginPanel extends JPanel {
         resetPasswordPanel.setOpaque(false);
         resetPasswordPanel.setVisible(false);
 
-        resetVerifiedLabel = centeredLabel("Identity verified. Set a new password.", 
+        resetVerifiedLabel = centeredLabel("Identity verified. Set a new password.",
                 new Font(FONT_FAMILY, Font.PLAIN, 14), BRAND);
         resetPasswordPanel.add(resetVerifiedLabel);
         resetPasswordPanel.add(Box.createVerticalStrut(14));
@@ -371,9 +366,9 @@ public class LoginPanel extends JPanel {
         return wrap;
     }
 
-    // ================================================================
-    //  REGISTER SUCCESS SCREEN
-    // ================================================================
+    /**
+     * Builds the success.
+     */
     private JPanel buildSuccess() {
         JPanel wrap = new JPanel(new GridBagLayout());
         wrap.setOpaque(false);
@@ -394,7 +389,7 @@ public class LoginPanel extends JPanel {
         form.add(successAvatarPreview);
         form.add(Box.createVerticalStrut(14));
 
-        successIdLabel = centeredLabel("ID:", 
+        successIdLabel = centeredLabel("ID:",
                 new Font(FONT_FAMILY, Font.BOLD, 14), TEXT_MAIN);
         form.add(successIdLabel);
         form.add(Box.createVerticalStrut(32));
@@ -407,9 +402,9 @@ public class LoginPanel extends JPanel {
         return wrap;
     }
 
-    // ================================================================
-    //  ACTIONS
-    // ================================================================
+    /**
+     * Validates the login form and signs in the user when the credentials are correct.
+     */
     private void doLogin() {
         String id = loginIdField.getText().trim();
         String pw = loginPassField.getText();
@@ -417,10 +412,9 @@ public class LoginPanel extends JPanel {
         if (pw.isEmpty()) { err("Please enter your password."); return; }
         if (!isValidUserId(id)) { err(userIdRuleMessage()); return; }
 
-        // First check in-memory network, then check users.txt
         User u = network.getUser(id);
         if (u == null) {
-            // Try loading from users.txt
+
             loadUsersFile();
             u = network.getUser(id);
         }
@@ -438,6 +432,9 @@ public class LoginPanel extends JPanel {
         mainGUI.showMainContent();
     }
 
+    /**
+     * Validates the registration form and creates a new user account.
+     */
     private void doRegister() {
         String name = regNameField.getText().trim();
         String id = regIdField.getText().trim();
@@ -454,7 +451,6 @@ public class LoginPanel extends JPanel {
             return;
         }
 
-        // Check both in-memory and file
         loadUsersFile();
         if (network.getUser(id) != null) {
             showStyledDialog("User ID already exists. Please choose a different one.");
@@ -469,14 +465,15 @@ public class LoginPanel extends JPanel {
         newUser.setAvatarPath(avatarPath);
         network.addUser(newUser);
 
-        // Persist to users.txt
         saveUserToFile(id, pw, name, workplace, hometown);
 
         showRegisterSuccess(id, avatarPath);
         clearReg();
     }
 
-
+    /**
+     * Checks whether the reset-password identity fields match an existing account.
+     */
     private void verifyResetIdentity() {
         loadUsersFile();
 
@@ -516,6 +513,9 @@ public class LoginPanel extends JPanel {
         SwingUtilities.invokeLater(resetPassField::requestFocusInWindow);
     }
 
+    /**
+     * Validates and saves a new password for an existing account.
+     */
     private void doResetPassword() {
         if (resetVerifiedUser == null) {
             verifyResetIdentity();
@@ -540,6 +540,9 @@ public class LoginPanel extends JPanel {
         internalCards.show(internalPanel, LOGIN);
     }
 
+    /**
+     * Clears the reg.
+     */
     private void clearReg() {
         regNameField.setText(""); regIdField.setText("");
         regPassField.setText(""); regWorkField.setText("");
@@ -548,6 +551,9 @@ public class LoginPanel extends JPanel {
         if (regAvatarPreview != null) regAvatarPreview.setImagePath("");
     }
 
+    /**
+     * Clears the reset.
+     */
     private void clearReset() {
         resetIdField.setText(""); resetNameField.setText("");
         resetWorkField.setText(""); resetHomeField.setText("");
@@ -569,6 +575,9 @@ public class LoginPanel extends JPanel {
         SwingUtilities.invokeLater(loginIdField::requestFocusInWindow);
     }
 
+    /**
+     * Sets the reset identity enabled.
+     */
     private void setResetIdentityEnabled(boolean enabled) {
         if (resetIdField != null) resetIdField.setEnabled(enabled);
         if (resetNameField != null) resetNameField.setEnabled(enabled);
@@ -576,6 +585,9 @@ public class LoginPanel extends JPanel {
         if (resetHomeField != null) resetHomeField.setEnabled(enabled);
     }
 
+    /**
+     * Lets the user choose the register avatar.
+     */
     private void chooseRegisterAvatar() {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "jpeg", "png", "gif"));
@@ -585,6 +597,9 @@ public class LoginPanel extends JPanel {
         }
     }
 
+    /**
+     * Shows the register success.
+     */
     private void showRegisterSuccess(String userId, String avatarPath) {
         successIdLabel.setText("ID: " + userId);
         successAvatarPreview.setImagePath(avatarPath);
@@ -593,30 +608,51 @@ public class LoginPanel extends JPanel {
         internalCards.show(internalPanel, SUCCESS);
     }
 
+    /**
+     * Shows an error message to the user.
+     */
     private void err(String msg) {
         showStyledDialog(msg);
     }
 
+    /**
+     * Checks whether is valid user id.
+     */
     private static boolean isValidUserId(String id) {
         return id != null && USER_ID_PATTERN.matcher(id).matches();
     }
 
+    /**
+     * Checks whether is valid password.
+     */
     private static boolean isValidPassword(String password) {
         return password != null && PASSWORD_PATTERN.matcher(password).matches();
     }
 
+    /**
+     * Checks whether has unsafe user file chars.
+     */
     private static boolean hasUnsafeUserFileChars(String value) {
         return value != null && (value.contains(",") || value.contains("|"));
     }
 
+    /**
+     * Handles the same text operation.
+     */
     private static boolean sameText(String a, String b) {
         return a != null && b != null && a.trim().equalsIgnoreCase(b.trim());
     }
 
+    /**
+     * Handles the user id rule message operation.
+     */
     private static String userIdRuleMessage() {
         return "Please choose a User ID with 3-16 characters. Use only letters, numbers, and underscores.";
     }
 
+    /**
+     * Handles the password rule message operation.
+     */
     static String passwordRuleMessage(String password) {
         StringBuilder message = new StringBuilder("Your password does not meet the requirements yet.\n");
 
@@ -637,7 +673,6 @@ public class LoginPanel extends JPanel {
         return message.toString();
     }
 
-    /** Styled message dialog — Apple design, replaces JOptionPane */
     void showStyledDialog(String message) {
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "SnapTok", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setUndecorated(true);
@@ -700,6 +735,9 @@ public class LoginPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    /**
+     * Returns the project root.
+     */
     static File getProjectRoot() {
         File cwd = new File(System.getProperty("user.dir")).getAbsoluteFile();
         for (File dir = cwd; dir != null; dir = dir.getParentFile()) {
@@ -714,12 +752,18 @@ public class LoginPanel extends JPanel {
         return cwd;
     }
 
+    /**
+     * Checks whether is project root.
+     */
     private static boolean isProjectRoot(File dir) {
         return dir != null
                 && new File(dir, "src").isDirectory()
                 && new File(dir, "image").isDirectory();
     }
 
+    /**
+     * Handles the normalize avatar path operation.
+     */
     static String normalizeAvatarPath(String avatarPath) {
         if (avatarPath == null || avatarPath.trim().isEmpty()) return "";
         String clean = avatarPath.trim();
@@ -730,7 +774,9 @@ public class LoginPanel extends JPanel {
         return copyAvatarToImageFolder(clean);
     }
 
-    /** Copies an avatar image to the project's image/avatars directory and returns the relative path. */
+    /**
+     * Handles the copy avatar to image folder operation.
+     */
     static String copyAvatarToImageFolder(String sourcePath) {
         if (sourcePath == null || sourcePath.isEmpty()) return "";
         try {
@@ -756,15 +802,13 @@ public class LoginPanel extends JPanel {
         }
     }
 
-    // ================================================================
-    //  USERS.TXT PERSISTENCE
-    // ================================================================
-
-    /** Loads users from users.txt into the network. Creates file if missing. */
+    /**
+     * Loads the users file.
+     */
     private void loadUsersFile() {
         File file = new File(USERS_FILE);
         if (!file.exists()) {
-            try { file.createNewFile(); } catch (IOException e) { /* ignore */ }
+            try { file.createNewFile(); } catch (IOException e) {  }
             return;
         }
         boolean migratedAvatarPath = false;
@@ -801,18 +845,22 @@ public class LoginPanel extends JPanel {
                 }
             }
         } catch (IOException e) {
-            /* silently ignore read errors */
+
         }
         if (migratedAvatarPath) rewriteUsersFile(network);
     }
 
-    /** Appends a new user record to users.txt. */
+    /**
+     * Saves the user to file.
+     */
     private void saveUserToFile(String uid, String pw, String name, String work, String home) {
-        // Just rewrite the whole file to keep it consistent
+
         rewriteUsersFile(network);
     }
 
-    /** Rewrites users.txt with all users currently in the network. */
+    /**
+     * Handles the rewrite users file operation.
+     */
     static void rewriteUsersFile(SocialNetwork network) {
         try (FileWriter fw = new FileWriter(USERS_FILE, false);
              PrintWriter pw = new PrintWriter(fw)) {
@@ -828,10 +876,13 @@ public class LoginPanel extends JPanel {
                         + escapeUserField(serializeFriendNotifications(u)));
             }
         } catch (IOException e) {
-            /* silently ignore write errors */
+
         }
     }
 
+    /**
+     * Handles the split user record operation.
+     */
     private static String[] splitUserRecord(String line) {
         List<String> parts = new ArrayList<>();
         StringBuilder current = new StringBuilder();
@@ -855,11 +906,17 @@ public class LoginPanel extends JPanel {
         return parts.toArray(new String[0]);
     }
 
+    /**
+     * Handles the escape user field operation.
+     */
     private static String escapeUserField(String value) {
         if (value == null) return "";
         return value.replace("\\", "\\\\").replace(",", "\\,");
     }
 
+    /**
+     * Handles the unescape user field operation.
+     */
     private static String unescapeUserField(String value) {
         if (value == null) return "";
         StringBuilder out = new StringBuilder();
@@ -879,6 +936,9 @@ public class LoginPanel extends JPanel {
         return out.toString();
     }
 
+    /**
+     * Serializes the remarks.
+     */
     private static String serializeRemarks(User user) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : user.getFriendRemarks().entrySet()) {
@@ -889,6 +949,9 @@ public class LoginPanel extends JPanel {
         return sb.toString();
     }
 
+    /**
+     * Parses the remarks.
+     */
     private static void parseRemarks(String data, User user) {
         if (data == null || data.trim().isEmpty()) return;
         String[] entries = data.split(";");
@@ -899,6 +962,9 @@ public class LoginPanel extends JPanel {
         }
     }
 
+    /**
+     * Serializes the friend notifications.
+     */
     private static String serializeFriendNotifications(User user) {
         StringBuilder sb = new StringBuilder();
         for (String userId : user.getFriendNotifications()) {
@@ -909,6 +975,9 @@ public class LoginPanel extends JPanel {
         return sb.toString();
     }
 
+    /**
+     * Parses the friend notifications.
+     */
     private static void parseFriendNotifications(String data, User user) {
         if (data == null || data.trim().isEmpty() || user == null) return;
         String[] entries = data.split(";");
@@ -918,11 +987,17 @@ public class LoginPanel extends JPanel {
         }
     }
 
+    /**
+     * Handles the encode operation.
+     */
     private static String encode(String value) {
         return Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Handles the decode operation.
+     */
     private static String decode(String value) {
         try {
             return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
@@ -931,10 +1006,9 @@ public class LoginPanel extends JPanel {
         }
     }
 
-    // ================================================================
-    //  UI HELPERS
-    // ================================================================
-
+    /**
+     * Handles the centered label operation.
+     */
     private JLabel centeredLabel(String text, Font font, Color color) {
         JLabel l = new JLabel(text, SwingConstants.CENTER);
         l.setFont(font); l.setForeground(color);
@@ -942,6 +1016,9 @@ public class LoginPanel extends JPanel {
         return l;
     }
 
+    /**
+     * Handles the link label operation.
+     */
     private JLabel linkLabel(String text, int size) {
         JLabel l = new JLabel(text);
         l.setFont(new Font(FONT_FAMILY, Font.PLAIN, size));
@@ -954,6 +1031,9 @@ public class LoginPanel extends JPanel {
         return l;
     }
 
+    /**
+     * Builds the separator.
+     */
     private JPanel buildSeparator(String text) {
         JPanel row = new JPanel(new GridBagLayout());
         row.setOpaque(false);
@@ -964,7 +1044,6 @@ public class LoginPanel extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weighty = 0;
 
-        // Left line — 0.5px hairline
         gbc.gridx = 0;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -983,7 +1062,6 @@ public class LoginPanel extends JPanel {
         leftLine.setOpaque(false);
         row.add(leftLine, gbc);
 
-        // Text — 13px, ink-48 color
         gbc.gridx = 1;
         gbc.weightx = 0;
         gbc.insets = new Insets(0, 12, 0, 12);
@@ -992,7 +1070,6 @@ public class LoginPanel extends JPanel {
         t.setForeground(TEXT_HINT);
         row.add(t, gbc);
 
-        // Right line — 0.5px hairline
         gbc.gridx = 2;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(0, 0, 0, 0);
@@ -1014,9 +1091,9 @@ public class LoginPanel extends JPanel {
         return row;
     }
 
-    // ================================================================
-    //  WHITE CARD — rounded 12px, hairline border, shadow
-    // ================================================================
+    /**
+     * Creates the card panel.
+     */
     private JPanel createCardPanel(int topPad, int sidePad, int bottomPad) {
         JPanel card = new JPanel() {
             @Override
@@ -1025,13 +1102,13 @@ public class LoginPanel extends JPanel {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 int w = getWidth();
                 int h = getHeight();
-                // Shadow
+
                 g2.setColor(new Color(0, 0, 0, 18));
                 g2.fillRoundRect(0, 2, w, h, 12, 12);
-                // White fill
+
                 g2.setColor(Color.WHITE);
                 g2.fillRoundRect(0, 0, w, h - 2, 12, 12);
-                // Hairline border
+
                 g2.setColor(HAIRLINE);
                 g2.setStroke(new BasicStroke(0.5f));
                 g2.drawRoundRect(0, 0, w - 1, h - 2, 12, 12);
@@ -1044,10 +1121,12 @@ public class LoginPanel extends JPanel {
         return card;
     }
 
-    // ================================================================
-    //  FLOAT INPUT — 50px, 12px radius, #f3f4f6 fill, focus blue bar
-    // ================================================================
-
+    /**
+     * Represents a styled input component used by the login screens.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class FloatInput extends JPanel {
         private JTextField field;
         private JLabel label;
@@ -1055,6 +1134,9 @@ public class LoginPanel extends JPanel {
         private boolean passVisible;
         private static final int INPUT_H = 58;
 
+        /**
+         * Constructs a new FloatInput object.
+         */
         FloatInput(String labelText, boolean password) {
             this.isPassword = password;
             setLayout(null);
@@ -1079,7 +1161,6 @@ public class LoginPanel extends JPanel {
             field.setBounds(0, 0, FIELD_W, INPUT_H);
             field.setBackground(INPUT_BG);
 
-            // Overlay label
             label = new JLabel(labelText);
             label.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
             label.setForeground(TEXT_HINT);
@@ -1102,7 +1183,6 @@ public class LoginPanel extends JPanel {
             add(label);
             add(field);
 
-            // Password eye icon — added FIRST, then Z-order set to top
             if (password) {
                 JPanel eye = new JPanel(null) {
                     @Override
@@ -1115,11 +1195,11 @@ public class LoginPanel extends JPanel {
                         g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                         int cx = 12, cy = 12;
                         if (passVisible) {
-                            // Open eye (visible) — show password
+
                             g2.drawOval(cx - 8, cy - 5, 16, 10);
                             g2.fillOval(cx - 3, cy - 3, 6, 6);
                         } else {
-                            // Closed eye (hidden) — password masked
+
                             g2.drawOval(cx - 8, cy - 5, 16, 10);
                             g2.fillOval(cx - 3, cy - 3, 6, 6);
                             g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
@@ -1144,28 +1224,28 @@ public class LoginPanel extends JPanel {
                     }
                 });
                 add(eye);
-                // CRITICAL: ensure eye is on TOP of Z-order so it receives mouse events
+
                 setComponentZOrder(eye, 0);
             }
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // White background — matches HTML mockup input-field
-            g2.setColor(INPUT_BG); // #ffffff
+            g2.setColor(INPUT_BG);
             g2.fillRoundRect(0, 0, getWidth(), INPUT_H, 10, 10);
 
-            // Subtle gray border like HTML - 1px #d1d1d6
             g2.setColor(new Color(209, 209, 214));
             g2.setStroke(new BasicStroke(1f));
             g2.drawRoundRect(0, 0, getWidth() - 1, INPUT_H - 1, 10, 10);
 
-            // Focus: soft blue glow ring (3px, 25% opacity)
             if (focused) {
-                g2.setColor(new Color(0, 102, 204, 64)); // rgba(0,102,204,0.25)
+                g2.setColor(new Color(0, 102, 204, 64));
                 g2.setStroke(new BasicStroke(3f));
                 g2.drawRoundRect(1, 1, getWidth() - 2, INPUT_H - 2, 10, 10);
             }
@@ -1173,6 +1253,9 @@ public class LoginPanel extends JPanel {
             super.paintComponent(g);
         }
 
+        /**
+         * Handles the animate label operation.
+         */
         private void animateLabel(boolean up) {
             Timer timer = new Timer(10, null);
             final int[] step = {0};
@@ -1191,12 +1274,18 @@ public class LoginPanel extends JPanel {
             timer.start();
         }
 
+        /**
+         * Returns the text.
+         */
         public String getText() {
             if (field instanceof JPasswordField)
                 return new String(((JPasswordField) field).getPassword());
             return field.getText();
         }
 
+        /**
+         * Sets the text.
+         */
         public void setText(String t) {
             field.setText(t);
             hasText = !getText().isEmpty();
@@ -1204,12 +1293,18 @@ public class LoginPanel extends JPanel {
             repaint();
         }
 
+        /**
+         * Sets the label floating.
+         */
         private void setLabelFloating(boolean up) {
             label.setLocation(label.getX(), up ? 6 : 18);
             label.setFont(new Font(FONT_FAMILY, Font.PLAIN, up ? 13 : 17));
             label.setForeground(up ? BRAND : TEXT_HINT);
         }
 
+        /**
+         * Sets the enabled.
+         */
         @Override
         public void setEnabled(boolean enabled) {
             super.setEnabled(enabled);
@@ -1218,14 +1313,19 @@ public class LoginPanel extends JPanel {
         }
     }
 
-    // ================================================================
-    //  PRIMARY BUTTON — Apple flat pill, Action Blue, press darkens
-    // ================================================================
-
+    /**
+     * Represents a styled primary action button used by the login screens.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class PrimaryButton extends JButton {
         private boolean hover;
         private boolean pressed;
 
+        /**
+         * Constructs a new PrimaryButton object.
+         */
         PrimaryButton(String text) {
             super(text);
             setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
@@ -1247,24 +1347,36 @@ public class LoginPanel extends JPanel {
             });
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            // Apple: flat fill, darker on press - 8px rounded rectangle
+
             g2.setColor(pressed ? BRAND_DARK : BRAND);
-            int arc = 8; // 8px corner radius for rounded rectangle
+            int arc = 8;
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), arc, arc);
             g2.dispose();
             super.paintComponent(g);
         }
     }
 
+    /**
+     * Displays a preview of the selected avatar image during registration.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class AvatarPreview extends JPanel {
         private final int size;
         private String imagePath = "";
         private BufferedImage image;
 
+        /**
+         * Constructs a new AvatarPreview object.
+         */
         AvatarPreview(int size) {
             this.size = size;
             setPreferredSize(new Dimension(size, size));
@@ -1290,6 +1402,9 @@ public class LoginPanel extends JPanel {
             repaint();
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -1319,7 +1434,7 @@ public class LoginPanel extends JPanel {
                 g2.drawArc(cx - d / 4, cy, d / 2, d / 3, 0, 180);
             }
 
-            g2.setColor(HAIRLINE); // hairline border
+            g2.setColor(HAIRLINE);
             g2.setStroke(new BasicStroke(1.2f));
             g2.draw(clip);
             g2.dispose();

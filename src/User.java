@@ -5,65 +5,44 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Represents a user in the social network.
- * Each user has a profile (userId, name, workplace, hometown),
- * a list of friends (connections), and a list of posts.
+ * Represents a social network user with profile information, friends, posts and notifications.
+ *
+ * @author Team Slayers
+ * @version 1.0
  */
 public class User {
 
-    /** Unique identifier for the user */
     private String userId;
 
-    /** Display name of the user */
     private String name;
 
-    /** Current workplace of the user */
     private String workplace;
 
-    /** Hometown of the user */
     private String hometown;
 
-    /** Password for authentication */
     private String password;
 
-    /** Personal signature / bio */
     private String signature;
 
-    /** Path to avatar image file */
     private String avatarPath;
 
-    /** List of friends (bidirectional connections) */
     private List<User> friends;
 
-    /** List of posts made by this user */
     private List<Post> posts;
 
-    /** Friend-specific display names set by this user */
     private Map<String, String> friendRemarks;
 
-    /** Unread reminders for users who added this account as a friend */
     private List<String> friendNotifications;
 
     /**
-     * Constructs a new User with the given profile details.
-     *
-     * @param userId    unique identifier
-     * @param name      display name
-     * @param workplace current workplace
-     * @param hometown  hometown
+     * Constructs a new User object.
      */
     public User(String userId, String name, String workplace, String hometown) {
         this(userId, name, workplace, hometown, "");
     }
 
     /**
-     * Constructs a new User with the given profile details and password.
-     *
-     * @param userId    unique identifier
-     * @param name      display name
-     * @param workplace current workplace
-     * @param hometown  hometown
-     * @param password  account password
+     * Constructs a new User object.
      */
     public User(String userId, String name, String workplace, String hometown, String password) {
         this.userId = userId;
@@ -77,78 +56,130 @@ public class User {
         this.friendNotifications = new ArrayList<>();
     }
 
-    // ---- Getters and Setters ----
-
+    /**
+     * Returns the user id.
+     */
     public String getUserId() {
         return userId;
     }
 
+    /**
+     * Returns the name.
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * Sets the name.
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Returns the workplace.
+     */
     public String getWorkplace() {
         return workplace;
     }
 
+    /**
+     * Sets the workplace.
+     */
     public void setWorkplace(String workplace) {
         this.workplace = workplace;
     }
 
+    /**
+     * Returns the hometown.
+     */
     public String getHometown() {
         return hometown;
     }
 
+    /**
+     * Sets the hometown.
+     */
     public void setHometown(String hometown) {
         this.hometown = hometown;
     }
 
+    /**
+     * Returns the password.
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     * Sets the password.
+     */
     public void setPassword(String password) {
         this.password = password;
     }
 
+    /**
+     * Returns the signature.
+     */
     public String getSignature() {
         return signature != null ? signature : "";
     }
 
+    /**
+     * Sets the signature.
+     */
     public void setSignature(String signature) {
         this.signature = signature;
     }
 
+    /**
+     * Returns the avatar path.
+     */
     public String getAvatarPath() {
         return avatarPath != null ? avatarPath : "";
     }
 
+    /**
+     * Sets the avatar path.
+     */
     public void setAvatarPath(String avatarPath) {
         this.avatarPath = avatarPath;
     }
 
+    /**
+     * Returns the friends.
+     */
     public List<User> getFriends() {
         return friends;
     }
 
+    /**
+     * Returns the posts.
+     */
     public List<Post> getPosts() {
         return posts;
     }
 
+    /**
+     * Returns the friend remarks.
+     */
     public Map<String, String> getFriendRemarks() {
         return friendRemarks;
     }
 
+    /**
+     * Returns the friend remark.
+     */
     public String getFriendRemark(String friendId) {
         if (friendId == null) return "";
         String remark = friendRemarks.get(friendId);
         return remark != null ? remark : "";
     }
 
+    /**
+     * Sets the friend remark.
+     */
     public void setFriendRemark(String friendId, String remark) {
         if (friendId == null || friendId.trim().isEmpty()) return;
         String clean = remark != null ? remark.trim() : "";
@@ -159,16 +190,25 @@ public class User {
         }
     }
 
+    /**
+     * Returns the display name for.
+     */
     public String getDisplayNameFor(User friend) {
         if (friend == null) return "";
         String remark = getFriendRemark(friend.getUserId());
         return remark.isEmpty() ? friend.getName() : remark;
     }
 
+    /**
+     * Returns the friend notifications.
+     */
     public List<String> getFriendNotifications() {
         return friendNotifications;
     }
 
+    /**
+     * Adds the friend notification.
+     */
     public void addFriendNotification(String fromUserId) {
         if (fromUserId == null) return;
         String clean = fromUserId.trim();
@@ -176,17 +216,15 @@ public class User {
         friendNotifications.add(clean);
     }
 
+    /**
+     * Clears the friend notifications.
+     */
     public void clearFriendNotifications() {
         friendNotifications.clear();
     }
 
-    // ---- Friend Management ----
-
     /**
-     * Adds a friend to this user's friend list.
-     * Also adds this user to the friend's list (bidirectional).
-     *
-     * @param friend the user to add as a friend
+     * Adds the friend.
      */
     public void addFriend(User friend) {
         if (friend != null && !friends.contains(friend) && !friend.equals(this)) {
@@ -196,10 +234,7 @@ public class User {
     }
 
     /**
-     * Removes a friend from this user's friend list.
-     * Also removes this user from the friend's list (bidirectional).
-     *
-     * @param friend the user to remove
+     * Removes the friend.
      */
     public void removeFriend(User friend) {
         if (friend != null) {
@@ -211,20 +246,14 @@ public class User {
     }
 
     /**
-     * Checks if the given user is a friend of this user.
-     *
-     * @param other the user to check
-     * @return true if they are friends
+     * Checks whether is friend with.
      */
     public boolean isFriendWith(User other) {
         return friends.contains(other);
     }
 
     /**
-     * Returns a list of mutual friends between this user and another user.
-     *
-     * @param other the other user
-     * @return list of mutual friends
+     * Returns the mutual friends.
      */
     public List<User> getMutualFriends(User other) {
         List<User> mutual = new ArrayList<>();
@@ -236,12 +265,8 @@ public class User {
         return mutual;
     }
 
-    // ---- Post Management ----
-
     /**
-     * Adds a post to this user's post list.
-     *
-     * @param post the post to add
+     * Adds the post.
      */
     public void addPost(Post post) {
         if (post != null) {
@@ -249,6 +274,9 @@ public class User {
         }
     }
 
+    /**
+     * Removes the post.
+     */
     public boolean removePost(Post post) {
         if (post == null) return false;
         String postId = post.getPostId();
@@ -256,12 +284,8 @@ public class User {
                 || (existing != null && Objects.equals(existing.getPostId(), postId)));
     }
 
-    // ---- Display ----
-
     /**
-     * Returns a formatted string of the user's profile.
-     *
-     * @return profile string
+     * Returns the profile string.
      */
     public String getProfileString() {
         return "ID: " + userId + " | Name: " + name
@@ -269,11 +293,17 @@ public class User {
                 + " | Hometown: " + hometown;
     }
 
+    /**
+     * Returns a readable text representation of the object.
+     */
     @Override
     public String toString() {
         return name + " (" + userId + ")";
     }
 
+    /**
+     * Checks whether this object is equal to another object.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -282,6 +312,9 @@ public class User {
         return Objects.equals(userId, user.userId);
     }
 
+    /**
+     * Returns the hash code used by hash-based collections.
+     */
     @Override
     public int hashCode() {
         return Objects.hash(userId);

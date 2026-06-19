@@ -4,39 +4,30 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represents a post in the social network.
- * Each post has an author, content, timestamp, and a list of users who liked it.
+ * Represents a social media post with content, timestamp, likes and comments.
+ *
+ * @author Team Slayers
+ * @version 1.0
  */
 public class Post {
 
-    /** Unique identifier for the post */
     private String postId;
 
-    /** The user who created this post */
     private User author;
 
-    /** The text content of the post */
     private String content;
 
-    /** Timestamp of when the post was created */
     private LocalDateTime timestamp;
 
-    /** List of users who liked this post */
     private List<User> likes;
 
-    /** List of comments on this post */
     private List<Comment> comments;
 
-    /** Date format for display and serialization */
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
-     * Constructs a new Post.
-     *
-     * @param postId  unique identifier
-     * @param author  the user who wrote this post
-     * @param content the text content
+     * Constructs a new Post object.
      */
     public Post(String postId, User author, String content) {
         this.postId = postId;
@@ -48,12 +39,7 @@ public class Post {
     }
 
     /**
-     * Constructs a Post with a specific timestamp (for loading from file).
-     *
-     * @param postId    unique identifier
-     * @param author    the user who wrote this post
-     * @param content   the text content
-     * @param timestamp the creation timestamp
+     * Constructs a new Post object.
      */
     public Post(String postId, User author, String content, LocalDateTime timestamp) {
         this.postId = postId;
@@ -64,54 +50,78 @@ public class Post {
         this.comments = new ArrayList<>();
     }
 
-    // ---- Getters ----
-
+    /**
+     * Returns the post id.
+     */
     public String getPostId() {
         return postId;
     }
 
+    /**
+     * Returns the author.
+     */
     public User getAuthor() {
         return author;
     }
 
+    /**
+     * Returns the content.
+     */
     public String getContent() {
         return content;
     }
 
+    /**
+     * Sets the content.
+     */
     public void setContent(String content) {
         this.content = content;
     }
 
+    /**
+     * Returns the timestamp.
+     */
     public LocalDateTime getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * Returns the timestamp string.
+     */
     public String getTimestampString() {
         return timestamp.format(FORMATTER);
     }
 
+    /**
+     * Returns the likes.
+     */
     public List<User> getLikes() {
         return likes;
     }
 
+    /**
+     * Returns the like count.
+     */
     public int getLikeCount() {
         return likes.size();
     }
 
+    /**
+     * Returns the comments.
+     */
     public List<Comment> getComments() {
         return comments;
     }
 
+    /**
+     * Returns the comment count.
+     */
     public int getCommentCount() {
         return comments.size();
     }
 
-    // ---- Like Management ----
-
     /**
-     * Adds a like from the given user.
-     *
-     * @param user the user who likes this post
+     * Adds the like.
      */
     public void addLike(User user) {
         if (user != null && !likes.contains(user)) {
@@ -120,28 +130,21 @@ public class Post {
     }
 
     /**
-     * Removes a like from the given user.
-     *
-     * @param user the user who unliked this post
+     * Removes the like.
      */
     public void removeLike(User user) {
         likes.remove(user);
     }
 
     /**
-     * Checks if a user has liked this post.
-     *
-     * @param user the user to check
-     * @return true if the user liked this post
+     * Checks whether is liked by.
      */
     public boolean isLikedBy(User user) {
         return likes.contains(user);
     }
 
     /**
-     * Returns the list of liker user IDs for serialization.
-     *
-     * @return comma-separated string of liker IDs
+     * Returns the liker ids string.
      */
     public String getLikerIdsString() {
         StringBuilder sb = new StringBuilder();
@@ -152,8 +155,9 @@ public class Post {
         return sb.toString();
     }
 
-    // ---- Comment Management ----
-
+    /**
+     * Adds the comment.
+     */
     public Comment addComment(User author, String content) {
         if (author == null || content == null || content.trim().isEmpty()) return null;
         Comment comment = new Comment(author, content.trim());
@@ -161,18 +165,27 @@ public class Post {
         return comment;
     }
 
+    /**
+     * Adds the comment.
+     */
     public void addComment(Comment comment) {
         if (comment != null) {
             comments.add(comment);
         }
     }
 
+    /**
+     * Returns a readable text representation of the object.
+     */
     @Override
     public String toString() {
         return author.getName() + ": \"" + content + "\" [" + getTimestampString() + "] "
                 + "Likes: " + likes.size() + " Comments: " + comments.size();
     }
 
+    /**
+     * Returns the formatter.
+     */
     public static DateTimeFormatter getFormatter() {
         return FORMATTER;
     }

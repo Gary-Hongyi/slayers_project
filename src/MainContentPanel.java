@@ -12,31 +12,33 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 /**
- * Apple-style three-column main content panel.
- * Left: 64px black nav | Middle: 300px list | Right: detail view.
+ * Provides the main SnapTok interface, including profile, friends, moments and search views.
+ *
+ * @author Team Slayers
+ * @version 1.0
  */
 public class MainContentPanel extends JPanel {
 
     private MainGUI mainGUI;
     private SocialNetwork network;
-    // Apple Design System — clean, minimal, photography-forward
+
     static final String FONT_FAMILY = "Segoe UI";
-    static final Font YH = new Font(FONT_FAMILY, Font.PLAIN, 14);       // caption 14/400
-    static final Font YHB = new Font(FONT_FAMILY, Font.BOLD, 14);       // caption-strong 14/600
-    static final Font YH_SM = new Font(FONT_FAMILY, Font.PLAIN, 12);    // fine-print 12/400
-    static final Font YH_XS = new Font(FONT_FAMILY, Font.PLAIN, 11);    // micro 11/400
-    static final Font YH_LG = new Font(FONT_FAMILY, Font.BOLD, 17);     // body-strong 17/600
-    static final Font YH_XL = new Font(FONT_FAMILY, Font.BOLD, 21);     // tagline 21/600
-    static final Font YH_XXL = new Font(FONT_FAMILY, Font.BOLD, 28);    // lead 28/400
-    static final Color BRAND = new Color(0, 102, 204);         // #0066cc Action Blue
-    static final Color BRAND_DARK = new Color(0, 89, 178);     // press state
-    static final Color TEXT_MAIN = new Color(29, 29, 31);      // #1d1d1f ink
-    static final Color TEXT_SUB = new Color(122, 122, 122);    // #7a7a7a muted-48
-    static final Color TEXT_HINT = new Color(122, 122, 122);   // #7a7a7a muted-48
-    static final Color DIVIDER = new Color(240, 240, 240);     // #f0f0f0 divider-soft
-    static final Color HAIRLINE = new Color(224, 224, 224);    // #e0e0e0 hairline
-    static final Color HOVER_BG = new Color(245, 245, 247);    // #f5f5f7 parchment
-    static final Color CANVAS = Color.WHITE;                    // canvas #ffffff
+    static final Font YH = new Font(FONT_FAMILY, Font.PLAIN, 14);
+    static final Font YHB = new Font(FONT_FAMILY, Font.BOLD, 14);
+    static final Font YH_SM = new Font(FONT_FAMILY, Font.PLAIN, 12);
+    static final Font YH_XS = new Font(FONT_FAMILY, Font.PLAIN, 11);
+    static final Font YH_LG = new Font(FONT_FAMILY, Font.BOLD, 17);
+    static final Font YH_XL = new Font(FONT_FAMILY, Font.BOLD, 21);
+    static final Font YH_XXL = new Font(FONT_FAMILY, Font.BOLD, 28);
+    static final Color BRAND = new Color(0, 102, 204);
+    static final Color BRAND_DARK = new Color(0, 89, 178);
+    static final Color TEXT_MAIN = new Color(29, 29, 31);
+    static final Color TEXT_SUB = new Color(122, 122, 122);
+    static final Color TEXT_HINT = new Color(122, 122, 122);
+    static final Color DIVIDER = new Color(240, 240, 240);
+    static final Color HAIRLINE = new Color(224, 224, 224);
+    static final Color HOVER_BG = new Color(245, 245, 247);
+    static final Color CANVAS = Color.WHITE;
     static final Color POST_SELECTED_BG = new Color(232, 244, 255);
     static final Color POST_SELECTED_HOVER_BG = new Color(222, 238, 255);
     static final Color POST_SELECTED_BORDER = new Color(86, 142, 214);
@@ -59,7 +61,9 @@ public class MainContentPanel extends JPanel {
     private static final java.util.regex.Pattern SETTINGS_PASSWORD_PATTERN =
             java.util.regex.Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d!@#$%^&*._-]{6,20}$");
 
-    /** Resolves relative avatar paths against the working directory. */
+    /**
+     * Handles the resolve avatar path operation.
+     */
     static String resolveAvatarPath(String path) {
         if (path == null || path.isEmpty()) return null;
         File f = new File(path);
@@ -71,13 +75,12 @@ public class MainContentPanel extends JPanel {
     private int navIdx = 0;
     private CardLayout midCards, rightCards;
     private JPanel midPanel, rightPanel;
-    // Friends right panel card layout
+
     private CardLayout friendsRightCards;
     private JPanel friendsRightPanel;
     private User detailUser;
     private Post detailPost;
 
-    // Profile
     private JLabel pAvatar, pName, pId;
     private JTextField pNameF, pWorkF, pHomeF;
     private PlaceholderTextArea pSigArea;
@@ -85,14 +88,14 @@ public class MainContentPanel extends JPanel {
     private JScrollPane profileRightScroll;
     private JScrollPane profilePostScroll;
     private MouseWheelListener profilePostWheel;
-    // Friends
+
     private DefaultListModel<User> fModel;
     private JList<User> fList;
     private JTextField fSearch;
     private String fFilter = "All";
     private final List<FilterChip> fFilterChips = new ArrayList<>();
-    private JPanel fListContainer; // CardLayout container for friend list/empty state
-    // Moments
+    private JPanel fListContainer;
+
     private JPanel mFeed;
     private JScrollPane mFeedScroll;
     private CardLayout momentsRightCards;
@@ -104,7 +107,7 @@ public class MainContentPanel extends JPanel {
     private JTextArea postDetailContent;
     private StyledButton postDetailLikeButton;
     private JPanel postDetailActionPanel, postDetailCommentsSlot;
-    // Search
+
     private JTextField sField;
     private DefaultListModel<User> sModel;
     private JList<User> sList;
@@ -114,7 +117,7 @@ public class MainContentPanel extends JPanel {
     private DefaultListModel<User> searchResultModel;
     private JList<User> searchResultList;
     private JPanel searchResultsContainer;
-    // Right detail labels
+
     private JLabel rAvatar, rName, rId;
     private JPanel rRemark, rWork, rHome, rSig, rMutual;
     private JLabel rFriends, rPosts;
@@ -122,62 +125,54 @@ public class MainContentPanel extends JPanel {
     private User visibleFriendPostsUser;
     private StyledButton friendPostsToggleButton;
 
+    /**
+     * Constructs a new MainContentPanel object.
+     */
     public MainContentPanel(MainGUI mainGUI, SocialNetwork network) {
         this.mainGUI = mainGUI;
         this.network = network;
         setLayout(new BorderLayout());
         setOpaque(false);
 
-        // Left nav bar (64px)
         JPanel navWithSep = new JPanel(new BorderLayout());
         navWithSep.setOpaque(false);
         navWithSep.add(buildNav(), BorderLayout.WEST);
         navWithSep.add(new JSep(), BorderLayout.EAST);
         add(navWithSep, BorderLayout.WEST);
 
-        // Create center panel with CardLayout for different views
         midCards = new CardLayout();
         midPanel = new JPanel(midCards);
         midPanel.setOpaque(false);
-        
-        // Right panel card layout for detail views (must be built BEFORE friends view
-        // so that buildFriendDetailView() overwrites the shared field references)
+
         rightCards = new CardLayout();
         rightPanel = new JPanel(rightCards);
         rightPanel.setBackground(CANVAS);
         rightPanel.setOpaque(true);
         rightPanel.add(buildEmptyRight(), "EMPTY");
         rightPanel.add(buildDetailRight(), "DETAIL");
-        
-        // Profile view - 40/60 split
+
         Component profileView = buildProfileView();
         midPanel.add(profileView, "PROFILE");
-        
-        // Friends view
+
         Component friendsView = buildFriendsView();
         midPanel.add(friendsView, "FRIENDS");
-        
-        // Moments view
+
         Component momentsView = buildMomentsView();
         midPanel.add(momentsView, "MOMENTS");
-        
-        // Search view
+
         Component searchView = buildSearchView();
         midPanel.add(searchView, "SEARCH");
 
-        // Add center area
         JPanel centerAll = new JPanel(new BorderLayout());
         centerAll.setOpaque(false);
         centerAll.add(midPanel, BorderLayout.CENTER);
         add(centerAll, BorderLayout.CENTER);
 
         midCards.show(midPanel, "PROFILE");
-        
-        // Initialize profile data
+
         refreshProfile();
         showProfileRight();
-        
-        // Force JSplitPane divider location after component is realized
+
         javax.swing.SwingUtilities.invokeLater(() -> {
             if (profileView instanceof JSplitPane) {
                 ((JSplitPane) profileView).setDividerLocation(0.4);
@@ -185,6 +180,9 @@ public class MainContentPanel extends JPanel {
         });
     }
 
+    /**
+     * Handles the on text changed operation.
+     */
     private void onTextChanged(JTextField field, Runnable action) {
         field.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { action.run(); }
@@ -193,6 +191,9 @@ public class MainContentPanel extends JPanel {
         });
     }
 
+    /**
+     * Creates the chip row.
+     */
     private JPanel createChipRow() {
         JPanel row = new JPanel();
         row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
@@ -202,6 +203,9 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
+    /**
+     * Adds the chip to row.
+     */
     private void addChipToRow(JPanel row, FilterChip chip) {
         if (row.getComponentCount() > 0) {
             row.add(Box.createHorizontalStrut(8));
@@ -217,6 +221,9 @@ public class MainContentPanel extends JPanel {
         row.add(chip);
     }
 
+    /**
+     * Creates the fixed friend filter row.
+     */
     private JPanel createFixedFriendFilterRow() {
         JPanel row = new JPanel(new GridLayout(1, 3, 10, 0));
         row.setOpaque(false);
@@ -227,6 +234,9 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
+    /**
+     * Adds the fixed friend filter chip.
+     */
     private void addFixedFriendFilterChip(JPanel row, FilterChip chip, int index) {
         chip.setFont(new Font(FONT_FAMILY, Font.PLAIN, 13));
         chip.setMargin(new Insets(5, 8, 5, 8));
@@ -237,11 +247,17 @@ public class MainContentPanel extends JPanel {
         row.add(chip);
     }
 
+    /**
+     * Creates the horizontal chip scroll.
+     */
     private JComponent createHorizontalChipScroll(JPanel row) {
         JViewport viewport = new JViewport();
         return createHorizontalChipScroll(row, viewport);
     }
 
+    /**
+     * Creates the horizontal chip scroll.
+     */
     private JComponent createHorizontalChipScroll(JPanel row, JViewport viewport) {
         viewport.setOpaque(false);
         viewport.setView(row);
@@ -327,6 +343,9 @@ public class MainContentPanel extends JPanel {
         return wrap;
     }
 
+    /**
+     * Handles the scroll profile posts operation.
+     */
     private void scrollProfilePosts(MouseWheelEvent e) {
         JScrollPane targetScroll = profileRightScroll != null ? profileRightScroll : profilePostScroll;
         if (targetScroll == null) return;
@@ -339,6 +358,9 @@ public class MainContentPanel extends JPanel {
         e.consume();
     }
 
+    /**
+     * Handles the attach profile post wheel operation.
+     */
     private void attachProfilePostWheel(Component component) {
         if (profilePostWheel == null || component == null) return;
         boolean alreadyAttached = false;
@@ -358,7 +380,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    // ======== LEFT NAV — exact match to HTML sidebar ========
+    /**
+     * Handles the stabilize scroll pane operation.
+     */
     private void stabilizeScrollPane(JScrollPane scrollPane, Color background) {
         scrollPane.setBackground(background);
         scrollPane.setOpaque(true);
@@ -374,8 +398,11 @@ public class MainContentPanel extends JPanel {
         });
     }
 
+    /**
+     * Builds the nav.
+     */
     private JPanel buildNav() {
-        // Load nav icon images from the project's image/ folder
+
         String[] iconFiles = {"icon_profile.png", "icon_friends.png", "icon_memory.png", "icon_search.png"};
         for (int i = 0; i < 4; i++) {
             try {
@@ -391,7 +418,7 @@ public class MainContentPanel extends JPanel {
                 System.err.println("Failed to load icon: " + iconFiles[i] + " - " + e.getMessage());
             }
         }
-        
+
         JPanel nav = new JPanel(null) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -421,6 +448,9 @@ public class MainContentPanel extends JPanel {
         return nav;
     }
 
+    /**
+     * Handles the select nav operation.
+     */
     private void selectNav(int idx) {
         navIdx = idx;
         repaint();
@@ -432,10 +462,12 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    // ======== PROFILE LEFT — 40% width, personal info panel ========
+    /**
+     * Builds the profile left.
+     */
     private JPanel buildProfileLeft() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(HOVER_BG); // light gray parchment #f5f5f7
+        p.setBackground(HOVER_BG);
         p.setOpaque(true);
         p.setBorder(new CompoundBorder(
                 BorderFactory.createEmptyBorder(0, 28, 0, 0),
@@ -444,34 +476,30 @@ public class MainContentPanel extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
-        content.setBorder(new EmptyBorder(36, 0, 36, 24)); // Normal padding (removed -51px shift)
-        content.setPreferredSize(new Dimension(350, 700)); // Increased size to fit avatar + all content
+        content.setBorder(new EmptyBorder(36, 0, 36, 24));
+        content.setPreferredSize(new Dimension(350, 700));
 
-        // Avatar centered — circular with hairline border
         pAvatar = new AvatarLabel(80, null);
-        pAvatar.setAlignmentX(Component.CENTER_ALIGNMENT); // Centered below avatar
+        pAvatar.setAlignmentX(Component.CENTER_ALIGNMENT);
         pAvatar.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         pAvatar.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) { chooseAvatar(); }
         });
-        
-        // Create wrapper for avatar section with explicit sizing
+
         JPanel avatarWrap = new JPanel(new BorderLayout());
         avatarWrap.setOpaque(false);
-        avatarWrap.setAlignmentX(Component.CENTER_ALIGNMENT); // Centered in BoxLayout
-        avatarWrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140)); // Increased to fit larger name
-        avatarWrap.setBorder(new EmptyBorder(0, -51, 0, 0)); // Apply -51px left shift only to avatar section
+        avatarWrap.setAlignmentX(Component.CENTER_ALIGNMENT);
+        avatarWrap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        avatarWrap.setBorder(new EmptyBorder(0, -51, 0, 0));
         avatarWrap.add(pAvatar, BorderLayout.NORTH);
-        
-        // Name — bold, 28px, centered
-        pName = new JLabel("", SwingConstants.CENTER); // Centered
+
+        pName = new JLabel("", SwingConstants.CENTER);
         pName.setFont(new Font(FONT_FAMILY, Font.BOLD, 28));
         pName.setForeground(TEXT_MAIN);
-        pName.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50)); // Increased height for 28px bold font
+        pName.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
         avatarWrap.add(pName, BorderLayout.CENTER);
-        
-        // User ID — muted gray, 17px, centered
-        pId = new JLabel("", SwingConstants.CENTER); // Centered
+
+        pId = new JLabel("", SwingConstants.CENTER);
         pId.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
         pId.setForeground(TEXT_SUB);
         pId.setMaximumSize(new Dimension(Integer.MAX_VALUE, 25));
@@ -479,7 +507,6 @@ public class MainContentPanel extends JPanel {
         content.add(avatarWrap);
         content.add(Box.createVerticalStrut(24));
 
-        // "SIGNATURE" sub-title label — uppercase, bold, 14px
         JLabel sigLabel = new JLabel("SIGNATURE");
         sigLabel.setFont(new Font(FONT_FAMILY, Font.BOLD, 14));
         sigLabel.setForeground(TEXT_SUB);
@@ -487,13 +514,12 @@ public class MainContentPanel extends JPanel {
         content.add(sigLabel);
         content.add(Box.createVerticalStrut(8));
 
-        // Signature textarea — white bg (matches right panel), hairline border, 10px radius
         pSigArea = new PlaceholderTextArea("Write something about yourself...", 3, 20) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CANVAS); // White background matching right panel
+                g2.setColor(CANVAS);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
                 g2.dispose();
                 super.paintComponent(g);
@@ -508,13 +534,13 @@ public class MainContentPanel extends JPanel {
         pSigArea.setCaretColor(BRAND);
         pSigArea.setEditable(false);
         pSigArea.setFocusable(false);
-        // Wrap in a panel with border instead of JScrollPane
+
         JPanel sigWrapper = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(HAIRLINE); // Light gray border
+                g2.setColor(HAIRLINE);
                 g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 4, 4);
                 g2.dispose();
                 super.paintComponent(g);
@@ -527,7 +553,6 @@ public class MainContentPanel extends JPanel {
         content.add(sigWrapper);
         content.add(Box.createVerticalStrut(24));
 
-        // Info rows — Name / Workplace / Hometown with bottom hairline dividers
         content.add(buildInfoRow("Name", "Name"));
         content.add(buildInfoRow("Workplace", "Workplace"));
         content.add(buildInfoRow("Hometown", "Hometown"));
@@ -542,6 +567,9 @@ public class MainContentPanel extends JPanel {
         return p;
     }
 
+    /**
+     * Creates the logout button.
+     */
     private JButton createLogoutButton() {
         JButton logoutBtn = new JButton("Logout") {
             private boolean hov;
@@ -639,6 +667,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Clears the text components.
+     */
     private void clearTextComponents(Component component) {
         if (component == null) return;
         if (component instanceof javax.swing.text.JTextComponent) {
@@ -651,6 +682,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Handles the reset labels for logged out state operation.
+     */
     private void resetLabelsForLoggedOutState() {
         if (pAvatar instanceof AvatarLabel) {
             ((AvatarLabel) pAvatar).user = null;
@@ -678,6 +712,9 @@ public class MainContentPanel extends JPanel {
         if (postDetailActivityComments != null) postDetailActivityComments.setText("0 comment(s)");
     }
 
+    /**
+     * Clears the panel.
+     */
     private void clearPanel(JPanel panel) {
         if (panel == null) return;
         panel.removeAll();
@@ -685,12 +722,14 @@ public class MainContentPanel extends JPanel {
         panel.repaint();
     }
 
-    /** HTML info-row: key label (88px, muted) + editable value field, bottom hairline */
+    /**
+     * Builds the info row.
+     */
     private JPanel buildInfoRow(String labelText, String fieldKey) {
         JPanel row = new JPanel(new BorderLayout(8, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
-                // Bottom hairline divider
+
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setColor(DIVIDER);
                 g2.setStroke(new BasicStroke(0.5f));
@@ -725,14 +764,15 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
-    // ======== PROFILE RIGHT — exact match to HTML panel-right ========
+    /**
+     * Builds the profile right.
+     */
     private JPanel buildProfileRight() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(CANVAS);
         p.setOpaque(true);
         p.setBorder(new EmptyBorder(24, 32, 16, 32));
 
-        // Top: "My Posts" title (left-aligned) + Friends/Posts stats (right-aligned)
         rFriends = new JLabel("0");
         rFriends.setFont(new Font(FONT_FAMILY, Font.BOLD, 28));
         rFriends.setForeground(BRAND);
@@ -742,14 +782,12 @@ public class MainContentPanel extends JPanel {
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        
-        // My Posts title - left aligned, bold 28px
+
         JLabel title = new JLabel("My Posts");
         title.setFont(new Font(FONT_FAMILY, Font.BOLD, 28));
         title.setForeground(TEXT_MAIN);
         top.add(title, BorderLayout.WEST);
 
-        // Stats row - right aligned
         JPanel statsRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 32, 0));
         statsRow.setOpaque(false);
         statsRow.add(buildStatBox(rFriends, "Friends"));
@@ -757,35 +795,33 @@ public class MainContentPanel extends JPanel {
         top.add(statsRow, BorderLayout.EAST);
         p.add(top, BorderLayout.NORTH);
 
-        // Post feed with empty state
         profilePostFeed = new JPanel();
         profilePostFeed.setLayout(new BoxLayout(profilePostFeed, BoxLayout.Y_AXIS));
         profilePostFeed.setBackground(CANVAS);
         profilePostFeed.setOpaque(true);
-        
-        // Empty state label — two lines, centered
+
         JPanel emptyState = new JPanel();
         emptyState.setLayout(new BoxLayout(emptyState, BoxLayout.Y_AXIS));
         emptyState.setOpaque(false);
         emptyState.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         JLabel emptyLine1 = new JLabel("No posts yet.", SwingConstants.CENTER);
         emptyLine1.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
         emptyLine1.setForeground(TEXT_SUB);
         emptyLine1.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         JLabel emptyLine2 = new JLabel("Share a moment from the Posts tab.", SwingConstants.CENTER);
         emptyLine2.setFont(new Font(FONT_FAMILY, Font.PLAIN, 17));
         emptyLine2.setForeground(TEXT_SUB);
         emptyLine2.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         emptyState.add(Box.createVerticalStrut(120));
         emptyState.add(emptyLine1);
         emptyState.add(Box.createVerticalStrut(8));
         emptyState.add(emptyLine2);
-        
+
         profilePostFeed.add(emptyState);
-        
+
         profilePostScroll = new JScrollPane(profilePostFeed);
         profilePostScroll.setBorder(null);
         stabilizeScrollPane(profilePostScroll, CANVAS);
@@ -798,24 +834,21 @@ public class MainContentPanel extends JPanel {
         profilePostFeed.addMouseWheelListener(profilePostWheel);
         p.add(profilePostScroll, BorderLayout.CENTER);
 
-        // Bottom: Logout button — ghost style, 16px from bottom and right edges
         return p;
     }
 
-    // ======== VIEW WRAPPERS — 40/60 split layouts ========
-    
-    /** Profile view - left panel (40%) + right panel (60%), no visible divider */
+    /**
+     * Builds the profile view.
+     */
     private Component buildProfileView() {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        split.setDividerSize(0); // Hide divider completely
+        split.setDividerSize(0);
         split.setContinuousLayout(true);
         split.setBorder(null);
-        
-        // Left side - Profile info (40%)
+
         JPanel leftProfile = buildProfileLeft();
         split.setLeftComponent(leftProfile);
-        
-        // Right side - Posts area (60%)
+
         JPanel rightProfile = buildProfileRight();
         profileRightScroll = new JScrollPane(rightProfile);
         profileRightScroll.setBorder(null);
@@ -830,8 +863,7 @@ public class MainContentPanel extends JPanel {
             attachProfilePostWheel(rightProfile);
         }
         split.setRightComponent(profileRightScroll);
-        
-        // Set divider location after component is realized
+
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 if (split.getDividerLocation() <= 0) {
@@ -839,24 +871,24 @@ public class MainContentPanel extends JPanel {
                 }
             }
         });
-        
+
         return split;
     }
-    
-    /** Friends view - dual-column layout with JSplitPane */
+
+    /**
+     * Builds the friends view.
+     */
     private Component buildFriendsView() {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        split.setDividerSize(0); // No divider line
+        split.setDividerSize(0);
         split.setContinuousLayout(true);
         split.setBorder(null);
-        
-        // Left side - friend list area with enough room for the three filters
+
         JPanel leftFriends = buildFriendsLeft();
         leftFriends.setMinimumSize(new Dimension(FRIENDS_LEFT_WIDTH, 0));
         leftFriends.setPreferredSize(new Dimension(FRIENDS_LEFT_WIDTH, 0));
         split.setLeftComponent(leftFriends);
-        
-        // Right side - Friend detail display (adaptive width)
+
         JPanel rightFriends = buildFriendsRight();
         JScrollPane rightScroll = new JScrollPane(rightFriends);
         rightScroll.setBorder(null);
@@ -864,8 +896,7 @@ public class MainContentPanel extends JPanel {
         rightScroll.getViewport().setOpaque(false);
         rightScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         split.setRightComponent(rightScroll);
-        
-        // Set divider location after component is realized
+
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 if (split.getDividerLocation() <= 0) {
@@ -874,61 +905,58 @@ public class MainContentPanel extends JPanel {
             }
         });
         SwingUtilities.invokeLater(() -> split.setDividerLocation(FRIENDS_LEFT_WIDTH));
-        
+
         return split;
     }
-    
-    /** Moments view - dual-column layout with JSplitPane */
+
+    /**
+     * Builds the moments view.
+     */
     private Component buildMomentsView() {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        split.setDividerSize(0); // No divider line
+        split.setDividerSize(0);
         split.setContinuousLayout(true);
         split.setBorder(null);
-        
-        // Left side - expanded poster list
+
         JPanel leftMoments = buildMomentsLeft();
         leftMoments.setMinimumSize(new Dimension(520, 0));
         leftMoments.setPreferredSize(new Dimension(660, 0));
         split.setLeftComponent(leftMoments);
-        
-        // Right side - fixed post detail surface; internal sections handle their own scrolling
+
         JPanel rightMoments = buildMomentsRight();
         split.setRightComponent(rightMoments);
         split.setResizeWeight(0.42);
-        
+
         Runnable applyMomentsDivider = () ->
                 split.setDividerLocation(Math.max(520, (int) (split.getWidth() * 0.42)));
 
-        // Set divider location after component is realized
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 applyMomentsDivider.run();
             }
         });
         SwingUtilities.invokeLater(applyMomentsDivider);
-        
+
         return split;
     }
-    
-    /** Search view - full width */
-    /** Search view - dual-column layout with JSplitPane */
+
+    /**
+     * Builds the search view.
+     */
     private Component buildSearchView() {
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        split.setDividerSize(0); // No divider line
+        split.setDividerSize(0);
         split.setContinuousLayout(true);
         split.setBorder(null);
-        
-        // Left side - Recommended users section
+
         JPanel leftSearch = buildSearchLeft();
         leftSearch.setMinimumSize(new Dimension(SEARCH_LEFT_WIDTH, 0));
         leftSearch.setPreferredSize(new Dimension(SEARCH_LEFT_WIDTH, 0));
         split.setLeftComponent(leftSearch);
-        
-        // Right side - Search Users section (adaptive width) - NO outer scroll
+
         JPanel rightSearch = buildSearchRight();
         split.setRightComponent(rightSearch);
-        
-        // Set divider location after component is realized
+
         split.addComponentListener(new java.awt.event.ComponentAdapter() {
             public void componentResized(java.awt.event.ComponentEvent e) {
                 if (split.getDividerLocation() <= 0) {
@@ -937,24 +965,25 @@ public class MainContentPanel extends JPanel {
             }
         });
         SwingUtilities.invokeLater(() -> split.setDividerLocation(SEARCH_LEFT_WIDTH));
-        
+
         return split;
     }
 
-    // ======== FRIENDS LEFT PANEL — friend list with search and filters ========
+    /**
+     * Builds the friends left.
+     */
     private JPanel buildFriendsLeft() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(HOVER_BG);
         p.setOpaque(true);
         p.setBorder(new CompoundBorder(
                 BorderFactory.createEmptyBorder(20, 28, 20, 24),
-                BorderFactory.createMatteBorder(0, 1, 0, 0, HAIRLINE))); // Divider line on left edge
+                BorderFactory.createMatteBorder(0, 1, 0, 0, HAIRLINE)));
 
         JPanel topWrap = new JPanel();
         topWrap.setLayout(new BoxLayout(topWrap, BoxLayout.Y_AXIS));
         topWrap.setOpaque(false);
 
-        // Rounded search input — parchment bg, rounded corners
         fSearch = new PlaceholderField("Search by name...");
         fSearch.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
         fSearch.setForeground(TEXT_MAIN);
@@ -965,8 +994,7 @@ public class MainContentPanel extends JPanel {
                 new EmptyBorder(10, 16, 10, 16)));
         fSearch.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         fSearch.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        // Wrap search in a panel for proper alignment
+
         JPanel searchWrapper = new JPanel(new BorderLayout());
         searchWrapper.setOpaque(false);
         searchWrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -979,7 +1007,6 @@ public class MainContentPanel extends JPanel {
         topWrap.add(searchWrapper);
         topWrap.add(Box.createVerticalStrut(12));
 
-        // Fixed filter buttons row
         JPanel filterRow = createFixedFriendFilterRow();
         fFilterChips.clear();
         int chipIndex = 0;
@@ -1001,10 +1028,9 @@ public class MainContentPanel extends JPanel {
         filterWrapper.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
         filterWrapper.add(filterRow, BorderLayout.CENTER);
         topWrap.add(filterWrapper);
-        topWrap.add(Box.createVerticalStrut(12)); // Add spacing after filter row
+        topWrap.add(Box.createVerticalStrut(12));
         p.add(topWrap, BorderLayout.NORTH);
 
-        // Friend list — matching bg with left panel
         fModel = new DefaultListModel<>();
         fList = new JList<>(fModel);
         fList.setCellRenderer(new FriendCellRenderer());
@@ -1017,55 +1043,53 @@ public class MainContentPanel extends JPanel {
         JScrollPane sp = new JScrollPane(fList);
         sp.setBorder(null); sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
-        
-        // Empty state panel - shows when no friends
+
         JPanel emptyState = new JPanel(new GridBagLayout());
         emptyState.setBackground(HOVER_BG);
         emptyState.setOpaque(true);
-        
+
         JLabel emptyText = new JLabel("No friends yet");
         emptyText.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
         emptyText.setForeground(TEXT_SUB);
         emptyText.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0;
         gbc.weightx = 1; gbc.weighty = 1;
-        gbc.anchor = GridBagConstraints.CENTER; // Center vertically and horizontally
-        gbc.insets = new Insets(-112, -30, 0, 0); // Shift up ~112px (moved up 1cm more)
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.insets = new Insets(-112, -30, 0, 0);
         emptyState.add(emptyText, gbc);
-        
-        // Card layout to switch between list and empty state
+
         fListContainer = new JPanel(new CardLayout());
         fListContainer.setBackground(HOVER_BG);
         fListContainer.add(sp, "LIST");
         fListContainer.add(emptyState, "EMPTY");
-        
+
         p.add(fListContainer, BorderLayout.CENTER);
         return p;
     }
 
-    // ======== FRIENDS RIGHT PANEL — friend detail display ========
+    /**
+     * Builds the friends right.
+     */
     private JPanel buildFriendsRight() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(CANVAS);
         p.setOpaque(true);
-        
-        // Use CardLayout to switch between empty state and detail view
+
         friendsRightCards = new CardLayout();
         friendsRightPanel = new JPanel(friendsRightCards);
         friendsRightPanel.setBackground(CANVAS);
-        
-        // Empty state - shows "Select a friend"
+
         JPanel emptyState = new JPanel(new GridBagLayout());
         emptyState.setBackground(CANVAS);
         emptyState.setOpaque(true);
-        
+
         JLabel hint = new JLabel("Select a friend");
         hint.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
         hint.setForeground(TEXT_SUB);
         hint.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -1074,19 +1098,19 @@ public class MainContentPanel extends JPanel {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(-38, -30, 0, 0);
         emptyState.add(hint, gbc);
-        
+
         friendsRightPanel.add(emptyState, "EMPTY");
-        
-        // Detail view - reuse the same detail panel structure as Search/Profile
-        // Build the detail panel inline here
+
         JPanel detailView = buildFriendDetailView();
         friendsRightPanel.add(detailView, "DETAIL");
-        
+
         p.add(friendsRightPanel, BorderLayout.CENTER);
         return p;
     }
-    
-    /** Build the friend detail view panel (similar to search/profile detail) */
+
+    /**
+     * Builds the friend detail view.
+     */
     private JPanel buildFriendDetailView() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(CANVAS);
@@ -1097,46 +1121,45 @@ public class MainContentPanel extends JPanel {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
         content.setAlignmentX(Component.LEFT_ALIGNMENT);
-        
-        // Header with avatar and basic info
+
         JPanel header = new JPanel(new BorderLayout(16, 0));
         header.setOpaque(false);
         header.setAlignmentX(Component.LEFT_ALIGNMENT);
         header.setMaximumSize(new Dimension(820, 88));
-        
+
         rAvatar = new AvatarLabel(72, null);
         header.add(rAvatar, BorderLayout.WEST);
-        
+
         JPanel headText = new JPanel();
         headText.setLayout(new BoxLayout(headText, BoxLayout.Y_AXIS));
         headText.setOpaque(false);
-        
+
         rName = new JLabel("");
         rName.setFont(new Font(FONT_FAMILY, Font.BOLD, 24));
         rName.setForeground(TEXT_MAIN);
         headText.add(rName);
-        
+
         rId = new JLabel("");
         rId.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
         rId.setForeground(TEXT_SUB);
         headText.add(rId);
-        
+
         header.add(headText, BorderLayout.CENTER);
         content.add(header);
         content.add(Box.createVerticalStrut(22));
-        
+
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
         infoPanel.setOpaque(false);
         infoPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         infoPanel.setMaximumSize(new Dimension(820, 430));
-        
+
         rRemark = detailRow("Remark", "Not set");
         rWork = detailRow("Workplace", "Not set");
         rHome = detailRow("Hometown", "Not set");
         rSig = detailRow("Signature", "No signature");
         rMutual = scrollableDetailRow("Mutual Friends", "0 person(s)");
-        
+
         addDetailInfoRow(infoPanel, rRemark);
         addDetailInfoRow(infoPanel, rWork);
         addDetailInfoRow(infoPanel, rHome);
@@ -1144,16 +1167,14 @@ public class MainContentPanel extends JPanel {
         addDetailInfoRow(infoPanel, rMutual);
         content.add(infoPanel);
         content.add(Box.createVerticalStrut(18));
-        
-        // Action buttons
+
         rActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 8));
         rActionPanel.setOpaque(false);
         rActionPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         rActionPanel.setMaximumSize(new Dimension(820, 96));
         content.add(rActionPanel);
         content.add(Box.createVerticalStrut(14));
-        
-        // Extra panel for showing friend lists, etc.
+
         rExtraPanel = new JPanel(new BorderLayout());
         rExtraPanel.setOpaque(false);
         rExtraPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1161,11 +1182,13 @@ public class MainContentPanel extends JPanel {
         content.add(rExtraPanel);
 
         panel.add(content, BorderLayout.NORTH);
-        
+
         return panel;
     }
 
-    // ======== MOMENTS LEFT PANEL — post creation area ========
+    /**
+     * Builds the moments left.
+     */
     private JPanel buildMomentsLeft() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(HOVER_BG);
@@ -1177,13 +1200,11 @@ public class MainContentPanel extends JPanel {
         JPanel topSection = new JPanel(new BorderLayout());
         topSection.setOpaque(false);
 
-        // Left feed header
         JLabel subTitle = new JLabel("Posts");
         subTitle.setFont(new Font(FONT_FAMILY, Font.BOLD, 26));
         subTitle.setForeground(TEXT_MAIN);
         topSection.add(subTitle, BorderLayout.NORTH);
 
-        // "Post" button — full width, pill, blue
         JButton postBtn = new JButton("Post") {
             private boolean hover, pressed;
             { setFont(new Font(FONT_FAMILY, Font.BOLD, 17));
@@ -1218,7 +1239,6 @@ public class MainContentPanel extends JPanel {
         postButtonRow.add(postBtn, BorderLayout.CENTER);
         topSection.add(postButtonRow, BorderLayout.CENTER);
 
-        // Hairline divider
         JPanel divLine = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 g.setColor(HAIRLINE); g.fillRect(0,0,getWidth(),1);
@@ -1231,48 +1251,48 @@ public class MainContentPanel extends JPanel {
 
         p.add(topSection, BorderLayout.NORTH);
 
-        // Empty state - shows when no posts
         JPanel emptyState = new JPanel(new GridBagLayout());
         emptyState.setBackground(HOVER_BG);
         emptyState.setOpaque(true);
-        
+
         JLabel emptyText = new JLabel("No moments yet. Share something!");
         emptyText.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
         emptyText.setForeground(TEXT_SUB);
         emptyText.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0;
         gbc.weightx = 1; gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(-75, -30, 0, 0);
         emptyState.add(emptyText, gbc);
-        
-        // Card layout to switch between feed and empty state
+
         mFeed = new JPanel();
         mFeed.setLayout(new BoxLayout(mFeed, BoxLayout.Y_AXIS));
         mFeed.setBackground(HOVER_BG);
         mFeed.setOpaque(true);
         mFeed.setDoubleBuffered(true);
-        
+
         JPanel feedContainer = new JPanel(new CardLayout());
         feedContainer.setBackground(HOVER_BG);
         feedContainer.setOpaque(true);
         feedContainer.setDoubleBuffered(true);
         feedContainer.add(mFeed, "FEED");
         feedContainer.add(emptyState, "EMPTY");
-        
+
         mFeedScroll = new JScrollPane(feedContainer);
         mFeedScroll.setBorder(null);
         stabilizeScrollPane(mFeedScroll, HOVER_BG);
         mFeedScroll.getVerticalScrollBar().setUnitIncrement(16);
         mFeedScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         p.add(mFeedScroll, BorderLayout.CENTER);
-        
+
         return p;
     }
 
-    // ======== MOMENTS RIGHT PANEL — posts display ========
+    /**
+     * Builds the moments right.
+     */
     private JPanel buildMomentsRight() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(CANVAS);
@@ -1304,8 +1324,10 @@ public class MainContentPanel extends JPanel {
 
         return p;
     }
-    // ======== MOMENTS MIDDLE — exact match to HTML panel-left ========
 
+    /**
+     * Builds the post detail view.
+     */
     private JPanel buildPostDetailView() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(CANVAS);
@@ -1452,6 +1474,9 @@ public class MainContentPanel extends JPanel {
         return panel;
     }
 
+    /**
+     * Builds the post detail section divider.
+     */
     private JComponent buildPostDetailSectionDivider() {
         JPanel row = new JPanel(new GridBagLayout());
         row.setOpaque(false);
@@ -1480,6 +1505,9 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
+    /**
+     * Draws the soft divider segment.
+     */
     private void drawSoftDividerSegment(Graphics2D g2, int centerX, int centerY, int width, int height, int alpha) {
         int x = centerX - width / 2;
         int y = centerY - height / 2;
@@ -1490,6 +1518,9 @@ public class MainContentPanel extends JPanel {
         g2.fillRoundRect(x, y, width, height, height, height);
     }
 
+    /**
+     * Builds the post detail logo panel.
+     */
     private JPanel buildPostDetailLogoPanel() {
         JPanel logoPanel = new JPanel(new GridBagLayout()) {
             @Override
@@ -1527,6 +1558,9 @@ public class MainContentPanel extends JPanel {
         return logoPanel;
     }
 
+    /**
+     * Builds the post detail activity slot.
+     */
     private JPanel buildPostDetailActivitySlot() {
         JPanel slot = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         slot.setOpaque(false);
@@ -1534,6 +1568,9 @@ public class MainContentPanel extends JPanel {
         return slot;
     }
 
+    /**
+     * Builds the post detail activity panel.
+     */
     private JPanel buildPostDetailActivityPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
@@ -1566,7 +1603,9 @@ public class MainContentPanel extends JPanel {
         return panel;
     }
 
-    /** Opens a modal dialog for creating a new post */
+    /**
+     * Shows the post modal.
+     */
     private void showPostModal() {
         User cur = network.getCurrentUser();
         if (cur == null) return;
@@ -1627,20 +1666,21 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
-    // ======== SEARCH LEFT PANEL — recommended users section ========
+    /**
+     * Builds the search left.
+     */
     private JPanel buildSearchLeft() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(HOVER_BG);
         p.setOpaque(true);
         p.setBorder(new CompoundBorder(
                 BorderFactory.createEmptyBorder(20, 28, 20, 24),
-                BorderFactory.createMatteBorder(0, 1, 0, 0, HAIRLINE))); // Divider line on left edge
+                BorderFactory.createMatteBorder(0, 1, 0, 0, HAIRLINE)));
 
         JPanel topSection = new JPanel();
         topSection.setLayout(new BoxLayout(topSection, BoxLayout.Y_AXIS));
         topSection.setOpaque(false);
 
-        // "RECOMMENDED FOR YOU" sub-title — uppercase, bold, 14px
         JLabel subTitle = new JLabel("RECOMMENDED FOR YOU");
         subTitle.setFont(new Font(FONT_FAMILY, Font.BOLD, 14));
         subTitle.setForeground(TEXT_SUB);
@@ -1648,7 +1688,6 @@ public class MainContentPanel extends JPanel {
         topSection.add(subTitle);
         topSection.add(Box.createVerticalStrut(12));
 
-        // Filter chips row
         JPanel filterRow = new JPanel(new GridLayout(1, 3, 10, 0));
         filterRow.setOpaque(false);
         filterRow.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -1673,7 +1712,6 @@ public class MainContentPanel extends JPanel {
         topSection.add(filterRow);
         topSection.add(Box.createVerticalStrut(20));
 
-        // Hairline divider
         JPanel divLine = new JPanel() {
             @Override protected void paintComponent(Graphics g) {
                 g.setColor(HAIRLINE); g.fillRect(0,0,getWidth(),1);
@@ -1686,85 +1724,80 @@ public class MainContentPanel extends JPanel {
 
         p.add(topSection, BorderLayout.NORTH);
 
-        // Empty state - shows when no recommendations
         JPanel emptyState = new JPanel(new GridBagLayout());
         emptyState.setBackground(HOVER_BG);
         emptyState.setOpaque(true);
-        
+
         JLabel emptyText = new JLabel("No recommendations yet");
         emptyText.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
         emptyText.setForeground(TEXT_SUB);
         emptyText.setAlignmentX(Component.CENTER_ALIGNMENT);
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0;
         gbc.weightx = 1; gbc.weighty = 1;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.insets = new Insets(-75, -30, 0, 0);
         emptyState.add(emptyText, gbc);
-        
-        // Card layout to switch between list and empty state
+
         sModel = new DefaultListModel<>();
         sList = new JList<>(sModel);
         sList.setCellRenderer(new RecommendationCellRenderer());
         sList.setFixedCellHeight(68);
         sList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        sList.setBackground(HOVER_BG); // Match left panel background
+        sList.setBackground(HOVER_BG);
         sList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && sList.getSelectedValue() != null) {
                 User selected = sList.getSelectedValue();
                 showAddFriendDialog(selected);
-                // Clear selection so it can be triggered again
+
                 sList.clearSelection();
             }
         });
         JScrollPane sp = new JScrollPane(sList);
         sp.setBorder(null); sp.setOpaque(false);
         sp.getViewport().setOpaque(false);
-        sp.getViewport().setBackground(HOVER_BG); // Match left panel background
+        sp.getViewport().setBackground(HOVER_BG);
         sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        
+
         JPanel listContainer = new JPanel(new CardLayout());
         listContainer.setBackground(HOVER_BG);
         listContainer.add(sp, "LIST");
         listContainer.add(emptyState, "EMPTY");
-        
+
         p.add(listContainer, BorderLayout.CENTER);
-        
+
         return p;
     }
 
-    // ======== SEARCH MIDDLE — exact match to HTML panel-left ========
-
-    // ======== SEARCH RIGHT — exact match to HTML panel-right ========
+    /**
+     * Builds the search right.
+     */
     private JPanel buildSearchRight() {
         JPanel p = new JPanel(new BorderLayout());
         p.setBackground(CANVAS);
         p.setOpaque(true);
-        
-        // Header section with "Search Users" title
+
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(CANVAS);
         header.setOpaque(true);
         header.setBorder(BorderFactory.createEmptyBorder(36, 36, 24, 36));
-        
+
         JLabel title = new JLabel("Search Users");
         title.setFont(new Font(FONT_FAMILY, Font.BOLD, 32));
         title.setForeground(TEXT_MAIN);
         header.add(title, BorderLayout.WEST);
-        
+
         p.add(header, BorderLayout.NORTH);
-        
-        // Main content area with search row and results/empty state
+
         JPanel mainContent = new JPanel(new BorderLayout());
         mainContent.setBackground(CANVAS);
         mainContent.setOpaque(true);
-        
-        // Search row: input field + Go button
+
         JPanel searchWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         searchWrap.setOpaque(false);
         searchWrap.setBorder(BorderFactory.createEmptyBorder(0, 36, 24, 36));
-        
+
         sField = new PlaceholderField("Enter User ID or name...");
         sField.setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
         sField.setForeground(TEXT_MAIN);
@@ -1773,10 +1806,9 @@ public class MainContentPanel extends JPanel {
         sField.setPreferredSize(new Dimension(320, 42));
         sField.setFocusable(true);
         sField.setEditable(true);
-        
-        // Add action listener for Enter key
+
         sField.addActionListener(e -> performSearch());
-        
+
         sField.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 sField.requestFocusInWindow();
@@ -1784,7 +1816,7 @@ public class MainContentPanel extends JPanel {
         });
         onTextChanged(sField, this::performSearch);
         searchWrap.add(sField);
-        
+
         JButton goBtn = new JButton("Go") {
             private boolean hov;
             { setFont(new Font(FONT_FAMILY, Font.PLAIN, 15));
@@ -1809,25 +1841,23 @@ public class MainContentPanel extends JPanel {
         };
         searchWrap.add(goBtn);
         mainContent.add(searchWrap, BorderLayout.NORTH);
-        
-        // Card layout for results list and empty state
+
         searchResultsContainer = new JPanel(new CardLayout());
         searchResultsContainer.setBackground(CANVAS);
         searchResultsContainer.setOpaque(true);
-        
-        // Search results list
+
         searchResultModel = new DefaultListModel<>();
         searchResultList = new JList<>(searchResultModel);
         searchResultList.setCellRenderer(new FriendCellRenderer());
         searchResultList.setFixedCellHeight(64);
         searchResultList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        searchResultList.setBackground(CANVAS); // Explicitly set list background
+        searchResultList.setBackground(CANVAS);
         searchResultList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && searchResultList.getSelectedValue() != null) {
                 User selected = searchResultList.getSelectedValue();
-                // Show add friend confirmation dialog immediately
+
                 showAddFriendDialog(selected);
-                // Clear selection so it can be triggered again
+
                 searchResultList.clearSelection();
             }
         });
@@ -1837,16 +1867,15 @@ public class MainContentPanel extends JPanel {
         resultsSp.getViewport().setOpaque(false);
         resultsSp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         searchResultsContainer.add(resultsSp, "RESULTS");
-        
-        // Empty state message
+
         JPanel emptyInner = new JPanel(new GridBagLayout());
         emptyInner.setBackground(CANVAS);
         emptyInner.setOpaque(true);
-        
+
         JLabel hintText = new JLabel("Search for users by ID or name");
         hintText.setFont(new Font(FONT_FAMILY, Font.PLAIN, 18));
         hintText.setForeground(TEXT_SUB);
-        
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0; gbc.gridy = 0;
         gbc.weightx = 1; gbc.weighty = 1;
@@ -1854,14 +1883,17 @@ public class MainContentPanel extends JPanel {
         gbc.insets = new Insets(-75, -30, 0, 0);
         emptyInner.add(hintText, gbc);
         searchResultsContainer.add(emptyInner, "EMPTY");
-        
+
         mainContent.add(searchResultsContainer, BorderLayout.CENTER);
-        
+
         p.add(mainContent, BorderLayout.CENTER);
-        
+
         return p;
     }
 
+    /**
+     * Builds the empty right.
+     */
     private JPanel buildEmptyRight() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(CANVAS);
@@ -1883,12 +1915,13 @@ public class MainContentPanel extends JPanel {
         return p;
     }
 
-    // ======== RIGHT DETAIL PANEL ========
+    /**
+     * Builds the detail right.
+     */
     private JPanel buildDetailRight() {
         JPanel p = new JPanel(new BorderLayout());
         p.setOpaque(false);
 
-        // Back button bar
         JPanel backBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         backBar.setOpaque(false);
         backBar.setBorder(new EmptyBorder(12, 16, 0, 0));
@@ -1984,6 +2017,9 @@ public class MainContentPanel extends JPanel {
         return wrap2;
     }
 
+    /**
+     * Handles the section label operation.
+     */
     private JLabel sectionLabel(String text) {
         JLabel label = new JLabel(text);
         label.setFont(YHB);
@@ -1992,6 +2028,9 @@ public class MainContentPanel extends JPanel {
         return label;
     }
 
+    /**
+     * Handles the detail divider operation.
+     */
     private JSeparator detailDivider() {
         JSeparator sep = new JSeparator();
         sep.setForeground(DIVIDER);
@@ -1999,6 +2038,9 @@ public class MainContentPanel extends JPanel {
         return sep;
     }
 
+    /**
+     * Handles the detail row operation.
+     */
     private JPanel detailRow(String label, String val) {
         JPanel row = new JPanel(new BorderLayout(26, 0));
         row.setOpaque(true);
@@ -2023,6 +2065,9 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
+    /**
+     * Handles the scrollable detail row operation.
+     */
     private JPanel scrollableDetailRow(String label, String val) {
         JPanel row = new JPanel(new BorderLayout(26, 0));
         row.setOpaque(true);
@@ -2060,12 +2105,18 @@ public class MainContentPanel extends JPanel {
         return row;
     }
 
+    /**
+     * Adds the detail info row.
+     */
     private void addDetailInfoRow(JPanel parent, JPanel row) {
         row.setAlignmentX(Component.LEFT_ALIGNMENT);
         parent.add(row);
         parent.add(Box.createVerticalStrut(10));
     }
 
+    /**
+     * Builds the stat box.
+     */
     private JPanel buildStatBox(JLabel num, String title) {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
@@ -2078,18 +2129,18 @@ public class MainContentPanel extends JPanel {
         return p;
     }
 
-    // ======== REFRESH METHODS ========
-
-    /** Navigate back from detail view to the previous context */
+    /**
+     * Handles the navigate back operation.
+     */
     private void navigateBack() {
         if (navIdx == 1) {
-            // From friend detail back to friends list
+
             showEmptyRight();
         } else if (navIdx == 3) {
-            // From search user detail back to search results
+
             showSearchRight();
         } else {
-            // Default: go back to profile right
+
             showProfileRight();
         }
     }
@@ -2110,6 +2161,9 @@ public class MainContentPanel extends JPanel {
         refreshProfilePosts();
     }
 
+    /**
+     * Refreshes the profile posts.
+     */
     private void refreshProfilePosts() {
         if (profilePostFeed == null) return;
         profilePostFeed.removeAll();
@@ -2145,6 +2199,9 @@ public class MainContentPanel extends JPanel {
         refreshFriendList();
     }
 
+    /**
+     * Refreshes the friend list.
+     */
     private void refreshFriendList() {
         fModel.clear();
         User cur = network.getCurrentUser();
@@ -2161,8 +2218,7 @@ public class MainContentPanel extends JPanel {
             if ("Same Workplace".equals(fFilter) && !f.getWorkplace().equalsIgnoreCase(cur.getWorkplace())) continue;
             fModel.addElement(f);
         }
-        
-        // Show empty state if no friends match
+
         CardLayout cl = (CardLayout) fListContainer.getLayout();
         if (fModel.getSize() == 0) {
             cl.show(fListContainer, "EMPTY");
@@ -2220,28 +2276,26 @@ public class MainContentPanel extends JPanel {
         User cur = network.getCurrentUser();
         if (cur == null) return;
         List<User> recommendations = buildSearchRecommendations(cur);
-        
-        // Get the listContainer from the left panel
+
         JPanel listContainer = null;
         Component comp = ((JSplitPane) midPanel.getComponent(3)).getLeftComponent();
         if (comp instanceof JPanel) {
             JPanel leftPanel = (JPanel) comp;
-            Component centerComp = leftPanel.getComponent(1); // CENTER component
+            Component centerComp = leftPanel.getComponent(1);
             if (centerComp instanceof JPanel) {
                 listContainer = (JPanel) centerComp;
             }
         }
-        
+
         if (recommendations.isEmpty()) {
-            // Show empty state
+
             if (listContainer != null && listContainer.getLayout() instanceof CardLayout) {
                 CardLayout cl = (CardLayout) listContainer.getLayout();
                 cl.show(listContainer, "EMPTY");
             }
             return;
         }
-        
-        // Show list with recommendations
+
         for (User u : recommendations) sModel.addElement(u);
         if (listContainer != null && listContainer.getLayout() instanceof CardLayout) {
             CardLayout cl = (CardLayout) listContainer.getLayout();
@@ -2249,6 +2303,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Builds the search recommendations.
+     */
     private List<User> buildSearchRecommendations(User cur) {
         List<User> candidates = new ArrayList<>();
         Set<User> existingFriends = new HashSet<>(cur.getFriends());
@@ -2293,6 +2350,9 @@ public class MainContentPanel extends JPanel {
         return candidates;
     }
 
+    /**
+     * Handles the same meaningful text operation.
+     */
     private boolean sameMeaningfulText(String a, String b) {
         if (a == null || b == null) return false;
         String left = a.trim();
@@ -2302,7 +2362,9 @@ public class MainContentPanel extends JPanel {
         return left.equalsIgnoreCase(right);
     }
 
-    // ======== ACTIONS ========
+    /**
+     * Saves the profile.
+     */
     private void saveProfile() {
         User cur = network.getCurrentUser();
         if (cur == null) return;
@@ -2318,6 +2380,9 @@ public class MainContentPanel extends JPanel {
         showStyledDialog("Profile updated successfully!");
     }
 
+    /**
+     * Shows the settings dialog.
+     */
     private void showSettingsDialog() {
         User cur = network.getCurrentUser();
         if (cur == null) return;
@@ -2424,6 +2489,9 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    /**
+     * Sets the tings field block.
+     */
     private JPanel settingsFieldBlock(String labelText, JTextField field) {
         JPanel block = new JPanel();
         block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
@@ -2442,6 +2510,9 @@ public class MainContentPanel extends JPanel {
         return block;
     }
 
+    /**
+     * Sets the tings text area block.
+     */
     private JPanel settingsTextAreaBlock(String labelText, JTextArea area) {
         JPanel block = new JPanel();
         block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
@@ -2470,12 +2541,18 @@ public class MainContentPanel extends JPanel {
         return block;
     }
 
+    /**
+     * Creates the settings field.
+     */
     private JTextField createSettingsField(String value) {
         JTextField field = new JTextField(value != null ? value : "");
         styleSettingsField(field);
         return field;
     }
 
+    /**
+     * Creates the settings text area.
+     */
     private JTextArea createSettingsTextArea(String value) {
         JTextArea area = new PlaceholderTextArea("Write something about yourself...", 3, 20);
         area.setText(value != null ? value : "");
@@ -2490,6 +2567,9 @@ public class MainContentPanel extends JPanel {
         return area;
     }
 
+    /**
+     * Creates the settings password field.
+     */
     private JPasswordField createSettingsPasswordField() {
         JPasswordField field = new JPasswordField();
         field.setEchoChar('\u25CF');
@@ -2497,6 +2577,9 @@ public class MainContentPanel extends JPanel {
         return field;
     }
 
+    /**
+     * Handles the style settings field operation.
+     */
     private void styleSettingsField(JTextField field) {
         field.setFont(YH);
         field.setForeground(TEXT_MAIN);
@@ -2510,6 +2593,9 @@ public class MainContentPanel extends JPanel {
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
     }
 
+    /**
+     * Saves the settings.
+     */
     private void saveSettings(JDialog dialog, JTextField nameField, JTextField workField, JTextField homeField,
                               JTextArea signatureField, JPasswordField passwordField,
                               JPasswordField confirmField, String avatarPath) {
@@ -2556,15 +2642,24 @@ public class MainContentPanel extends JPanel {
         showStyledDialog("Settings updated successfully!");
     }
 
+    /**
+     * Checks whether has unsafe settings text.
+     */
     private boolean hasUnsafeSettingsText(String value) {
         return value != null && (value.contains(",") || value.contains("|"));
     }
 
+    /**
+     * Handles the normalize settings signature operation.
+     */
     private String normalizeSettingsSignature(String value) {
         if (value == null) return "";
         return value.trim().replaceAll("\\R+", " ").replaceAll("[ \\t]{2,}", " ");
     }
 
+    /**
+     * Refreshes the avatar views immediately.
+     */
     private void refreshAvatarViewsImmediately() {
         refreshProfile();
         refreshProfilePosts();
@@ -2578,6 +2673,9 @@ public class MainContentPanel extends JPanel {
         repaintRootImmediately();
     }
 
+    /**
+     * Synchronizes the current user profile references.
+     */
     private void syncCurrentUserProfileReferences(User source) {
         if (source == null) return;
         for (User user : network.getAllUsers()) {
@@ -2597,6 +2695,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Synchronizes the user profile if same.
+     */
     private void syncUserProfileIfSame(User source, User target) {
         if (source == null || target == null) return;
         if (!source.getUserId().equals(target.getUserId())) return;
@@ -2608,6 +2709,9 @@ public class MainContentPanel extends JPanel {
         target.setAvatarPath(source.getAvatarPath());
     }
 
+    /**
+     * Repaints the avatar labels in open windows.
+     */
     private void repaintAvatarLabelsInOpenWindows() {
         Window rootWindow = SwingUtilities.getWindowAncestor(this);
         if (rootWindow != null) {
@@ -2620,6 +2724,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Repaints the avatar labels.
+     */
     private void repaintAvatarLabels(Component component) {
         if (component == null) return;
         if (component instanceof AvatarLabel) {
@@ -2633,6 +2740,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Repaints the root immediately.
+     */
     private void repaintRootImmediately() {
         revalidate();
         repaint();
@@ -2644,6 +2754,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Lets the user choose the avatar for settings.
+     */
     private String chooseAvatarForSettings() {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "png", "gif"));
@@ -2655,6 +2768,9 @@ public class MainContentPanel extends JPanel {
         return relativePath;
     }
 
+    /**
+     * Lets the user choose the avatar.
+     */
     private void chooseAvatar() {
         JFileChooser fc = new JFileChooser();
         fc.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Images", "jpg", "png", "gif"));
@@ -2674,8 +2790,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-
-
+    /**
+     * Toggles the like.
+     */
     private void toggleLike(Post post) {
         User cur = network.getCurrentUser();
         if (cur == null) return;
@@ -2688,11 +2805,14 @@ public class MainContentPanel extends JPanel {
         refreshProfilePosts();
     }
 
+    /**
+     * Handles the perform search operation.
+     */
     private void performSearch() {
         if (searchResultModel == null) return;
         searchResultModel.clear();
         String q = sField.getText().trim().toLowerCase();
-        
+
         if (q.isEmpty()) {
             if (searchResultsContainer != null) {
                 CardLayout cl = (CardLayout) searchResultsContainer.getLayout();
@@ -2700,9 +2820,9 @@ public class MainContentPanel extends JPanel {
             }
             return;
         }
-        
+
         User cur = network.getCurrentUser();
-        
+
         for (User u : network.getAllUsers()) {
             if (u.equals(cur)) continue;
             boolean matchesName = u.getName().toLowerCase().contains(q);
@@ -2711,7 +2831,7 @@ public class MainContentPanel extends JPanel {
                 searchResultModel.addElement(u);
             }
         }
-        
+
         if (searchResultsContainer != null) {
             CardLayout cl = (CardLayout) searchResultsContainer.getLayout();
             if (searchResultModel.getSize() > 0) {
@@ -2722,7 +2842,6 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    // ======== SHOW DETAIL ========
     void showFriendDetail(User friend) {
         detailUser = friend;
         updateDetailPanel(friend, true);
@@ -2784,7 +2903,7 @@ public class MainContentPanel extends JPanel {
     }
 
     void showEmptyRight() {
-        // Show EMPTY card in friends right panel when on Friends tab
+
         if (friendsRightCards != null && friendsRightPanel != null) {
             friendsRightCards.show(friendsRightPanel, "EMPTY");
         }
@@ -2794,18 +2913,27 @@ public class MainContentPanel extends JPanel {
         performSearch();
     }
 
+    /**
+     * Updates the friend filter chips.
+     */
     private void updateFriendFilterChips() {
         for (FilterChip chip : fFilterChips) {
             chip.setActive(chip.getText().equals(fFilter));
         }
     }
 
+    /**
+     * Updates the search filter chips.
+     */
     private void updateSearchFilterChips() {
         for (FilterChip chip : sFilterChips) {
             chip.setActive(chip.getText().equals(sFilter));
         }
     }
 
+    /**
+     * Updates the detail panel.
+     */
     private void updateDetailPanel(User user, boolean isFriend) {
         User cur = network.getCurrentUser();
         ((AvatarLabel) rAvatar).user = user;
@@ -2852,7 +2980,7 @@ public class MainContentPanel extends JPanel {
             if (cur != null && !cur.isFriendWith(user) && !user.equals(cur)) {
                 StyledButton addBtn = new StyledButton("Add Friend", true);
                 addBtn.addActionListener(e -> {
-                    // Show confirmation dialog before adding friend
+
                     String message = "Add <b>" + escapeHtml(user.getName()) + "</b> as your friend?\n<br><span style='color:#7a7a7a'>User ID: " + escapeHtml(user.getUserId()) + "</span>";
                     if (showStyledConfirm(message, "Add Friend")) {
                         if (addFriendAndNotify(user)) {
@@ -2865,18 +2993,20 @@ public class MainContentPanel extends JPanel {
         }
         rActionPanel.revalidate();
         rActionPanel.repaint();
-        rExtraPanel.revalidate(); 
+        rExtraPanel.revalidate();
         rExtraPanel.repaint();
     }
 
+    /**
+     * Shows the remove friend dialog.
+     */
     private void showRemoveFriendDialog(User user) {
         User cur = network.getCurrentUser();
         if (cur == null || user == null) return;
 
-        // Create custom styled dialog for remove friend confirmation
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "Remove Friend", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setUndecorated(true);
-        
+
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
@@ -2949,7 +3079,9 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
-    /** Show add friend confirmation dialog when clicking search result */
+    /**
+     * Shows the add friend dialog.
+     */
     private void showAddFriendDialog(User user) {
         User cur = network.getCurrentUser();
         if (cur == null || user == null) return;
@@ -2958,16 +3090,15 @@ public class MainContentPanel extends JPanel {
             showStyledDialog("This is you.");
             return;
         }
-        
-        // Check if already friends
+
         if (cur.isFriendWith(user)) {
             showStyledDialog("You are already friends with " + escapeHtml(user.getName()) + ".");
             return;
         }
-        
+
         String message = "Add <b>" + escapeHtml(user.getName()) + "</b> as your friend?" +
                 "\n<br><span style='color:#7a7a7a'>User ID: " + escapeHtml(user.getUserId()) + "</span>";
-        
+
         if (showStyledConfirm(message, "Add Friend")) {
             if (addFriendAndNotify(user)) {
                 showStyledDialog(user.getName() + " has been added as a friend!");
@@ -2975,6 +3106,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Adds the friend and notify.
+     */
     private boolean addFriendAndNotify(User user) {
         User cur = network.getCurrentUser();
         if (cur == null || user == null || user.equals(cur) || cur.isFriendWith(user)) return false;
@@ -2988,6 +3122,9 @@ public class MainContentPanel extends JPanel {
         return true;
     }
 
+    /**
+     * Refreshes the after friendship change.
+     */
     private void refreshAfterFriendshipChange(User changedUser) {
         refreshProfile();
         refreshFriends();
@@ -3022,12 +3159,18 @@ public class MainContentPanel extends JPanel {
         showStyledDialog(message.toString());
     }
 
+    /**
+     * Formats the friend notification user.
+     */
     private String formatFriendNotificationUser(String userId) {
         User user = network.getUser(userId);
         if (user == null) return "User ID: " + userId;
         return user.getName() + " (ID: " + user.getUserId() + ")";
     }
 
+    /**
+     * Shows the remark dialog.
+     */
     private void showRemarkDialog(User friend) {
         User cur = network.getCurrentUser();
         if (cur == null || friend == null) return;
@@ -3105,6 +3248,9 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    /**
+     * Updates the post detail panel.
+     */
     private void updatePostDetailPanel(Post post) {
         if (post == null || postDetailAvatar == null) return;
         postDetailAvatar.user = post.getAuthor();
@@ -3120,6 +3266,9 @@ public class MainContentPanel extends JPanel {
         postDetailCommentsSlot.repaint();
     }
 
+    /**
+     * Updates the post detail like state.
+     */
     private void updatePostDetailLikeState(Post post) {
         if (post == null || postDetailEngagement == null) return;
         postDetailEngagement.setText(post.getLikeCount() + " like(s), " + post.getCommentCount() + " comment(s)");
@@ -3137,6 +3286,9 @@ public class MainContentPanel extends JPanel {
         updatePostDetailActivitySummary(post);
     }
 
+    /**
+     * Updates the post detail likers.
+     */
     private void updatePostDetailLikers(Post post) {
         if (postDetailLikers == null || post == null) return;
         String likers = post.getLikeCount() > 0 ? formatLikerDisplayList(post.getLikes()) : "";
@@ -3151,6 +3303,9 @@ public class MainContentPanel extends JPanel {
         postDetailLikers.repaint();
     }
 
+    /**
+     * Updates the post detail activity summary.
+     */
     private void updatePostDetailActivitySummary(Post post) {
         if (post == null) return;
         if (postDetailActivityLikes != null) {
@@ -3161,6 +3316,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Toggles the post detail like.
+     */
     private void togglePostDetailLike() {
         if (detailPost == null) return;
         User cur = network.getCurrentUser();
@@ -3177,14 +3335,16 @@ public class MainContentPanel extends JPanel {
         refreshProfilePosts();
     }
 
+    /**
+     * Shows the friends dialog.
+     */
     private void showFriendsDialog(User user) {
         User cur = network.getCurrentUser();
         if (cur == null || user == null) return;
 
-        // Create custom styled dialog for viewing friends
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), user.getName() + "'s Friends", Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setUndecorated(true);
-        
+
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setBackground(Color.WHITE);
@@ -3197,15 +3357,13 @@ public class MainContentPanel extends JPanel {
         title.setForeground(TEXT_MAIN);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // Create friends list
         DefaultListModel<User> model = new DefaultListModel<>();
         for (User f : user.getFriends()) model.addElement(f);
         JList<User> list = new JList<>(model);
         list.setCellRenderer(new FriendCellRenderer());
         list.setFixedCellHeight(50);
         list.setPreferredSize(new Dimension(300, 250));
-        
-        // Add click listener to show add friend dialog for non-friends
+
         list.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -3213,13 +3371,13 @@ public class MainContentPanel extends JPanel {
                     int index = list.locationToIndex(e.getPoint());
                     if (index >= 0 && index < model.getSize()) {
                         User selectedFriend = model.getElementAt(index);
-                        // Check if current user is already friends with this person
+
                         boolean isAlreadyFriend = cur.getFriends().contains(selectedFriend);
                         if (!isAlreadyFriend) {
-                            // Show add friend dialog
+
                             showAddFriendDialog(selectedFriend);
                         } else {
-                            // Show message that you're already friends
+
                             JOptionPane.showMessageDialog(dialog,
                                 "You are already friends with " + selectedFriend.getName() + ".",
                                 "Already Friends",
@@ -3251,6 +3409,9 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    /**
+     * Shows the friend posts.
+     */
     private void showFriendPosts(User user) {
         if (user == null || rExtraPanel == null) return;
         User cur = network.getCurrentUser();
@@ -3273,6 +3434,9 @@ public class MainContentPanel extends JPanel {
         rExtraPanel.repaint();
     }
 
+    /**
+     * Checks whether is friend posts visible for.
+     */
     private boolean isFriendPostsVisibleFor(User user) {
         return user != null
                 && visibleFriendPostsUser != null
@@ -3281,6 +3445,9 @@ public class MainContentPanel extends JPanel {
                 && rExtraPanel.getComponentCount() > 0;
     }
 
+    /**
+     * Updates the friend posts button text.
+     */
     private void updateFriendPostsButtonText(User user) {
         if (friendPostsToggleButton == null || user == null) return;
         String action = isFriendPostsVisibleFor(user) ? "Close " : "View ";
@@ -3290,12 +3457,18 @@ public class MainContentPanel extends JPanel {
         rActionPanel.repaint();
     }
 
+    /**
+     * Handles the size friend action button operation.
+     */
     private void sizeFriendActionButton(StyledButton button, int minWidth, int maxWidth) {
         int textWidth = button.getFontMetrics(button.getFont()).stringWidth(button.getText());
         int width = Math.max(minWidth, Math.min(maxWidth, textWidth + 34));
         button.setFixedSize(new Dimension(width, 42));
     }
 
+    /**
+     * Builds the friend posts panel.
+     */
     private JPanel buildFriendPostsPanel(User user) {
         JPanel panel = new JPanel(new BorderLayout(0, 10));
         panel.setOpaque(false);
@@ -3357,6 +3530,9 @@ public class MainContentPanel extends JPanel {
         return panel;
     }
 
+    /**
+     * Creates the friend post preview.
+     */
     private JPanel createFriendPostPreview(Post post) {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -3397,6 +3573,9 @@ public class MainContentPanel extends JPanel {
         return card;
     }
 
+    /**
+     * Sets the detail value.
+     */
     private void setDetailValue(JPanel row, String val) {
         if (row != null && row.getComponentCount() >= 2) {
             JLabel label = getDetailValueLabel(row.getComponent(1));
@@ -3410,6 +3589,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Sets the detail value html.
+     */
     private void setDetailValueHtml(JPanel row, String htmlBody) {
         if (row != null && row.getComponentCount() >= 2) {
             Component comp = row.getComponent(1);
@@ -3429,6 +3611,9 @@ public class MainContentPanel extends JPanel {
         }
     }
 
+    /**
+     * Returns the detail value label.
+     */
     private JLabel getDetailValueLabel(Component comp) {
         if (comp instanceof JLabel) {
             return (JLabel) comp;
@@ -3442,12 +3627,18 @@ public class MainContentPanel extends JPanel {
         return null;
     }
 
+    /**
+     * Sets the detail label.
+     */
     private void setDetailLabel(JPanel row, String label) {
         if (row.getComponentCount() >= 1) {
             ((JLabel) row.getComponent(0)).setText(label);
         }
     }
 
+    /**
+     * Builds the post comments panel.
+     */
     private JPanel buildPostCommentsPanel(Post post) {
         JPanel wrap = new JPanel(new BorderLayout(0, 10));
         wrap.setOpaque(false);
@@ -3535,6 +3726,9 @@ public class MainContentPanel extends JPanel {
         return wrap;
     }
 
+    /**
+     * Creates the comment item.
+     */
     private JPanel createCommentItem(Comment comment) {
         JPanel item = new JPanel(new BorderLayout(12, 0));
         item.setOpaque(true);
@@ -3623,6 +3817,9 @@ public class MainContentPanel extends JPanel {
         return item;
     }
 
+    /**
+     * Adds the comment.
+     */
     private void addComment(Post post, JTextArea input) {
         User cur = network.getCurrentUser();
         if (cur == null || post == null) return;
@@ -3643,6 +3840,9 @@ public class MainContentPanel extends JPanel {
         showPostDetail(post);
     }
 
+    /**
+     * Shows the change post dialog.
+     */
     private void showChangePostDialog(Post post) {
         User cur = network.getCurrentUser();
         if (post == null || cur == null || post.getAuthor() == null || !post.getAuthor().equals(cur)) return;
@@ -3716,6 +3916,9 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
+    /**
+     * Handles the delete post operation.
+     */
     private void deletePost(Post post) {
         User cur = network.getCurrentUser();
         if (post == null || cur == null || post.getAuthor() == null || !post.getAuthor().equals(cur)) return;
@@ -3743,6 +3946,9 @@ public class MainContentPanel extends JPanel {
         showStyledDialog("Post deleted.");
     }
 
+    /**
+     * Handles the force post feeds repaint operation.
+     */
     private void forcePostFeedsRepaint() {
         if (profilePostFeed != null) {
             profilePostFeed.revalidate();
@@ -3764,15 +3970,23 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    // ======== POST CARD ========
+    /**
+     * Creates the post card.
+     */
     private JPanel createPostCard(Post post, User cur) {
         return createPostCard(post, cur, 520, Integer.MAX_VALUE, 180);
     }
 
+    /**
+     * Creates the wide post card.
+     */
     private JPanel createWidePostCard(Post post, User cur) {
         return createPostCard(post, cur, 520, Integer.MAX_VALUE, 160);
     }
 
+    /**
+     * Creates the wrapped post text.
+     */
     private JTextArea createWrappedPostText(String text, int width, int maxHeight) {
         JTextArea area = new JTextArea(softWrapLongWords(text, 32));
         area.setFont(YH);
@@ -3791,6 +4005,9 @@ public class MainContentPanel extends JPanel {
         return area;
     }
 
+    /**
+     * Handles the make post action button operation.
+     */
     private JButton makePostActionButton(String text) {
         JButton btn = new JButton(text) {
             private boolean hover, pressed;
@@ -3832,6 +4049,9 @@ public class MainContentPanel extends JPanel {
         return btn;
     }
 
+    /**
+     * Creates the post card.
+     */
     private JPanel createPostCard(Post post, User cur, int contentWidth, int maxWidth, int maxHeight) {
         int cardWidth = maxWidth == Integer.MAX_VALUE
                 ? Integer.MAX_VALUE
@@ -3841,7 +4061,7 @@ public class MainContentPanel extends JPanel {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setOpaque(true);
         card.setBackground(selected ? POST_SELECTED_BG : CANVAS);
-        // Apple utility card: 1px hairline border, 18px radius (rounded.lg)
+
         card.setBorder(new CompoundBorder(
                 BorderFactory.createLineBorder(selected ? POST_SELECTED_BORDER : HAIRLINE, 1),
                 new EmptyBorder(14, 14, 14, 14)));
@@ -3849,7 +4069,6 @@ public class MainContentPanel extends JPanel {
         card.setMinimumSize(new Dimension(0, 0));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Header: fixed-size avatar + meta
         JPanel top = new JPanel(new BorderLayout(8, 0));
         top.setOpaque(false);
         top.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -3880,13 +4099,11 @@ public class MainContentPanel extends JPanel {
         body.setBorder(new EmptyBorder(0, POST_CARD_BODY_INDENT, 0, 0));
         body.setMaximumSize(new Dimension(cardWidth, maxHeight + 100));
 
-        // Content
         JTextArea content = createWrappedPostText(post.getContent(), contentWidth, maxHeight);
         content.setAlignmentX(Component.LEFT_ALIGNMENT);
         body.add(content);
         body.add(Box.createVerticalStrut(8));
 
-        // Action bar: heart + comment count + view
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         bottom.setOpaque(false);
         bottom.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -3930,7 +4147,6 @@ public class MainContentPanel extends JPanel {
         bottom.add(viewBtn);
         body.add(bottom);
 
-        // Inline comments (show first 3)
         if (!post.getComments().isEmpty()) {
             body.add(Box.createVerticalStrut(6));
             JPanel commentsArea = new JPanel();
@@ -3980,7 +4196,9 @@ public class MainContentPanel extends JPanel {
         return card;
     }
 
-    // ======== HELPERS ========
+    /**
+     * Loads the avatar image.
+     */
     static Image loadAvatarImage(String path, int size) {
         if (path == null || path.isEmpty()) return null;
         String resolved = resolveAvatarPath(path);
@@ -4004,6 +4222,9 @@ public class MainContentPanel extends JPanel {
         } catch (Exception e) { return null; }
     }
 
+    /**
+     * Handles the escape html operation.
+     */
     static String escapeHtml(String value) {
         if (value == null) return "";
         return value.replace("&", "&amp;")
@@ -4012,11 +4233,17 @@ public class MainContentPanel extends JPanel {
                 .replace("\"", "&quot;");
     }
 
+    /**
+     * Formats the user identity.
+     */
     private String formatUserIdentity(User user) {
         if (user == null) return "Unknown";
         return user.getName() + " - ID: " + user.getUserId();
     }
 
+    /**
+     * Formats the user list.
+     */
     private String formatUserList(List<User> users) {
         if (users == null || users.isEmpty()) return "";
         StringBuilder out = new StringBuilder();
@@ -4028,6 +4255,9 @@ public class MainContentPanel extends JPanel {
         return out.toString();
     }
 
+    /**
+     * Formats the liker display list.
+     */
     private String formatLikerDisplayList(List<User> users) {
         if (users == null || users.isEmpty()) return "";
         User cur = network != null ? network.getCurrentUser() : null;
@@ -4040,6 +4270,9 @@ public class MainContentPanel extends JPanel {
         return out.toString();
     }
 
+    /**
+     * Formats the mutual friends html.
+     */
     private String formatMutualFriendsHtml(List<User> mutualFriends) {
         if (mutualFriends == null || mutualFriends.isEmpty()) {
             return "0 person(s)";
@@ -4057,12 +4290,18 @@ public class MainContentPanel extends JPanel {
         return out.toString();
     }
 
+    /**
+     * Checks whether is same post.
+     */
     private boolean isSamePost(Post first, Post second) {
         if (first == second) return true;
         if (first == null || second == null) return false;
         return Objects.equals(first.getPostId(), second.getPostId());
     }
 
+    /**
+     * Handles the soft wrap long words operation.
+     */
     static String softWrapLongWords(String value, int maxRun) {
         if (value == null || value.isEmpty()) return "";
         StringBuilder out = new StringBuilder();
@@ -4083,21 +4322,41 @@ public class MainContentPanel extends JPanel {
         return out.toString();
     }
 
-    // ======== INNER CLASSES ========
-
-    /** Thin vertical separator */
+    /**
+     * Represents a thin visual separator used in the main interface.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class JSep extends JPanel {
+        /**
+         * Constructs a new JSep object.
+         */
         JSep() { setPreferredSize(new Dimension(1, 0)); }
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) { g.setColor(DIVIDER); g.fillRect(0, 0, 1, getHeight()); }
     }
 
-    /** Text field with placeholder hint text */
+    /**
+     * Represents a text field with placeholder text support.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class PlaceholderField extends JTextField {
         private String placeholder;
+        /**
+         * Constructs a new PlaceholderField object.
+         */
         PlaceholderField(String placeholder) {
             this.placeholder = placeholder;
         }
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -4113,15 +4372,26 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** JTextArea with placeholder text support */
+    /**
+     * Represents a text area with placeholder text support.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class PlaceholderTextArea extends JTextArea {
         private String placeholder;
-        
+
+        /**
+         * Constructs a new PlaceholderTextArea object.
+         */
         PlaceholderTextArea(String placeholder, int rows, int cols) {
             super(rows, cols);
             this.placeholder = placeholder;
         }
-        
+
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             super.paintComponent(g);
@@ -4139,10 +4409,17 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-
-    /** Circular avatar label */
+    /**
+     * Displays a circular user avatar with an image or fallback icon.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class AvatarLabel extends JLabel {
         int size; User user;
+        /**
+         * Constructs a new AvatarLabel object.
+         */
         AvatarLabel(int size, User user) {
             this.size = size; this.user = user;
             setPreferredSize(new Dimension(size, size));
@@ -4150,13 +4427,15 @@ public class MainContentPanel extends JPanel {
             setOpaque(true);
             setBackground(CANVAS);
         }
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             clearAvatarBounds(g);
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-            // Use size field as fallback if component not yet laid out
             int w = getWidth() > 0 ? getWidth() : size;
             int h = getHeight() > 0 ? getHeight() : size;
             int d = Math.min(size, Math.min(w, h));
@@ -4165,7 +4444,6 @@ public class MainContentPanel extends JPanel {
             int y = (h - d) / 2;
             Ellipse2D.Double clip = new Ellipse2D.Double(x, y, d, d);
 
-            // Try loading image from avatar path
             boolean imageDrawn = false;
             if (user != null && user.getAvatarPath() != null && !user.getAvatarPath().isEmpty()) {
                 try {
@@ -4182,19 +4460,18 @@ public class MainContentPanel extends JPanel {
                 }
             }
 
-            // Fallback: filled circle with person silhouette
             if (!imageDrawn) {
                 g2.setColor(new Color(209, 213, 219));
                 g2.fill(clip);
                 g2.setColor(Color.WHITE);
                 int cx = x + d / 2;
                 int cy = y + d / 2;
-                // Head - filled circle
+
                 int headD = d / 4;
                 int headX = cx - headD / 2;
                 int headY = cy - d / 4;
                 g2.fillOval(headX, headY, headD, headD);
-                // Body - filled arc (half ellipse)
+
                 int bodyW = d / 2;
                 int bodyH = d / 3;
                 int bodyX = cx - bodyW / 2;
@@ -4202,13 +4479,15 @@ public class MainContentPanel extends JPanel {
                 g2.fillArc(bodyX, bodyY, bodyW, bodyH, 0, 180);
             }
 
-            // Border ring — hairline
             g2.setColor(HAIRLINE);
             g2.setStroke(new BasicStroke(1.2f));
             g2.draw(clip);
             g2.dispose();
         }
 
+        /**
+         * Clears the avatar bounds.
+         */
         private void clearAvatarBounds(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setColor(resolveAvatarBackground());
@@ -4216,6 +4495,9 @@ public class MainContentPanel extends JPanel {
             g2.dispose();
         }
 
+        /**
+         * Handles the resolve avatar background operation.
+         */
         private Color resolveAvatarBackground() {
             Component component = getParent();
             while (component != null) {
@@ -4228,13 +4510,20 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    // Nav icon images loaded from image/ folder
     private BufferedImage[] navIcons = new BufferedImage[4];
 
-    /** Bottom-left settings button */
+    /**
+     * Displays the settings icon in the navigation area.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class SettingsIcon extends JPanel {
         private boolean hover;
 
+        /**
+         * Constructs a new SettingsIcon object.
+         */
         SettingsIcon() {
             setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -4269,6 +4558,9 @@ public class MainContentPanel extends JPanel {
             g2.dispose();
         }
 
+        /**
+         * Creates the gear shape.
+         */
         private Shape createGearShape(int cx, int cy) {
             Area gear = new Area(new Ellipse2D.Double(cx - 10.5, cy - 10.5, 21, 21));
             for (int i = 0; i < 8; i++) {
@@ -4282,10 +4574,18 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Nav icon — parchment sidebar: gray icons, blue active with left bar indicator */
+    /**
+     * Displays a navigation icon and its selected or hover state.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class NavIcon extends JPanel {
         int idx; String tip; boolean hover;
-        
+
+        /**
+         * Constructs a new NavIcon object.
+         */
         NavIcon(int idx, String tip) {
             this.idx = idx; this.tip = tip;
             setOpaque(false);
@@ -4299,22 +4599,25 @@ public class MainContentPanel extends JPanel {
                 }
             });
         }
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             boolean sel = (idx == navIdx && idx <= 3);
-            // Hover background — #f0f0f0 divider, 10px radius
+
             if (hover && !sel) {
                 g2.setColor(DIVIDER);
                 g2.fillRoundRect(10, 2, 44, 40, 10, 10);
             }
-            // Draw icon image centered at (32, 22)
+
             if (navIcons[idx] != null) {
-                int iw = 24, ih = 24; // icon size
+                int iw = 24, ih = 24;
                 int x = 32 - iw / 2;
                 int y = 22 - ih / 2;
-                // Apply tint color for selected/hover state
+
                 if (sel) {
                     g2.setColor(BRAND);
                 } else {
@@ -4322,7 +4625,7 @@ public class MainContentPanel extends JPanel {
                 }
                 g2.drawImage(navIcons[idx], x, y, iw, ih, null);
             }
-            // Active indicator — 3px blue left bar
+
             if (sel) {
                 g2.setColor(BRAND);
                 g2.setStroke(new BasicStroke(1f));
@@ -4332,13 +4635,23 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-
-
+    /**
+     * Draws the empty-state icon used in post and comment panels.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class EmptyChatIcon extends JPanel {
+        /**
+         * Constructs a new EmptyChatIcon object.
+         */
         EmptyChatIcon() {
             setOpaque(false);
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -4360,7 +4673,12 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Heart icon for like/unlike with animation */
+    /**
+     * Displays the animated heart icon used for like and unlike actions.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class HeartIcon extends JPanel {
         private boolean liked;
         private final Post post;
@@ -4368,6 +4686,9 @@ public class MainContentPanel extends JPanel {
         private float animProgress = 1f;
         private javax.swing.Timer animTimer;
 
+        /**
+         * Constructs a new HeartIcon object.
+         */
         HeartIcon(boolean initialLiked, Post post) {
             this.liked = initialLiked;
             this.post = post;
@@ -4380,7 +4701,7 @@ public class MainContentPanel extends JPanel {
                 public void mouseClicked(MouseEvent e) {
                     toggleLike(post);
                     liked = !liked;
-                    // Animate
+
                     animProgress = 0f;
                     if (animTimer != null && animTimer.isRunning()) animTimer.stop();
                     animTimer = new javax.swing.Timer(16, null);
@@ -4394,12 +4715,15 @@ public class MainContentPanel extends JPanel {
             });
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             int w = getWidth(), h = getHeight();
-            // Scale animation: bounce from 0.7 to 1.0
+
             float scale = 0.7f + 0.3f * Math.min(animProgress, 1f);
             int cx = w / 2, cy = h / 2;
             double s = scale;
@@ -4408,7 +4732,7 @@ public class MainContentPanel extends JPanel {
             g2.translate(-cx, -cy);
 
             if (liked) {
-                g2.setColor(new Color(239, 68, 68)); // red
+                g2.setColor(new Color(239, 68, 68));
                 drawHeart(g2, w, h, true);
             } else {
                 g2.setColor(hover ? new Color(239, 68, 68) : TEXT_HINT);
@@ -4417,6 +4741,9 @@ public class MainContentPanel extends JPanel {
             g2.dispose();
         }
 
+        /**
+         * Draws the heart.
+         */
         private void drawHeart(Graphics2D g, int w, int h, boolean fill) {
             int cx = w / 2;
             Path2D.Double heart = new Path2D.Double();
@@ -4428,10 +4755,18 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Apple button-primary: flat pill, Action Blue, press scale */
+    /**
+     * Represents a reusable styled button for the main interface.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class StyledButton extends JButton {
         private boolean primary, hover;
         private boolean pressed;
+        /**
+         * Constructs a new StyledButton object.
+         */
         StyledButton(String text, boolean primary) {
             super(text);
             this.primary = primary;
@@ -4459,16 +4794,19 @@ public class MainContentPanel extends JPanel {
             setMaximumSize(size);
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             if (primary) {
-                // Apple: flat fill, darker on press
+
                 g2.setColor(pressed ? BRAND_DARK : BRAND);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
             } else {
-                // Secondary: ghost pill with 1px blue border
+
                 if (hover) { g2.setColor(new Color(0, 102, 204, 12)); g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16); }
                 g2.setColor(BRAND); g2.setStroke(new BasicStroke(1.0f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
@@ -4478,10 +4816,17 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** HTML btn-chip / btn-chip-off: full-pill, blue active, hairline inactive */
-    /** Filter chip button - rounded rectangle style */
+    /**
+     * Represents a selectable filter chip for friend and search filters.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class FilterChip extends JButton {
         private boolean active, hover;
+        /**
+         * Constructs a new FilterChip object.
+         */
         FilterChip(String text, boolean active) {
             super(text);
             this.active = active;
@@ -4502,21 +4847,24 @@ public class MainContentPanel extends JPanel {
             repaint();
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            int radius = 8; // Rounded rectangle corners
-            
+            int radius = 8;
+
             if (active) {
-                // Active state - solid blue background with border
+
                 g2.setColor(BRAND);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
                 g2.setColor(BRAND_DARK);
                 g2.setStroke(new BasicStroke(1f));
                 g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
             } else {
-                // Inactive state - white background with gray border
+
                 if (hover) {
                     g2.setColor(HOVER_BG);
                     g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
@@ -4533,14 +4881,22 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Recommendation list renderer */
+    /**
+     * Renders recommended users in the search recommendation list.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class RecommendationCellRenderer extends DefaultListCellRenderer {
+        /**
+         * Returns the list cell renderer component.
+         */
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             User u = (User) value;
             JPanel row = new JPanel(new BorderLayout(8, 0));
             row.setOpaque(true);
-            row.setBackground(isSelected ? new Color(232, 240, 254) : CANVAS); // Apple blue selection
+            row.setBackground(isSelected ? new Color(232, 240, 254) : CANVAS);
             row.setBorder(new EmptyBorder(8, 12, 8, 12));
 
             row.add(new AvatarLabel(42, u), BorderLayout.WEST);
@@ -4563,14 +4919,22 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    /** Friend list cell renderer */
+    /**
+     * Renders friends in the friend list.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class FriendCellRenderer extends DefaultListCellRenderer {
+        /**
+         * Returns the list cell renderer component.
+         */
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             User u = (User) value;
             JPanel row = new JPanel(new BorderLayout(8, 0));
             row.setOpaque(true);
-            row.setBackground(isSelected ? new Color(232, 240, 254) : CANVAS); // Apple blue selection
+            row.setBackground(isSelected ? new Color(232, 240, 254) : CANVAS);
             row.setBorder(new EmptyBorder(8, 12, 8, 12));
 
             AvatarLabel av = new AvatarLabel(40, u);
@@ -4593,10 +4957,10 @@ public class MainContentPanel extends JPanel {
             }
             String previewText;
             if (!remark.isEmpty()) {
-                // Show friend remark with ID
+
                 previewText = "ID: " + u.getUserId();
             } else {
-                // Show user ID as default
+
                 previewText = "ID: " + u.getUserId();
             }
             JLabel preview = new JLabel(previewText);
@@ -4613,11 +4977,6 @@ public class MainContentPanel extends JPanel {
         }
     }
 
-    // ================================================================
-    //  APPLE-STYLE DIALOGS — replaces JOptionPane everywhere
-    // ================================================================
-
-    /** Shows a styled info/warning dialog with a single OK button. */
     void showStyledDialog(String message) {
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "SnapTok",
                 java.awt.Dialog.ModalityType.APPLICATION_MODAL);
@@ -4655,7 +5014,6 @@ public class MainContentPanel extends JPanel {
         dialog.setVisible(true);
     }
 
-    /** Shows a styled confirm dialog; returns true if user clicks the affirmative button. */
     boolean showStyledConfirm(String message, String confirmLabel) {
         final boolean[] result = {false};
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), "SnapTok",
@@ -4699,6 +5057,9 @@ public class MainContentPanel extends JPanel {
         return result[0];
     }
 
+    /**
+     * Handles the make dialog button operation.
+     */
     private JButton makeDialogButton(String text, boolean primary) {
         JButton btn = new JButton(text) {
             private boolean hov, prs;
@@ -4732,7 +5093,9 @@ public class MainContentPanel extends JPanel {
         return btn;
     }
 
-    /** File operations */
+    /**
+     * Loads the network into.
+     */
     static void loadNetworkInto(SocialNetwork network, java.io.File file) throws Exception {
         SocialNetwork ld = FileManager.loadNetwork(file.getAbsolutePath());
         for (User u : ld.getAllUsers()) network.addUser(u);
@@ -4740,17 +5103,27 @@ public class MainContentPanel extends JPanel {
         LoginPanel.rewriteUsersFile(network);
     }
 
-
-    /** Custom rounded border for search field */
+    /**
+     * Draws a rounded border for search fields and related components.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     class RoundedBorder extends AbstractBorder {
         private int radius;
         private Color borderColor;
-        
+
+        /**
+         * Constructs a new RoundedBorder object.
+         */
         RoundedBorder(int radius, Color borderColor) {
             this.radius = radius;
             this.borderColor = borderColor;
         }
-        
+
+        /**
+         * Paints the border.
+         */
         @Override
         public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
             Graphics2D g2 = (Graphics2D) g.create();
@@ -4760,7 +5133,10 @@ public class MainContentPanel extends JPanel {
             g2.drawRoundRect(x, y, width - 1, height - 1, radius, radius);
             g2.dispose();
         }
-        
+
+        /**
+         * Returns the border insets.
+         */
         @Override
         public Insets getBorderInsets(Component c) {
             return new Insets(Math.max(4, radius / 3), Math.max(8, radius / 2), Math.max(4, radius / 3), Math.max(8, radius / 2));

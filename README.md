@@ -2,8 +2,6 @@
 
 SnapTok is a Java Swing social network application for the DI12010 data structures and algorithms team project. It models users and friendships as a social graph, supports file loading and saving, and includes profile editing, friend filtering, friend recommendations, friend-add reminders, posts, likes, comments, avatars, signatures, and per-user friend remarks.
 
-See [DATA_STRUCTURE.md](DATA_STRUCTURE.md) for the data structures and flow diagrams.
-
 ## Current Features
 
 1. User login and account creation.
@@ -41,12 +39,13 @@ src/
   Post.java               Post content, likes, and comments
   Comment.java            Comment author, content, and timestamp
   FileManager.java        Full network file loading and saving
+  TestPlan.java           Automated tests for core functions
 
 data/
   network.txt             Example/default network file
 
 users.txt                 Local account/profile store
-DATA_STRUCTURE.md         Data structure and flow documentation
+slayers-social-network-gui.jar  Runnable application jar
 README.md                 Project overview
 ```
 

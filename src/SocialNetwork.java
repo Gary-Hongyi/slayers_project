@@ -2,23 +2,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Represents the entire social network as an undirected graph.
- * Uses a HashMap for O(1) user lookup by userId.
- * Friendships are stored as bidirectional edges between User nodes.
+ * Stores users and provides friendship, recommendation and post operations.
+ *
+ * @author Team Slayers
+ * @version 1.0
  */
 public class SocialNetwork {
 
-    /** Map of all users indexed by userId for O(1) lookup */
     private HashMap<String, User> users;
 
-    /** The currently logged-in user */
     private User currentUser;
 
-    /** Counter for generating unique post IDs */
     private int postCounter;
 
     /**
-     * Constructs an empty SocialNetwork.
+     * Constructs a new SocialNetwork object.
      */
     public SocialNetwork() {
         this.users = new HashMap<>();
@@ -26,12 +24,8 @@ public class SocialNetwork {
         this.postCounter = 0;
     }
 
-    // ---- User Management ----
-
     /**
-     * Adds a user to the network.
-     *
-     * @param user the user to add
+     * Adds the user.
      */
     public void addUser(User user) {
         if (user != null && !users.containsKey(user.getUserId())) {
@@ -40,50 +34,42 @@ public class SocialNetwork {
     }
 
     /**
-     * Retrieves a user by their ID.
-     *
-     * @param userId the user ID
-     * @return the User, or null if not found
+     * Returns the user.
      */
     public User getUser(String userId) {
         return users.get(userId);
     }
 
     /**
-     * Returns all users in the network.
-     *
-     * @return collection of all users
+     * Returns the all users.
      */
     public Collection<User> getAllUsers() {
         return users.values();
     }
 
     /**
-     * Returns the number of users in the network.
-     *
-     * @return user count
+     * Returns the user count.
      */
     public int getUserCount() {
         return users.size();
     }
 
-    // ---- Current User ----
-
+    /**
+     * Returns the current user.
+     */
     public User getCurrentUser() {
         return currentUser;
     }
 
+    /**
+     * Sets the current user.
+     */
     public void setCurrentUser(User currentUser) {
         this.currentUser = currentUser;
     }
 
-    // ---- Friendship Management ----
-
     /**
-     * Creates a friendship between two users (bidirectional).
-     *
-     * @param userId1 first user ID
-     * @param userId2 second user ID
+     * Adds the friendship.
      */
     public void addFriendship(String userId1, String userId2) {
         User u1 = users.get(userId1);
@@ -93,14 +79,8 @@ public class SocialNetwork {
         }
     }
 
-    // ---- Queries ----
-
     /**
-     * Returns mutual friends between two users.
-     *
-     * @param user1 first user
-     * @param user2 second user
-     * @return list of mutual friends
+     * Returns the mutual friends.
      */
     public List<User> getMutualFriends(User user1, User user2) {
         if (user1 == null || user2 == null) return new ArrayList<>();
@@ -108,11 +88,7 @@ public class SocialNetwork {
     }
 
     /**
-     * Filters a user's friends by hometown.
-     *
-     * @param user     the user whose friends to filter
-     * @param hometown the hometown to match (case-insensitive)
-     * @return list of friends with matching hometown
+     * Handles the filter friends by hometown operation.
      */
     public List<User> filterFriendsByHometown(User user, String hometown) {
         if (user == null || hometown == null) return new ArrayList<>();
@@ -122,11 +98,7 @@ public class SocialNetwork {
     }
 
     /**
-     * Filters a user's friends by workplace.
-     *
-     * @param user      the user whose friends to filter
-     * @param workplace the workplace to match (case-insensitive)
-     * @return list of friends with matching workplace
+     * Handles the filter friends by workplace operation.
      */
     public List<User> filterFriendsByWorkplace(User user, String workplace) {
         if (user == null || workplace == null) return new ArrayList<>();
@@ -136,11 +108,7 @@ public class SocialNetwork {
     }
 
     /**
-     * Generates friend recommendations for the current user.
-     * Scans friends-of-friends and finds people with the same hometown or workplace.
-     *
-     * @param user the user to generate recommendations for
-     * @return map of recommended users to the reason for recommendation
+     * Returns the friend recommendations.
      */
     public Map<User, String> getFriendRecommendations(User user) {
         Map<User, String> recommendations = new LinkedHashMap<>();
@@ -148,10 +116,9 @@ public class SocialNetwork {
 
         Set<User> friendsSet = new HashSet<>(user.getFriends());
 
-        // Look through all friends' friends
         for (User friend : user.getFriends()) {
             for (User fof : friend.getFriends()) {
-                // Skip self and existing friends
+
                 if (fof.equals(user) || friendsSet.contains(fof)) continue;
 
                 String reason = "";
@@ -163,7 +130,6 @@ public class SocialNetwork {
                     reason += "Same workplace (" + user.getWorkplace() + ")";
                 }
 
-                // Also check mutual friends
                 if (reason.isEmpty()) {
                     List<User> mutual = user.getMutualFriends(fof);
                     if (!mutual.isEmpty()) {
@@ -179,6 +145,9 @@ public class SocialNetwork {
         return recommendations;
     }
 
+    /**
+     * Handles the profile value matches operation.
+     */
     private boolean profileValueMatches(String left, String right) {
         if (left == null || right == null) return false;
         String leftClean = left.trim();
@@ -188,14 +157,8 @@ public class SocialNetwork {
         return leftClean.equalsIgnoreCase(rightClean);
     }
 
-    // ---- Post Management ----
-
     /**
-     * Creates a new post for the given user and returns it.
-     *
-     * @param user    the author
-     * @param content the post content
-     * @return the created Post
+     * Creates the post.
      */
     public Post createPost(User user, String content) {
         postCounter++;
@@ -206,23 +169,21 @@ public class SocialNetwork {
     }
 
     /**
-     * Returns the next post counter value (for serialization).
+     * Returns the post counter.
      */
     public int getPostCounter() {
         return postCounter;
     }
 
     /**
-     * Sets the post counter (for deserialization).
+     * Sets the post counter.
      */
     public void setPostCounter(int postCounter) {
         this.postCounter = postCounter;
     }
 
     /**
-     * Collects all posts from the network for display.
-     *
-     * @return list of all posts sorted by timestamp (newest first)
+     * Returns the all posts.
      */
     public List<Post> getAllPosts() {
         List<Post> allPosts = new ArrayList<>();
@@ -234,10 +195,7 @@ public class SocialNetwork {
     }
 
     /**
-     * Collects posts visible to the given viewer: their own posts and friends' posts.
-     *
-     * @param viewer the user viewing the feed
-     * @return visible posts sorted by timestamp (newest first)
+     * Returns the visible posts for.
      */
     public List<Post> getVisiblePostsFor(User viewer) {
         List<Post> visiblePosts = new ArrayList<>();
@@ -253,11 +211,7 @@ public class SocialNetwork {
     }
 
     /**
-     * Checks whether a viewer can open a post.
-     *
-     * @param viewer the user viewing the post
-     * @param post   the post to view
-     * @return true if the post belongs to the viewer or one of their friends
+     * Checks whether can view post.
      */
     public boolean canViewPost(User viewer, Post post) {
         if (viewer == null || post == null || post.getAuthor() == null) return false;
@@ -266,10 +220,7 @@ public class SocialNetwork {
     }
 
     /**
-     * Finds a post by ID.
-     *
-     * @param postId the post ID
-     * @return the matching post, or null if not found
+     * Returns the post by id.
      */
     public Post getPostById(String postId) {
         if (postId == null) return null;

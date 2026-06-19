@@ -5,9 +5,10 @@ import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 
 /**
- * Main GUI frame — borderless window with standard Windows title bar controls.
- * Supports drag, minimize, maximize/restore, close, and resizable.
- * 1000x700 default, min 800x600, 16px rounded corners.
+ * Creates the main application window and switches between login and main content screens.
+ *
+ * @author Team Slayers
+ * @version 1.0
  */
 public class MainGUI extends JFrame {
 
@@ -18,10 +19,8 @@ public class MainGUI extends JFrame {
     private LoginPanel loginPanel;
     private MainContentPanel contentPanel;
 
-    /** Drag tracking */
     private Point dragStart;
 
-    /** Window state */
     private Rectangle prevBounds;
     private boolean maximized;
 
@@ -31,6 +30,9 @@ public class MainGUI extends JFrame {
     private static final int WIN_W = 1000;
     private static final int WIN_H = 700;
 
+    /**
+     * Constructs a new MainGUI object.
+     */
     public MainGUI(SocialNetwork network) {
         this.network = network;
 
@@ -43,12 +45,11 @@ public class MainGUI extends JFrame {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(true);
 
-        // Root panel — Apple parchment canvas (no decorative gradients)
         JPanel root = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 int w = getWidth(), h = getHeight();
-                g.setColor(new Color(245, 245, 247)); // canvas-parchment
+                g.setColor(new Color(245, 245, 247));
                 if (maximized) { g.fillRect(0, 0, w, h); }
                 else {
                     Graphics2D g2 = (Graphics2D) g.create();
@@ -60,10 +61,8 @@ public class MainGUI extends JFrame {
         };
         root.setOpaque(false);
 
-        // Title bar
         root.add(buildTitleBar(), BorderLayout.NORTH);
 
-        // Card layout
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
         mainPanel.setOpaque(false);
@@ -80,10 +79,8 @@ public class MainGUI extends JFrame {
         applyShape();
         cardLayout.show(mainPanel, LOGIN_CARD);
 
-        // Auto-load saved network data on startup
         autoLoadNetwork();
 
-        // Auto-save on window close
         addWindowListener(new java.awt.event.WindowAdapter() {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
@@ -94,7 +91,6 @@ public class MainGUI extends JFrame {
             }
         });
 
-        // Update shape on resize
         addComponentListener(new ComponentAdapter() {
             public void componentResized(ComponentEvent e) {
                 applyShape();
@@ -102,23 +98,20 @@ public class MainGUI extends JFrame {
         });
     }
 
-    // ================================================================
-    //  TITLE BAR — Standard Windows 3-button group
-    // ================================================================
-
+    /**
+     * Builds the title bar.
+     */
     private JPanel buildTitleBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setOpaque(false);
         bar.setPreferredSize(new Dimension(0, 40));
         bar.setBorder(BorderFactory.createEmptyBorder(4, 16, 4, 0));
 
-        // App name — Apple style
         JLabel appName = new JLabel("SnapTok");
         appName.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        appName.setForeground(new Color(122, 122, 122)); // muted-48
+        appName.setForeground(new Color(122, 122, 122));
         bar.add(appName, BorderLayout.WEST);
 
-        // Windows-style button group: Minimize → Maximize → Close
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         btns.setOpaque(false);
 
@@ -136,7 +129,6 @@ public class MainGUI extends JFrame {
         btns.add(closeBtn);
         bar.add(btns, BorderLayout.EAST);
 
-        // Drag support
         MouseAdapter dragAdapter = new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 dragStart = e.getPoint();
@@ -158,6 +150,9 @@ public class MainGUI extends JFrame {
         return bar;
     }
 
+    /**
+     * Toggles the maximize.
+     */
     private void toggleMaximize() {
         if (maximized) {
             maximized = false;
@@ -173,6 +168,9 @@ public class MainGUI extends JFrame {
         repaint();
     }
 
+    /**
+     * Handles the apply shape operation.
+     */
     private void applyShape() {
         if (maximized) {
             setShape(null);
@@ -181,10 +179,12 @@ public class MainGUI extends JFrame {
         }
     }
 
-    // ================================================================
-    //  WIN BUTTON — Standard Windows-style title bar button
-    // ================================================================
-
+    /**
+     * Represents a custom window control button used by the main frame.
+     *
+     * @author Team Slayers
+     * @version 1.0
+     */
     static class WinButton extends JButton {
         static final int TYPE_MINIMIZE = 0;
         static final int TYPE_MAXIMIZE = 1;
@@ -193,6 +193,9 @@ public class MainGUI extends JFrame {
         private int type;
         private boolean hover, pressed;
 
+        /**
+         * Constructs a new WinButton object.
+         */
         WinButton(int type) {
             this.type = type;
             setPreferredSize(new Dimension(32, 32));
@@ -210,20 +213,23 @@ public class MainGUI extends JFrame {
             });
         }
 
+        /**
+         * Paints the component.
+         */
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
             if (pressed) {
-                g2.setColor(new Color(224, 224, 224)); // hairline
+                g2.setColor(new Color(224, 224, 224));
                 g2.fillOval(2, 2, 28, 28);
             } else if (hover) {
-                g2.setColor(new Color(245, 245, 247)); // parchment
+                g2.setColor(new Color(245, 245, 247));
                 g2.fillOval(2, 2, 28, 28);
             }
 
-            g2.setColor(new Color(29, 29, 31)); // ink
+            g2.setColor(new Color(29, 29, 31));
             g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
             int cx = 16, cy = 16;
@@ -243,22 +249,25 @@ public class MainGUI extends JFrame {
         }
     }
 
-    // ================================================================
-    //  CARD NAVIGATION
-    // ================================================================
-
+    /**
+     * Shows the card.
+     */
     public void showCard(String cardName) {
         cardLayout.show(mainPanel, cardName);
     }
 
-    /** Called after successful login to show the main 3-column content. */
+    /**
+     * Shows the main content.
+     */
     public void showMainContent() {
         contentPanel.startUserSession();
         cardLayout.show(mainPanel, MAIN_CARD);
         SwingUtilities.invokeLater(() -> contentPanel.showPendingFriendNotifications());
     }
 
-    /** Logs out the current user and clears user-specific UI state before returning to login. */
+    /**
+     * Handles the logout current user operation.
+     */
     public void logoutCurrentUser() {
         saveNetworkNow();
         contentPanel.clearSessionState();
@@ -267,24 +276,34 @@ public class MainGUI extends JFrame {
         cardLayout.show(mainPanel, LOGIN_CARD);
     }
 
+    /**
+     * Returns the network.
+     */
     public SocialNetwork getNetwork() { return network; }
-
-    // ======== AUTO-SAVE / AUTO-LOAD ========
 
     private static final String AUTO_SAVE_FILE;
     static {
         AUTO_SAVE_FILE = new File(LoginPanel.getProjectRoot(), "data/network.txt").getAbsolutePath();
     }
 
+    /**
+     * Returns the default network file path.
+     */
     public static String getDefaultNetworkFilePath() {
         return AUTO_SAVE_FILE;
     }
 
+    /**
+     * Saves the network now.
+     */
     public void saveNetworkNow() {
         autoSaveNetwork();
         LoginPanel.rewriteUsersFile(network);
     }
 
+    /**
+     * Handles the auto load network operation.
+     */
     private void autoLoadNetwork() {
         File file = new File(AUTO_SAVE_FILE);
         if (!file.exists()) return;
@@ -295,7 +314,7 @@ public class MainGUI extends JFrame {
                 if (network.getUser(u.getUserId()) == null) {
                     network.addUser(u);
                 } else {
-                    // Merge posts/friendships into existing user
+
                     User existing = network.getUser(u.getUserId());
                     if (existing.getAvatarPath().isEmpty() && !u.getAvatarPath().isEmpty()) {
                         existing.setAvatarPath(u.getAvatarPath());
@@ -311,7 +330,7 @@ public class MainGUI extends JFrame {
                     }
                 }
             }
-            // Merge friendships for users already loaded
+
             for (User u : saved.getAllUsers()) {
                 User existing = network.getUser(u.getUserId());
                 if (existing != null) {
@@ -330,17 +349,20 @@ public class MainGUI extends JFrame {
                 network.setPostCounter(saved.getPostCounter());
             }
         } catch (Exception e) {
-            // Silently ignore load errors
+
         }
     }
 
+    /**
+     * Handles the auto save network operation.
+     */
     private void autoSaveNetwork() {
         try {
             File dir = new File(AUTO_SAVE_FILE).getParentFile();
             if (!dir.exists()) dir.mkdirs();
             FileManager.saveNetwork(AUTO_SAVE_FILE, network);
         } catch (Exception e) {
-            // Silently ignore save errors
+
         }
     }
 }

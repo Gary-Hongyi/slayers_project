@@ -8,39 +8,21 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Handles saving and loading the social network to/from a text file.
+ * Handles saving and loading SnapTok network data from local text files.
  *
- * File format:
- *   [USERS]
- *   userId|name|workplace|hometown|password|signature|avatarPath|friendId:encodedRemark;...|encodedFriendNotification;...
- *   ...
- *   [FRIENDSHIPS]
- *   userId1|userId2
- *   ...
- *   [POSTS]
- *   postId|authorId|content|timestamp|likerId1,likerId2,...
- *   ...
- *   [COMMENTS]
- *   postId|authorId|content|timestamp
- *   ...
- *   [COUNTER]
- *   postCounter
- *   [END]
+ * @author Team Slayers
+ * @version 1.0
  */
 public class FileManager {
 
     private static final DateTimeFormatter FORMATTER = Post.getFormatter();
 
     /**
-     * Saves the entire social network to a file.
-     *
-     * @param filepath the path to save to
-     * @param network  the social network to save
-     * @throws IOException if writing fails
+     * Saves the network.
      */
     public static void saveNetwork(String filepath, SocialNetwork network) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(filepath))) {
-            // Write users section
+
             writer.write("[USERS]");
             writer.newLine();
             for (User user : network.getAllUsers()) {
@@ -56,7 +38,6 @@ public class FileManager {
                 writer.newLine();
             }
 
-            // Write friendships section (avoid duplicates by only writing userId1 < userId2)
             writer.write("[FRIENDSHIPS]");
             writer.newLine();
             List<String> written = new ArrayList<>();
@@ -73,7 +54,6 @@ public class FileManager {
                 }
             }
 
-            // Write posts section
             writer.write("[POSTS]");
             writer.newLine();
             for (User user : network.getAllUsers()) {
@@ -87,7 +67,6 @@ public class FileManager {
                 }
             }
 
-            // Write comments section
             writer.write("[COMMENTS]");
             writer.newLine();
             for (User user : network.getAllUsers()) {
@@ -102,7 +81,6 @@ public class FileManager {
                 }
             }
 
-            // Write counter
             writer.write("[COUNTER]");
             writer.newLine();
             writer.write(String.valueOf(network.getPostCounter()));
@@ -114,11 +92,7 @@ public class FileManager {
     }
 
     /**
-     * Loads a social network from a file.
-     *
-     * @param filepath the path to load from
-     * @return the reconstructed SocialNetwork
-     * @throws IOException if reading fails
+     * Loads the network.
      */
     public static SocialNetwork loadNetwork(String filepath) throws IOException {
         SocialNetwork network = new SocialNetwork();
@@ -130,7 +104,6 @@ public class FileManager {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
-                // Check for section headers
                 if (line.startsWith("[") && line.endsWith("]")) {
                     section = line;
                     continue;
@@ -153,7 +126,7 @@ public class FileManager {
                         try {
                             network.setPostCounter(Integer.parseInt(line));
                         } catch (NumberFormatException e) {
-                            // ignore bad counter
+
                         }
                         break;
                     default:
@@ -165,7 +138,7 @@ public class FileManager {
     }
 
     /**
-     * Parses a user line and adds the user to the network.
+     * Parses the user.
      */
     private static void parseUser(String line, SocialNetwork network) {
         String[] parts = line.split("\\|", -1);
@@ -185,7 +158,7 @@ public class FileManager {
     }
 
     /**
-     * Parses a friendship line and adds the bidirectional friendship.
+     * Parses the friendship.
      */
     private static void parseFriendship(String line, SocialNetwork network) {
         String[] parts = line.split("\\|", -1);
@@ -197,7 +170,7 @@ public class FileManager {
     }
 
     /**
-     * Parses a post line and adds it to the network.
+     * Parses the post.
      */
     private static void parsePost(String line, SocialNetwork network) {
         String[] parts = line.split("\\|", -1);
@@ -221,7 +194,6 @@ public class FileManager {
             Post post = new Post(postId, author, content, timestamp);
             author.addPost(post);
 
-            // Add likes
             if (!likerIds.isEmpty()) {
                 String[] ids = likerIds.split(",");
                 for (String id : ids) {
@@ -238,7 +210,7 @@ public class FileManager {
     }
 
     /**
-     * Escapes pipe characters in data for safe serialization.
+     * Handles the escape operation.
      */
     private static String escape(String s) {
         if (s == null) return "";
@@ -246,13 +218,16 @@ public class FileManager {
     }
 
     /**
-     * Unescapes pipe characters from serialized data.
+     * Handles the unescape operation.
      */
     private static String unescape(String s) {
         if (s == null) return "";
         return s.replace("\\p", "|").replace("\\\\", "\\");
     }
 
+    /**
+     * Serializes the remarks.
+     */
     private static String serializeRemarks(User user) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : user.getFriendRemarks().entrySet()) {
@@ -263,6 +238,9 @@ public class FileManager {
         return sb.toString();
     }
 
+    /**
+     * Parses the remarks.
+     */
     private static void parseRemarks(String data, User user) {
         if (data == null || data.trim().isEmpty()) return;
         String[] entries = data.split(";");
@@ -275,6 +253,9 @@ public class FileManager {
         }
     }
 
+    /**
+     * Serializes the friend notifications.
+     */
     private static String serializeFriendNotifications(User user) {
         StringBuilder sb = new StringBuilder();
         for (String userId : user.getFriendNotifications()) {
@@ -285,6 +266,9 @@ public class FileManager {
         return sb.toString();
     }
 
+    /**
+     * Parses the friend notifications.
+     */
     private static void parseFriendNotifications(String data, User user) {
         if (data == null || data.trim().isEmpty() || user == null) return;
         String[] entries = data.split(";");
@@ -295,7 +279,7 @@ public class FileManager {
     }
 
     /**
-     * Parses a comment line and attaches it to the matching post.
+     * Parses the comment.
      */
     private static void parseComment(String line, SocialNetwork network) {
         String[] parts = line.split("\\|", -1);
@@ -319,11 +303,17 @@ public class FileManager {
         }
     }
 
+    /**
+     * Handles the encode operation.
+     */
     private static String encode(String value) {
         return Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Handles the decode operation.
+     */
     private static String decode(String value) {
         try {
             return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);

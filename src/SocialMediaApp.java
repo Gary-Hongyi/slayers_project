@@ -1,29 +1,25 @@
 import javax.swing.*;
 
 /**
- * Main entry point for the SnapTok Social Network application.
- * Launches the GUI and initializes the social network data model.
+ * Starts the SnapTok application and configures the common Swing settings.
  *
- * @author SnapTok Development Team
+ * @author Team Slayers
  * @version 1.0
  */
 public class SocialMediaApp {
 
     /**
-     * Main method that launches the social network application.
-     *
-     * @param args command line arguments (not used)
+     * Starts the program from the command line.
      */
     public static void main(String[] args) {
-        // Set system look and feel for native appearance
+
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            // Fall back to default look and feel
+
         }
         configureEnglishDialogText();
 
-        // Launch GUI on the Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
             SocialNetwork network = new SocialNetwork();
             MainGUI gui = new MainGUI(network);
@@ -31,6 +27,9 @@ public class SocialMediaApp {
         });
     }
 
+    /**
+     * Configures Swing dialog button text in English.
+     */
     private static void configureEnglishDialogText() {
         UIManager.put("OptionPane.okButtonText", "OK");
         UIManager.put("OptionPane.cancelButtonText", "Cancel");
