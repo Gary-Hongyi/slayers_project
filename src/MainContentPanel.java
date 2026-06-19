@@ -3055,6 +3055,7 @@ public class MainContentPanel extends JPanel {
         panel.add(hint);
         panel.add(Box.createVerticalStrut(16));
 
+        int remarkContentWidth = 384;
         JTextField field = new JTextField(cur.getFriendRemark(friend.getUserId()));
         field.setFont(YH);
         field.setForeground(TEXT_MAIN);
@@ -3063,17 +3064,25 @@ public class MainContentPanel extends JPanel {
                 BorderFactory.createLineBorder(HAIRLINE, 1),
                 new EmptyBorder(9, 12, 9, 12)));
         field.setBackground(Color.WHITE);
-        field.setMaximumSize(new Dimension(320, 40));
+        field.setPreferredSize(new Dimension(remarkContentWidth, 40));
+        field.setMinimumSize(new Dimension(remarkContentWidth, 40));
+        field.setMaximumSize(new Dimension(remarkContentWidth, 40));
         field.setAlignmentX(Component.LEFT_ALIGNMENT);
         panel.add(field);
         panel.add(Box.createVerticalStrut(18));
 
-        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel buttons = new JPanel();
+        buttons.setLayout(new BoxLayout(buttons, BoxLayout.X_AXIS));
         buttons.setOpaque(false);
         buttons.setAlignmentX(Component.LEFT_ALIGNMENT);
+        buttons.setPreferredSize(new Dimension(remarkContentWidth, 42));
+        buttons.setMinimumSize(new Dimension(remarkContentWidth, 42));
+        buttons.setMaximumSize(new Dimension(remarkContentWidth, 42));
         StyledButton cancel = new StyledButton("Cancel", false);
+        cancel.setFixedSize(new Dimension(168, 42));
         cancel.addActionListener(e -> dialog.dispose());
         StyledButton save = new StyledButton("Save", true);
+        save.setFixedSize(new Dimension(208, 42));
         save.addActionListener(e -> {
             String remark = field.getText().trim();
             cur.setFriendRemark(friend.getUserId(), remark);
@@ -3084,6 +3093,7 @@ public class MainContentPanel extends JPanel {
             dialog.dispose();
         });
         buttons.add(cancel);
+        buttons.add(Box.createHorizontalStrut(8));
         buttons.add(save);
         panel.add(buttons);
 
@@ -3316,7 +3326,7 @@ public class MainContentPanel extends JPanel {
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setOpaque(true);
         list.setBackground(CANVAS);
-        list.setBorder(new EmptyBorder(0, 0, 0, 10));
+        list.setBorder(new EmptyBorder(0, 0, 0, 0));
 
         List<Post> posts = new ArrayList<>(user.getPosts());
         posts.sort((a, b) -> b.getTimestamp().compareTo(a.getTimestamp()));
@@ -3355,7 +3365,9 @@ public class MainContentPanel extends JPanel {
         card.setBorder(new CompoundBorder(
                 BorderFactory.createLineBorder(HAIRLINE, 1),
                 new EmptyBorder(10, 12, 10, 12)));
-        card.setMaximumSize(new Dimension(740, 138));
+        card.setPreferredSize(new Dimension(760, 138));
+        card.setMinimumSize(new Dimension(0, 138));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 138));
         card.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JPanel meta = new JPanel(new BorderLayout());
