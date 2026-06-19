@@ -1,4 +1,4 @@
 Jack567,5678Jack,Jack,ChangSha,Dundee,,image/avatars/1781708677088______20260617225717_569_2407.jpg,,TGVvMTIz
-Bob234,23456Bob,Bob,CSU,ChangSha,,image/avatars/1781708441304______20260617225715_567_2407.jpg,,SmFjazU2Nw;TGVvMTIz
+Bob234,23456Bob,Bob,CSU,ChangSha,,image/avatars/1781708441304______20260617225715_567_2407.jpg,,
 Alice123,123456w,Alice,CSU,Dundee,,image/avatars/1781708323210______20260617225715_566_2407.jpg,,TGVvMTIz
 Leo123,Leo123,Leo,CSU,Dundee,Hello,image/avatars/1781709012255_Leo.jpg,,

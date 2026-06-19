@@ -1,6 +1,6 @@
 [USERS]
 Jack567|Jack|ChangSha|Dundee|5678Jack||image/avatars/1781708677088______20260617225717_569_2407.jpg||TGVvMTIz
-Bob234|Bob|CSU|ChangSha|23456Bob||image/avatars/1781708441304______20260617225715_567_2407.jpg||SmFjazU2Nw;TGVvMTIz
+Bob234|Bob|CSU|ChangSha|23456Bob||image/avatars/1781708441304______20260617225715_567_2407.jpg||
 Alice123|Alice|CSU|Dundee|123456w||image/avatars/1781708323210______20260617225715_566_2407.jpg||TGVvMTIz
 Leo123|Leo|CSU|Dundee|Leo123|Hello|image/avatars/1781709012255_Leo.jpg||
 [FRIENDSHIPS]
@@ -10,10 +10,13 @@ Jack567|Leo123
 Bob234|Alice123
 Alice123|Leo123
 [POSTS]
+P2|Bob234|The weather is nice today|2026-06-19 12:04:57|Bob234
 P1|Alice123|Hello|2026-06-17 22:59:06|Leo123
 [COMMENTS]
+P2|Bob234|Hahhhhh|2026-06-19 12:05:31
 P1|Leo123|Hello|2026-06-17 23:59:25
 P1|Leo123|Nice to meet ypu|2026-06-17 23:59:42
+P1|Bob234|Hello|2026-06-19 12:05:17
 [COUNTER]
-1
+2
 [END]

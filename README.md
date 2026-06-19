@@ -71,6 +71,12 @@ Run:
 java -cp out SocialMediaApp
 ```
 
+Run the automated test plan:
+
+```powershell
+java -cp out TestPlan
+```
+
 ## Build a Runnable JAR
 
 ```powershell
